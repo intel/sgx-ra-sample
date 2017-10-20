@@ -11,7 +11,7 @@ my (%opt, $version, $quote, $clen);
 &usage unless &getopts('v:h', \%opt);
 &usage if $opt{h};
 
-$version= $opt{v} || 1;
+$version= $opt{v} || 2;
 
 while(<>) {
 	chomp;

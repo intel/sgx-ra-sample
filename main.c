@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <sgx_urts.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <sgx_uae_service.h>
 #include <glib.h>
 
@@ -61,7 +62,13 @@ sgx_status_t sgx_create_enclave_search (
 	sgx_misc_attribute_t *attr
 );
 
-#define SPID "\x3f\xde\xfc\xd3\x29\x55\x21\x5f\xf4\x7a\x78\x91\x3b\x59\xec\xef"
+void usage();
+
+void usage () 
+{
+	fprintf(stderr, "usage: enclavequote SPID\n");
+	exit(1);
+}
 
 int main (int argc, char *argv[])
 {
@@ -72,7 +79,7 @@ int main (int argc, char *argv[])
 	sgx_spid_t spid;
 	int updated= 0;
 	int rv;
-	uint32_t i;
+	uint32_t i, opt;
 	sgx_report_t report;
 	uint32_t sz= 0;
 	sgx_target_info_t target_info;
@@ -80,7 +87,31 @@ int main (int argc, char *argv[])
 	unsigned char *qp;
 	gchar *b64quote;
 
-	memcpy(&spid, SPID, 16);
+	while ( (opt= getopt(argc, argv, "h:")) != -1 ) {
+		switch(opt) {
+		case 'h':
+		case '?':
+		default:
+			usage();
+		}
+	}
+
+	argc-= optind;
+	if ( argc != 1 ) {
+		usage();
+	}
+
+	if ( strlen(argv[1]) < 32 ) {
+		fprintf(stderr, "SPID must be 32-byte hex string\n");
+		exit(1);
+	}
+
+	fprintf(stderr, "Generting quote for SPID ");
+	for (i= 0; i<16; ++i) {
+		sscanf(&argv[1][i*2], "%2xhh", (unsigned char *) &spid+i);
+		fprintf(stderr, "%02x", spid.id[i]);
+	}
+	fprintf(stderr, "\n");
 
 	/* Can we run SGX? */
 
