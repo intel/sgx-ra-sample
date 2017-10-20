@@ -1,0 +1,12 @@
+enclave {
+	include "sgx_utils.h"
+
+	trusted {
+		public int get_report([out] sgx_report_t *report,
+			[in] sgx_target_info_t *target_info);
+	};
+
+	untrusted {
+	};
+};
+

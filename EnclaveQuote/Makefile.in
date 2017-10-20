@@ -1,0 +1,36 @@
+CC=@CC@
+CFLAGS=@CFLAGS@
+CPPFLAGS=@CPPFLAGS@
+LDFLAGS=@LDFLAGS@
+
+INSTALL=@INSTALL@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+libdir=@libdir@
+enclave_libdir=@enclave_libdir@
+
+ENCLAVE=EnclaveQuote
+
+OBJS=$(ENCLAVE).o
+
+%.o: %.c
+	$(CC) $(CPPFLAGS) $(ENCLAVE_CPPFLAGS) $(CFLAGS) $(ENCLAVE_CFLAGS) -c $<
+
+all: $(ENCLAVE).so
+
+install: all
+	$(INSTALL) -d $(enclave_libdir)
+	$(INSTALL) -t $(enclave_libdir) $(ENCLAVE_SIGNED)
+
+include ../sgx_enclave.mk
+
+$(ENCLAVE).so: $(ENCLAVE_TOBJ) $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $(ENCLAVE_TOBJ) $(OBJS) $(LDFLAGS) $(ENCLAVE_LDFLAGS)
+
+clean:
+	rm -f $(OBJS) $(ENCLAVE_CLEAN) 
+
+distclean: clean
+	rm -f Makefile $(ENCLAVE_DISTCLEAN)
+

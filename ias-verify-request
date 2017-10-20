@@ -1,0 +1,40 @@
+#!/usr/bin/perl
+
+use strict;
+use Getopt::Std;
+use vars qw( $Prog );
+
+my (%opt, $version, $quote, $clen);
+
+($Prog= $0)=~ s#^.*/##;
+
+&usage unless &getopts('v:h', \%opt);
+&usage if $opt{h};
+
+$version= $opt{v} || 1;
+
+while(<>) {
+	chomp;
+	$quote.= $_;
+}
+
+$clen= 22+length($quote);
+
+print<<EOM;
+POST /attestation/sgx/v${version}/report
+Content-Type: application/json
+Content-Length: $clen
+
+{"isvEnclaveQuote":"$quote"}
+
+EOM
+
+0;
+
+sub usage {
+        print STDERR <<EOM;
+usage: $Prog
+EOM
+        exit 1;
+}
+

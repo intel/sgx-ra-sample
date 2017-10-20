@@ -1,0 +1,9 @@
+/* Enable general debugging code */
+#undef DEBUG
+
+/* Set for enclave apps built in prerelease mode */
+#undef EDEBUG
+
+/* Set for enclave apps built in release or prerelease mode */
+#undef NDEBUG
+
