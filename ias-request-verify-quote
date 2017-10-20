@@ -1,17 +1,29 @@
 #!/usr/bin/perl
 
+# Generates an HTTP/1.1 request suitable for sending to the Intel Attestation
+# Servers.
+#
+
 use strict;
 use Getopt::Std;
 use vars qw( $Prog );
+use HTTP::Request;
 
-my (%opt, $version, $quote, $clen);
+my (%opt, $version, $quote, $clen, $req);
 
 ($Prog= $0)=~ s#^.*/##;
 
-&usage unless &getopts('v:h', \%opt);
+&usage unless &getopts('i:v:h', \%opt);
 &usage if $opt{h};
 
 $version= $opt{v} || 2;
+
+if ( $opt{'i'} ) {
+	my $id= $opt{'i'};
+	$req= new HTTP::Request('GET', "/attestation/sgx/v${version}/report/$id");
+	print $req->as_string;
+	exit(0);
+}
 
 while(<>) {
 	chomp;
@@ -33,7 +45,7 @@ EOM
 
 sub usage {
         print STDERR <<EOM;
-usage: $Prog
+usage: $Prog [ -i id ] [ -v apiversion ]
 EOM
         exit 1;
 }

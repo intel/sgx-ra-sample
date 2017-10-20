@@ -63,6 +63,8 @@ sgx_status_t sgx_create_enclave_search (
 );
 
 void usage();
+void from_hexstring(unsigned char *dest, unsigned char *src, size_t len);
+void print_hexstring(FILE *fp, unsigned char *src, size_t len);
 
 void usage () 
 {
@@ -77,6 +79,7 @@ int main (int argc, char *argv[])
 	sgx_enclave_id_t eid= 0;
 	sgx_quote_t *quote;
 	sgx_spid_t spid;
+	sgx_report_t qe_report;
 	int updated= 0;
 	int rv;
 	uint32_t i, opt;
@@ -86,9 +89,23 @@ int main (int argc, char *argv[])
 	sgx_epid_group_id_t epid_gid;
 	unsigned char *qp;
 	gchar *b64quote;
+	uint16_t linkable= SGX_UNLINKABLE_SIGNATURE;
+	sgx_quote_nonce_t nonce;
+	char flag_nonce= 0;
 
-	while ( (opt= getopt(argc, argv, "h:")) != -1 ) {
+	while ( (opt= getopt(argc, argv, "h:ln:")) != -1 ) {
 		switch(opt) {
+		case 'l':
+			linkable= SGX_LINKABLE_SIGNATURE;
+			break;
+		case 'n':
+			if ( strlen(optarg) < 32 ) {
+				fprintf(stderr, "nonce must be 32-byte hex string\n");
+				exit(1);
+			}
+			from_hexstring((unsigned char *) &nonce, (unsigned char *) optarg, 16);
+			flag_nonce= 1;
+			break;
 		case 'h':
 		case '?':
 		default:
@@ -97,21 +114,27 @@ int main (int argc, char *argv[])
 	}
 
 	argc-= optind;
+	argv+= optind;
+
 	if ( argc != 1 ) {
 		usage();
 	}
 
-	if ( strlen(argv[1]) < 32 ) {
+	if ( strlen(argv[0]) < 32 ) {
 		fprintf(stderr, "SPID must be 32-byte hex string\n");
 		exit(1);
 	}
 
-	fprintf(stderr, "Generting quote for SPID ");
-	for (i= 0; i<16; ++i) {
-		sscanf(&argv[1][i*2], "%2xhh", (unsigned char *) &spid+i);
-		fprintf(stderr, "%02x", spid.id[i]);
-	}
+	from_hexstring((unsigned char *) &spid, (unsigned char *) argv[0], 16);
+	fprintf(stderr, "Generting quote for SPID: ");
+	print_hexstring(stderr, (unsigned char *) &spid, 16);
 	fprintf(stderr, "\n");
+
+	if ( flag_nonce ) {
+		fprintf(stderr, "Using nonce: ");
+		print_hexstring(stderr, (unsigned char *) &nonce, 16);
+		fprintf(stderr, "\n");
+	}
 
 	/* Can we run SGX? */
 
@@ -163,8 +186,11 @@ int main (int argc, char *argv[])
 	}
 
 	memset(quote, 0, sz);
-	status= sgx_get_quote(&report, SGX_UNLINKABLE_SIGNATURE, &spid,
-		NULL, NULL, 0, NULL, quote, sz);
+	status= sgx_get_quote(&report, linkable, &spid,
+		(flag_nonce) ? &nonce : NULL,
+		NULL, 0,
+		(flag_nonce) ? &qe_report : NULL,
+		quote, sz);
 	if ( status != SGX_SUCCESS ) {
 		fprintf(stderr, "sgx_get_quote: %08x\n", status);
 		return 1;
@@ -173,6 +199,25 @@ int main (int argc, char *argv[])
 	b64quote= NULL;
 	b64quote= g_base64_encode((const guchar *) quote, sz);
 	printf("%s\n", b64quote);
+}
+
+void from_hexstring (unsigned char *dest, unsigned char *src, size_t len)
+{
+	size_t i;
+
+	for (i= 0; i<len; ++i) {
+		unsigned int v;
+		sscanf(&src[i*2], "%2xhh", &v);
+		dest[i]= (unsigned char) v;
+	}
+}
+
+void print_hexstring (FILE *fp, unsigned char *src, size_t len)
+{
+	size_t i;
+	for(i= 0; i< len; ++i) {
+		fprintf(fp, "%02x", src[i]);
+	}
 }
 
 /*
