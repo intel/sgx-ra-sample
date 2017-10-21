@@ -22,7 +22,7 @@ APP_OBJS=main.o sgx_stub.o
 %.o: %.c
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) -I$(SGXSDK_INCDIR) $<
 
-all: quote $(SGX_ENCLAVES)
+all: quote $(SGX_ENCLAVES) link
 
 install: install-program install-enclaves
 
@@ -41,7 +41,12 @@ quote: $(ENCLAVE_UOBJS) $(APP_OBJS)
 	$(CC) -o $@ $(LDFLAGS) $(APP_OBJS) $(ENCLAVE_UOBJS) $(LIBS) -ldl
 
 clean: clean_enclaves
-	rm -f quote $(APP_OBJS) $(ENCLAVE_CLEAN)
+	rm -f quote $(APP_OBJS) $(ENCLAVE_CLEAN) EnclaveQuote.signed.so
+
+link: EnclaveQuote.signed.so quote
+
+EnclaveQuote.signed.so:
+	ln -s EnclaveQuote/EnclaveQuote.signed.so
 
 distclean: clean distclean_enclaves
 	rm -rf Makefile config.log config.status config.h autom4te.cache
