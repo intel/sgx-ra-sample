@@ -34,6 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "config.h"
 #include "EnclaveQuote_u.h"
 #include "sgx_stub.h"
+#include <getopt.h>
+#include <stdlib.h>
 #include <limits.h>
 #include <stdio.h>
 #include <sgx_urts.h>
@@ -65,6 +67,7 @@ sgx_status_t sgx_create_enclave_search (
 void usage();
 void from_hexstring(unsigned char *dest, unsigned char *src, size_t len);
 void print_hexstring(FILE *fp, unsigned char *src, size_t len);
+int from_hexstring_file(unsigned char *dest, unsigned char *file, size_t len);
 
 void usage () 
 {
@@ -91,13 +94,59 @@ int main (int argc, char *argv[])
 	gchar *b64quote= NULL;
 	uint16_t linkable= SGX_UNLINKABLE_SIGNATURE;
 	sgx_quote_nonce_t nonce;
-	char flag_nonce= 0;
-	char flag_spidfile= 0;
 
-	while ( (opt= getopt(argc, argv, "h:ln:s")) != -1 ) {
-		switch(opt) {
+	char flag_nonce= 0;
+	char flag_spid= 0;
+
+	static struct option long_opt[] =
+	{
+		{"help",		no_argument, 		0, 'h'},
+		{"nonce",		required_argument,	0, 'n'},
+		{"nonce-file",	required_argument,	0, 'N'},
+		{"spid",		required_argument,	0, 's'},
+		{"spid-file",	required_argument,	0, 'S'},
+		{"linkable",	no_argument,		0, 'l'},
+		{ 0, 0, 0, 0}
+	};
+
+	/* Parse our options */
+
+	while (1) {
+		int c;
+		int opt_index= 0;
+
+		c= getopt_long(argc, argv, "hln:N:s:S:", long_opt, &opt_index);
+		if ( c == -1 ) break;
+
+		switch(c) {
+		case 0:
+			break;
 		case 'l':
 			linkable= SGX_LINKABLE_SIGNATURE;
+			break;
+		case 'S':
+			if ( ! from_hexstring_file((unsigned char *) &spid, optarg, 16)) {
+				fprintf(stderr, "SPID must be 32-byte hex string\n");
+				exit(1);
+			}
+			++flag_spid;
+
+			break;
+		case 'N':
+			if ( ! from_hexstring_file((unsigned char *) &nonce, optarg, 16)) {
+				fprintf(stderr, "nonce must be 32-byte hex string\n");
+				exit(1);
+			}
+			++flag_nonce;
+
+			break;
+		case 's':
+			if ( strlen(optarg) < 32 ) {
+				fprintf(stderr, "SPID must be 32-byte hex string\n");
+				exit(1);
+			}
+			from_hexstring((unsigned char *) &spid, (unsigned char *) optarg, 16);
+			++flag_spid;
 			break;
 		case 'n':
 			if ( strlen(optarg) < 32 ) {
@@ -105,10 +154,9 @@ int main (int argc, char *argv[])
 				exit(1);
 			}
 			from_hexstring((unsigned char *) &nonce, (unsigned char *) optarg, 16);
-			flag_nonce= 1;
-			break;
-		case 's':
-			flag_spidfile= 1;
+
+			++flag_nonce;
+
 			break;
 		case 'h':
 		case '?':
@@ -117,38 +165,10 @@ int main (int argc, char *argv[])
 		}
 	}
 
-	argc-= optind;
-	argv+= optind;
-
-	if ( argc != 1 ) {
-		usage();
+	if ( ! flag_spid ) {
+		fprintf(stderr, "SPID required\n");
+		exit(1);
 	}
-
-	if ( flag_spidfile ) {
-		char sbuf[32];
-		FILE *fp;
-
-		cp= sbuf;
-		if ( (fp= fopen(argv[0], "r")) == NULL ) {
-			fprintf(stderr, "fopen: ");
-			perror(argv[0]);
-			exit(1);
-		}
-		if ( fread(sbuf, 32, 1, fp) != 1 ) {
-			fprintf(stderr, "%s: SPID must be 32-byte hex string\n", argv[0]);
-			exit(1);
-		}
-		fclose(fp);
-	} else {
-		cp= argv[0];
-
-		if ( strlen(cp) < 32 ) {
-			fprintf(stderr, "SPID must be 32-byte hex string\n");
-			exit(1);
-		}
-	}
-
-	from_hexstring((unsigned char *) &spid, (unsigned char *) cp, 16);
 
 	/* Can we run SGX? */
 
@@ -220,6 +240,31 @@ int main (int argc, char *argv[])
 		printf(",\n\"nonce\":\"%s\"", b64nonce);
 	}
 	printf("\n}\n");
+}
+
+int from_hexstring_file (unsigned char *dest, unsigned char *file, size_t len)
+{
+		unsigned char *sbuf;
+		FILE *fp;
+
+		sbuf= (unsigned char *) malloc(len*2);
+
+		if ( (fp= fopen(file, "r")) == NULL ) {
+			fprintf(stderr, "fopen: ");
+			perror(file);
+			exit(1);
+		}
+		if ( fread(sbuf, len*2, 1, fp) != 1 ) {
+			free(sbuf);
+			return 0;
+		}
+		fclose(fp);
+
+		from_hexstring(dest, sbuf, 16);
+
+		free(sbuf);
+
+		return 1;
 }
 
 void from_hexstring (unsigned char *dest, unsigned char *src, size_t len)
