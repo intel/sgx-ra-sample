@@ -1,0 +1,100 @@
+#!/usr/bin/perl
+
+# Generates an HTTP/1.1 request suitable for sending to the Intel Attestation
+# Servers.
+#
+
+use strict;
+use Getopt::Std;
+use vars qw( $Prog );
+use POSIX qw( strftime );
+use HTTP::Request;
+use HTTP::Headers;
+
+my (%opt, $version, $cmd, @data, $req);
+
+($Prog= $0)=~ s#^.*/##;
+
+&usage unless &getopts('v:h', \%opt);
+&usage if $opt{h};
+&usage unless @ARGV;
+
+$version= $opt{v} || 2;
+
+$cmd= shift(@ARGV);
+
+if ( $cmd eq 'sigrl' ) {
+	if ( @ARGV != 1 ) { &usage(); }
+
+	$req= &request('sigrl', $version, undef, @ARGV);
+
+} elsif ( $cmd eq 'report' ) {
+	if ( @ARGV != 0 ) { &usage(); }
+	@data= <STDIN>;
+
+	$req= &request('report', $version, \@data);
+
+} elsif ( $cmd eq 'retrieve' ) {
+	if ( @ARGV != 1 ) { &usage(); }
+
+	$req= &request('report', $version, undef, @ARGV);
+
+} else { 
+	&usage();
+}
+
+print $req->as_string();
+
+0;
+
+sub request {
+	my ($cmd, $ver, $dataref, @pathinfo)= @_;
+	my $method= 'GET';	# default method
+	my ($req, $uri, $hdr);
+
+	# Other methods
+
+	if ( $cmd eq 'report' && defined($dataref) && scalar(@$dataref) ) {
+		$method= 'POST';
+	}
+
+	$uri= sprintf("/attestation/sgx/v%d/%s", $version, $cmd);
+	if ( scalar @pathinfo ) {
+		$uri= join('/', $uri, @pathinfo);
+	}
+
+	$hdr= new HTTP::Headers(
+		Date         => strftime('%a, %d %b %Y %T GMT', gmtime)
+	);
+
+	$req= new HTTP::Request($method, $uri, $hdr);
+	if ( defined $dataref ) {
+		my $content= join('', @$dataref);
+		$req->content($content);
+		$req->content_length(length($content));
+		$req->content_type('application/json');
+	}
+
+	return $req;
+}
+
+sub usage {
+        print STDERR <<EOM;
+usage: $Prog [ -v apiversion ] cmd args...
+
+Commands:
+  sigrl epid_gid
+      Retrieve the SigRl for the given EPID group.
+
+  report
+      Verify attestation evidence, retrieving the attestation 
+	  verification report. The quote payload is read from stdin.
+
+  retrieve-report id
+      Retrieve the attestation verification report for the given 
+	  report id.
+
+EOM
+        exit 1;
+}
+
