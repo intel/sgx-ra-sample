@@ -71,7 +71,15 @@ int from_hexstring_file(unsigned char *dest, unsigned char *file, size_t len);
 
 void usage () 
 {
-	fprintf(stderr, "usage: quote [ -l ] [ -n nonce ] SPID\n");
+	fprintf(stderr, "usage: quote [ options ]\n");
+	fprintf(stderr, "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string\n");
+	fprintf(stderr, "  -S, --spidfile=FILE      Set the SPID from a file containg a 32-byte\n");
+	fprintf(stderr, "                              ASCII hex string\n");
+	fprintf(stderr, "                           One of --spid or --spidfile is required\n");
+	fprintf(stderr, "  -n, --nonce=HEXSTRING    Set a nonce from a 32-byte ASCII hex string\n");
+	fprintf(stderr, "  -N, --noncefile=FILE     Set a nonce from a file containing a 32-byte\n");
+	fprintf(stderr, "                              ASCII hex string\n");
+	fprintf(stderr, "  -l, --linkable           Specify a linkable quote (default: unlinkable)\n");
 	exit(1);
 }
 
