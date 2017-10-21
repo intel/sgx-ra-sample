@@ -73,11 +73,11 @@ void usage ()
 {
 	fprintf(stderr, "usage: quote [ options ]\n");
 	fprintf(stderr, "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string\n");
-	fprintf(stderr, "  -S, --spidfile=FILE      Set the SPID from a file containg a 32-byte\n");
+	fprintf(stderr, "  -S, --spid-file=FILE      Set the SPID from a file containg a 32-byte\n");
 	fprintf(stderr, "                              ASCII hex string\n");
-	fprintf(stderr, "                           One of --spid or --spidfile is required\n");
+	fprintf(stderr, "                           One of --spid or --spid-file is required\n");
 	fprintf(stderr, "  -n, --nonce=HEXSTRING    Set a nonce from a 32-byte ASCII hex string\n");
-	fprintf(stderr, "  -N, --noncefile=FILE     Set a nonce from a file containing a 32-byte\n");
+	fprintf(stderr, "  -N, --nonce-file=FILE     Set a nonce from a file containing a 32-byte\n");
 	fprintf(stderr, "                              ASCII hex string\n");
 	fprintf(stderr, "  -l, --linkable           Specify a linkable quote (default: unlinkable)\n");
 	exit(1);
@@ -174,7 +174,7 @@ int main (int argc, char *argv[])
 	}
 
 	if ( ! flag_spid ) {
-		fprintf(stderr, "SPID required\n");
+		fprintf(stderr, "SPID required. Use one of --spid or --spid-file \n");
 		exit(1);
 	}
 
