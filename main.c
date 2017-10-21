@@ -68,7 +68,7 @@ void print_hexstring(FILE *fp, unsigned char *src, size_t len);
 
 void usage () 
 {
-	fprintf(stderr, "usage: enclavequote SPID\n");
+	fprintf(stderr, "usage: quote [ -l ] [ -n nonce ] SPID\n");
 	exit(1);
 }
 
@@ -87,13 +87,14 @@ int main (int argc, char *argv[])
 	uint32_t sz= 0;
 	sgx_target_info_t target_info;
 	sgx_epid_group_id_t epid_gid;
-	unsigned char *qp;
-	gchar *b64quote, *b64nonce;
+	unsigned char *cp;
+	gchar *b64quote= NULL;
 	uint16_t linkable= SGX_UNLINKABLE_SIGNATURE;
 	sgx_quote_nonce_t nonce;
 	char flag_nonce= 0;
+	char flag_spidfile= 0;
 
-	while ( (opt= getopt(argc, argv, "h:ln:")) != -1 ) {
+	while ( (opt= getopt(argc, argv, "h:ln:s")) != -1 ) {
 		switch(opt) {
 		case 'l':
 			linkable= SGX_LINKABLE_SIGNATURE;
@@ -105,6 +106,9 @@ int main (int argc, char *argv[])
 			}
 			from_hexstring((unsigned char *) &nonce, (unsigned char *) optarg, 16);
 			flag_nonce= 1;
+			break;
+		case 's':
+			flag_spidfile= 1;
 			break;
 		case 'h':
 		case '?':
@@ -120,12 +124,31 @@ int main (int argc, char *argv[])
 		usage();
 	}
 
-	if ( strlen(argv[0]) < 32 ) {
-		fprintf(stderr, "SPID must be 32-byte hex string\n");
-		exit(1);
+	if ( flag_spidfile ) {
+		char sbuf[32];
+		FILE *fp;
+
+		cp= sbuf;
+		if ( (fp= fopen(argv[0], "r")) == NULL ) {
+			fprintf(stderr, "fopen: ");
+			perror(argv[0]);
+			exit(1);
+		}
+		if ( fread(sbuf, 32, 1, fp) != 1 ) {
+			fprintf(stderr, "%s: SPID must be 32-byte hex string\n", argv[0]);
+			exit(1);
+		}
+		fclose(fp);
+	} else {
+		cp= argv[0];
+
+		if ( strlen(cp) < 32 ) {
+			fprintf(stderr, "SPID must be 32-byte hex string\n");
+			exit(1);
+		}
 	}
 
-	from_hexstring((unsigned char *) &spid, (unsigned char *) argv[0], 16);
+	from_hexstring((unsigned char *) &spid, (unsigned char *) cp, 16);
 
 	/* Can we run SGX? */
 
@@ -187,13 +210,16 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 
-	b64quote= NULL;
 	b64quote= g_base64_encode((const guchar *) quote, sz);
-	printf("quote %s\n", b64quote);
+	printf("{\n");
+	printf("\"quote\":\"%s\"", b64quote);
 
-	b64nonce= NULL;
-	b64nonce= g_base64_encode((const guchar *) &nonce, 16);
-	printf("nonce %s\n", b64nonce);
+	if ( flag_nonce ) {
+		gchar *b64nonce= NULL;
+		b64nonce= g_base64_encode((const guchar *) &nonce, 16);
+		printf(",\n\"nonce\":\"%s\"", b64nonce);
+	}
+	printf("\n}\n");
 }
 
 void from_hexstring (unsigned char *dest, unsigned char *src, size_t len)
