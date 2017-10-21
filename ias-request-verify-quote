@@ -10,6 +10,7 @@ use vars qw( $Prog );
 use HTTP::Request;
 
 my (%opt, $version, $quote, $clen, $req);
+my (%body);
 
 ($Prog= $0)=~ s#^.*/##;
 
@@ -27,19 +28,26 @@ if ( $opt{'i'} ) {
 
 while(<>) {
 	chomp;
-	$quote.= $_;
+	my ($field, $data)= split(" ", $_);
+	$body{$field}= $data;
 }
 
+$quote= $body{'quote'};
 $clen= 22+length($quote);
+$clen+= 11+length($body{'nonce'}) if (exists $body{'nonce'});
 
 print<<EOM;
 POST /attestation/sgx/v${version}/report
 Content-Type: application/json
 Content-Length: $clen
 
-{"isvEnclaveQuote":"$quote"}
-
 EOM
+
+printf('{"isvEnclaveQuote":"%s"', $quote);
+if ( exists($body{'nonce'}) ) {
+	printf(',"nonce":"%s"', $body{'nonce'})
+}
+print "\}\n\n";
 
 0;
 

@@ -88,7 +88,7 @@ int main (int argc, char *argv[])
 	sgx_target_info_t target_info;
 	sgx_epid_group_id_t epid_gid;
 	unsigned char *qp;
-	gchar *b64quote;
+	gchar *b64quote, *b64nonce;
 	uint16_t linkable= SGX_UNLINKABLE_SIGNATURE;
 	sgx_quote_nonce_t nonce;
 	char flag_nonce= 0;
@@ -126,15 +126,6 @@ int main (int argc, char *argv[])
 	}
 
 	from_hexstring((unsigned char *) &spid, (unsigned char *) argv[0], 16);
-	fprintf(stderr, "Generting quote for SPID: ");
-	print_hexstring(stderr, (unsigned char *) &spid, 16);
-	fprintf(stderr, "\n");
-
-	if ( flag_nonce ) {
-		fprintf(stderr, "Using nonce: ");
-		print_hexstring(stderr, (unsigned char *) &nonce, 16);
-		fprintf(stderr, "\n");
-	}
 
 	/* Can we run SGX? */
 
@@ -198,7 +189,11 @@ int main (int argc, char *argv[])
 
 	b64quote= NULL;
 	b64quote= g_base64_encode((const guchar *) quote, sz);
-	printf("%s\n", b64quote);
+	printf("quote %s\n", b64quote);
+
+	b64nonce= NULL;
+	b64nonce= g_base64_encode((const guchar *) &nonce, 16);
+	printf("nonce %s\n", b64nonce);
 }
 
 void from_hexstring (unsigned char *dest, unsigned char *src, size_t len)
