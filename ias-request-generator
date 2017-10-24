@@ -6,6 +6,7 @@
 
 use strict;
 use Getopt::Std;
+use Encode;
 use vars qw( $Prog );
 use POSIX qw( strftime );
 use HTTP::Request;
@@ -47,6 +48,11 @@ print $req->as_string();
 
 0;
 
+sub read_stdin {
+	my @in= <STDIN>;
+	return join("", @in);
+}
+
 sub request {
 	my ($cmd, $ver, $dataref, @pathinfo)= @_;
 	my $method= 'GET';	# default method
@@ -68,10 +74,10 @@ sub request {
 	);
 
 	$req= new HTTP::Request($method, $uri, $hdr);
-	if ( defined $dataref ) {
-		my $content= join('', @$dataref);
-		$req->content($content);
-		$req->content_length(length($content));
+	if ( $method eq 'POST' ) {
+		my $data= join('', @$dataref);
+		$req->content($data);
+		$req->content_length(length($data));
 		$req->content_type('application/json');
 	}
 

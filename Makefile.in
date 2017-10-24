@@ -5,7 +5,7 @@ CC=@CC@
 # are loaded from. Otherwise, create_enclave will search in the
 # programs current working directory.
 #CFLAGS=@CFLAGS@ -fno-builtin-memset
-CFLAGS=@CFLAGS@ -fno-builtin-memset
+CFLAGS=@CFLAGS@ -fno-builtin-memset -mrdrnd
 CPPFLAGS=@CPPFLAGS@
 LDFLAGS=@LDFLAGS@ -L$(SGXSDK_LIBDIR)
 LIBS=@LIBS@

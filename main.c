@@ -46,6 +46,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define MAX_LEN 80
 
+#define _rdrand64_step(x) ({ unsigned char err; asm volatile("rdrand %0; setc %1":"=r"(*x), "=qm"(err)); err; })
+
 #ifdef __x86_64__
 #define DEF_LIB_SEARCHPATH "/lib:/lib64:/usr/lib:/usr/lib64"
 #else
@@ -66,7 +68,7 @@ sgx_status_t sgx_create_enclave_search (
 
 void usage();
 void from_hexstring(unsigned char *dest, unsigned char *src, size_t len);
-void print_hexstring(FILE *fp, unsigned char *src, size_t len);
+void print_hexstring(FILE *fp, void *src, size_t len);
 int from_hexstring_file(unsigned char *dest, unsigned char *file, size_t len);
 
 void usage () 
@@ -76,6 +78,7 @@ void usage ()
 	fprintf(stderr, "  -S, --spid-file=FILE      Set the SPID from a file containg a 32-byte\n");
 	fprintf(stderr, "                              ASCII hex string\n");
 	fprintf(stderr, "                           One of --spid or --spid-file is required\n");
+	fprintf(stderr, "  -r                       Generate a nonce using RDRAND\n");
 	fprintf(stderr, "  -n, --nonce=HEXSTRING    Set a nonce from a 32-byte ASCII hex string\n");
 	fprintf(stderr, "  -N, --nonce-file=FILE     Set a nonce from a file containing a 32-byte\n");
 	fprintf(stderr, "                              ASCII hex string\n");
@@ -111,6 +114,7 @@ int main (int argc, char *argv[])
 		{"help",		no_argument, 		0, 'h'},
 		{"nonce",		required_argument,	0, 'n'},
 		{"nonce-file",	required_argument,	0, 'N'},
+		{"rand-nonce",  no_argument,        0, 'r'},
 		{"spid",		required_argument,	0, 's'},
 		{"spid-file",	required_argument,	0, 'S'},
 		{"linkable",	no_argument,		0, 'l'},
@@ -123,7 +127,7 @@ int main (int argc, char *argv[])
 		int c;
 		int opt_index= 0;
 
-		c= getopt_long(argc, argv, "hln:N:s:S:", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "hln:N:rs:S:", long_opt, &opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
@@ -140,6 +144,21 @@ int main (int argc, char *argv[])
 			++flag_spid;
 
 			break;
+		case 'r':
+			for(i= 0; i< 2; ++i) {
+				int retry= 10;
+				unsigned char ok= 0;
+				uint64_t *np= (uint64_t *) &nonce;
+
+				while ( !ok && retry ) ok= _rdrand64_step(&np[i]);
+				if ( ok == 0 ) {
+					fprintf(stderr, "nonce: RDRAND underflow\n");
+					exit(1);
+				}
+			}
+			++flag_nonce;
+			break;
+
 		case 'N':
 			if ( ! from_hexstring_file((unsigned char *) &nonce, optarg, 16)) {
 				fprintf(stderr, "nonce must be 32-byte hex string\n");
@@ -231,7 +250,7 @@ int main (int argc, char *argv[])
 	status= sgx_get_quote(&report, linkable, &spid,
 		(flag_nonce) ? &nonce : NULL,
 		NULL, 0,
-		(flag_nonce) ? &qe_report : NULL,
+		(flag_nonce) ? &qe_report : NULL, 
 		quote, sz);
 	if ( status != SGX_SUCCESS ) {
 		fprintf(stderr, "sgx_get_quote: %08x\n", status);
@@ -240,12 +259,11 @@ int main (int argc, char *argv[])
 
 	b64quote= g_base64_encode((const guchar *) quote, sz);
 	printf("{\n");
-	printf("\"quote\":\"%s\"", b64quote);
-
+	printf("\"isvEnclaveQuote\":\"%s\"", b64quote);
 	if ( flag_nonce ) {
-		gchar *b64nonce= NULL;
-		b64nonce= g_base64_encode((const guchar *) &nonce, 16);
-		printf(",\n\"nonce\":\"%s\"", b64nonce);
+		printf(",\n\"nonce\":\"");
+		print_hexstring(stdout, &nonce, 16);
+		printf("\"");
 	}
 	printf("\n}\n");
 }
@@ -286,11 +304,12 @@ void from_hexstring (unsigned char *dest, unsigned char *src, size_t len)
 	}
 }
 
-void print_hexstring (FILE *fp, unsigned char *src, size_t len)
+void print_hexstring (FILE *fp, void *src, size_t len)
 {
+	unsigned char *sp= src;
 	size_t i;
 	for(i= 0; i< len; ++i) {
-		fprintf(fp, "%02x", src[i]);
+		fprintf(fp, "%02x", sp[i]);
 	}
 }
 
