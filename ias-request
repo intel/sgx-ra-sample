@@ -26,7 +26,7 @@ sub EX_EXEC { 100; }
 
 my (%opt, $version, $cmd, @data, $req, $flag_proxy, $certfile,
 	$flag_tunnel, $flag_help, $flag_prod, $proxyurl, $url,
-	$response, $proxy, $tunnel, $outfile);
+	$response, $proxy, $tunnel, $flag_dryrun, $outfile);
 
 ($Prog= $0)=~ s#^.*/##;
 
@@ -43,6 +43,7 @@ GetOptions(
 	'P|production'	=> \$flag_prod,
 	'o|out=s'		=> \$outfile,
 	'c|cert=s'		=> \$certfile,
+	'n|dryrun'		=> \$flag_dryrun,
 	't|tunnel'		=> \$flag_tunnel,
 	'u|url=s'			=> \$url,
 	'v|version=i'		=> \$version,
@@ -72,7 +73,7 @@ if ( $flag_proxy ) {
 
 # Do we need to create a proxy tunnel for s_client?
 
-if ( $flag_tunnel ) {
+if ( $flag_tunnel && ! $flag_dryrun ) {
 	$tunnel= &create_tunnel($proxyurl, $url);
 } elsif ( $flag_proxy ) {
 	&debug("Using proxy $proxyurl to connect to $url\n");
@@ -103,8 +104,12 @@ if ( $cmd eq 'sigrl' ) {
 	&usage();
 }
 
-$response= &do_request($req, $url, $proxy, $tunnel, $certfile, undef);
-&handle_response($response, $outfile);
+if ( $flag_dryrun ) {
+	print $req->as_string, "\n";
+} else {
+	$response= &do_request($req, $url, $proxy, $tunnel, $certfile, undef);
+	&handle_response($response, $outfile);
+}
 
 if ( $Pid ) {
 	$EXITING= 1;
