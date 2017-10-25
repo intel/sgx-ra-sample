@@ -2,6 +2,8 @@
 #
 # Send a request to the Intel Attestation Service
 #
+# libcrypt-ssleay-perl
+#
 
 $DevUrl= 'https://test-as.sgx.trustedservices.intel.com';
 $ProdUrl= 'https://as.sgx.trustedservices.intel.com';
@@ -10,33 +12,53 @@ $DEBUG= 0;
 $EXITING= 0;
 
 use strict;
-use Getopt::Long;
+use Getopt::Long qw(:config no_ignore_case);
 use vars qw( $Prog $ProdUrl $DevUrl $DEBUG $Pid $EXITING );
 use POSIX qw( strftime :sys_wait_h );
+use IO::Socket::SSL;
 use HTTP::Request;
 use HTTP::Headers;
 use HTTP::Response;
 use Net::Domain qw(hostdomain);
 use MIME::Base64;
 use URI::Escape;
+use LWP::UserAgent;
 use Data::Dumper;
+
+sub A_LWP      { 0; }
+sub A_SCLIENT { 1; }
 
 sub EX_TERM { 50; }
 sub EX_EXEC { 100; }
 
 my (%opt, $version, $cmd, @data, $req, $flag_proxy, $certfile,
-	$flag_tunnel, $flag_help, $flag_prod, $proxyurl, $url,
-	$response, $proxy, $tunnel, $flag_dryrun, $outfile);
+	$flag_tunnel, $flag_help, $flag_prod, $proxyurl, $url, $agent,
+	$response, $proxy, $tunnel, $flag_dryrun, $outfile, %Agents,
+	$flag_list_agents);
 
 ($Prog= $0)=~ s#^.*/##;
 
+%Agents= (
+	's_client'	=> A_SCLIENT,
+	'perl'		=> A_LWP
+);
+
 $flag_proxy= -1;	# auto-detect
+$flag_list_agents= 0;
 $version= 2;
 $outfile= 'out';
+$agent= A_SCLIENT;
 
 GetOptions(
 	'help'		=> sub { &usage(); },
 
+	'A|list-agents'	=> \$flag_list_agents,
+	'a|agent=s'		=> sub { 
+							my ($oname, $oval)= @_;
+							die("$oval: invalid user agent\n") unless
+								exists($Agents{$oval});
+							$agent= $Agents{$oval};
+						},
 	'd|debug'		=> \$DEBUG,
 	'proxy!'		=> \$flag_proxy,
 	'p|proxy-url=s'	=> \$proxyurl,
@@ -45,10 +67,18 @@ GetOptions(
 	'c|cert=s'		=> \$certfile,
 	'n|dryrun'		=> \$flag_dryrun,
 	't|tunnel'		=> \$flag_tunnel,
-	'u|url=s'			=> \$url,
-	'v|version=i'		=> \$version,
+	'u|url=s'		=> \$url,
+	'v|version=i'	=> \$version,
 ) or &usage();
 
+if ( $flag_list_agents ) {
+	printf STDERR "Available user agents:\n";
+	foreach my $ag (sort keys %Agents) {
+		printf("   %s%s\n", $ag, ($Agents{$ag} == $agent) ?
+			' (default)' : '');
+	}
+	exit(1);
+}
 &usage if ( $flag_prod && defined($url) );
 &usage if ( $flag_proxy == 0 && $flag_tunnel );
 &usage if ( $version < 1 );
@@ -71,7 +101,8 @@ if ( $flag_proxy ) {
 }
 
 
-# Do we need to create a proxy tunnel for s_client?
+# Do we need to create a proxy tunnel? Some user agents (s_client) don't
+# support proxyies.
 
 if ( $flag_tunnel && ! $flag_dryrun ) {
 	$tunnel= &create_tunnel($proxyurl, $url);
@@ -105,9 +136,10 @@ if ( $cmd eq 'sigrl' ) {
 }
 
 if ( $flag_dryrun ) {
+	&debug("HTTP::Request object:\n%s\n", Dumper($req));
 	print $req->as_string, "\n";
 } else {
-	$response= &do_request($req, $url, $proxy, $tunnel, $certfile, undef);
+	$response= &do_request($req, $url, $proxyurl, $tunnel, $certfile, $agent);
 	&handle_response($response, $outfile);
 }
 
@@ -156,13 +188,58 @@ sub gen_request {
 
 sub do_request {
 	my ($response);
-	my $client= pop(@_);
+	my $agent= pop(@_);
 
-	if ( $client eq 'native' ) {
-	} else {
-		$response= do_request_s_client(@_);
+	if ( $agent == A_LWP ) {
+		return do_request_lwp(@_);
+	} elsif ($agent == A_SCLIENT ) {
+		return do_request_s_client(@_);
 	}
 
+	fprintf("No handler for user agent\n");
+	return undef;
+}
+
+# Connect using the LWP::UserAgent package
+
+sub do_request_lwp {
+	my ($request, $url, $proxy, $tunnel, $certfile)= @_;
+	my %sslopts= (
+		'SSL_version'		=> 'TLSv1_2',
+		'verify_hostname'	=> 0
+	);
+	my $ua= new LWP::UserAgent();
+
+	if ( defined($certfile) ) {
+		$sslopts{'SSL_use_cert'}= 1;
+		$sslopts{'SSL_cert_file'}= $certfile;
+	}
+
+	while ( my ($key, $val)= each %sslopts ) {
+		$ua->ssl_opts($key => $val);
+	}
+
+	if ( $tunnel ) {
+		# Connect to the tunnel host:port instead of the
+		# destination.
+		$request->url(sprintf('https://localhost:%d%s', $tunnel, $request->url));
+	} else {
+		$url=~ s#/+$##;
+		$request->url($url . $request->url);
+
+		if ( defined($proxy) ) {
+			$ua->proxy(['http', 'https'], $proxy);
+		}
+	}
+
+	&debug("SSL options:\n");
+	foreach my $key ($ua->ssl_opts) {
+		&debug("  %s => %s\n", $key, $ua->ssl_opts($key));
+	}
+	&debug("LWP::UserAgent object:\n%s\n", Dumper($ua));
+	&debug("HTTP::Request object:\n%s\n", Dumper($request));
+
+	return $ua->request($request) || undef;
 }
 
 sub do_request_s_client {
@@ -172,6 +249,8 @@ sub do_request_s_client {
 		s_client -quiet -tls1_2 -sess_out session.out
 	]);
 	my $tmpfile= "/tmp/s_client.out.$$";
+
+	&debug("HTTP::Request object:\n%s\n", Dumper($request));
 
 	if ( $tunnel ) {
 		push(@sslopt, '-connect', 'localhost:'.$tunnel);
@@ -205,7 +284,9 @@ sub do_request_s_client {
 	}
 	close(TMPFILE);
 
-	&debug("Response\n%s\n%s\n%s\n", "-="x20, $str, "-="x20);
+	if ( length($str) ) {
+		&debug("Response\n%s\n%s\n%s\n", "-="x20, $str, "-="x20);
+	}
 
 	unlink($tmpfile);
 
@@ -218,6 +299,15 @@ sub do_request_s_client {
 sub handle_response {
 	my ($response, $outfile)= @_;
 	my ($data);
+
+	return unless (defined($response) && $response->code);
+	
+	&debug("HTTP::Response object:\n%s\n", Dumper($response));
+	unless ( $response->is_success ) {
+		printf("HTTP %d (%s)\n", $response->code, $response->message);
+		print $response->content;
+		return;
+	}
 
 	&output($outfile, 'signcert',
 		uri_unescape($response->header('X-IASReport-Signing-Certificate')));
@@ -266,7 +356,7 @@ Options:
   -P, --production       Use the production Intel Attestation server 
                            instead of the development server.
 
-  -t, --tunnel           Use a proxy tunnel instead of HTTP proxying. This
+  -t, --tunnel           Use an HTTP tunnel instead of HTTP proxying. This
                            requires that the 'proxytunnel' package be
                            installed. This option forces the use of a 
                            proxy server.
@@ -289,7 +379,9 @@ Options:
 
   -u, --url=SERVER_URL   The URL to contact instead of the Intel 
                            Attestation server. Cannot be combined with
-                           --production.
+                           --production. This option facilitates the
+                           use of ssh tunnels for systems without 
+                           access to the internet or proxies.
 
   -v, --version=VERSION  The IAS API version to use. Default is 2.
 
