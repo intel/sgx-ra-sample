@@ -273,6 +273,8 @@ Options:
 
   -d, --debug            Turn on debugging info
 
+  -n, --dryrun           Dry run. Don't connect to IAS.
+
   --[no-]proxy           Force the use of a proxy server, or ignore the
                            proxy server, regardless of the system proxy
                            settings.
