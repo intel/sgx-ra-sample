@@ -79,6 +79,7 @@ void usage ()
 	fprintf(stderr, "                              ASCII hex string\n");
 	fprintf(stderr, "                           One of --spid or --spid-file is required\n");
 	fprintf(stderr, "  -r                       Generate a nonce using RDRAND\n");
+	fprintf(stderr, "  -e, --epid-gid           Get the EPID Group ID instead of a quote\n");
 	fprintf(stderr, "  -n, --nonce=HEXSTRING    Set a nonce from a 32-byte ASCII hex string\n");
 	fprintf(stderr, "  -N, --nonce-file=FILE     Set a nonce from a file containing a 32-byte\n");
 	fprintf(stderr, "                              ASCII hex string\n");
@@ -101,6 +102,7 @@ int main (int argc, char *argv[])
 	uint32_t sz= 0;
 	sgx_target_info_t target_info;
 	sgx_epid_group_id_t epid_gid;
+	uint32_t *n_epid_gid= 0xdeadbeef;
 	unsigned char *cp;
 	gchar *b64quote= NULL;
 	uint16_t linkable= SGX_UNLINKABLE_SIGNATURE;
@@ -108,10 +110,12 @@ int main (int argc, char *argv[])
 
 	char flag_nonce= 0;
 	char flag_spid= 0;
+	char flag_epid= 0;
 
 	static struct option long_opt[] =
 	{
 		{"help",		no_argument, 		0, 'h'},
+		{"epid-gid",	no_argument,		0, 'e'},
 		{"nonce",		required_argument,	0, 'n'},
 		{"nonce-file",	required_argument,	0, 'N'},
 		{"rand-nonce",  no_argument,        0, 'r'},
@@ -127,7 +131,7 @@ int main (int argc, char *argv[])
 		int c;
 		int opt_index= 0;
 
-		c= getopt_long(argc, argv, "hln:N:rs:S:", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "ehln:N:rs:S:", long_opt, &opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
@@ -143,6 +147,9 @@ int main (int argc, char *argv[])
 			}
 			++flag_spid;
 
+			break;
+		case 'e':
+			++flag_epid;
 			break;
 		case 'r':
 			for(i= 0; i< 2; ++i) {
@@ -192,9 +199,9 @@ int main (int argc, char *argv[])
 		}
 	}
 
-	if ( ! flag_spid ) {
+	if ( ! flag_spid && ! flag_epid ) {
 		fprintf(stderr, "SPID required. Use one of --spid or --spid-file \n");
-		exit(1);
+		return 1;
 	}
 
 	/* Can we run SGX? */
@@ -202,7 +209,19 @@ int main (int argc, char *argv[])
 	if ( ! have_sgx_psw() ) {
 		fprintf(stderr, "Intel SGX runtime libraries not found.\n");
 		fprintf(stderr, "This system cannot use Intel SGX.\n");
-		exit(1);
+		return 1;
+	}
+
+	/* Did they ask for the EPID GID? */
+
+	if ( flag_epid ) {
+		status= sgx_get_extended_epid_group_id(&n_epid_gid);
+		if ( status != SGX_SUCCESS ) {
+			fprintf(stderr, "sgx_get_extended_epid_group_id: %08x\n", status);
+			return 1;
+		}
+		printf("%llu\n", n_epid_gid);
+		return 0;
 	}
 
 	/* Launch the enclave */
@@ -258,6 +277,7 @@ int main (int argc, char *argv[])
 	}
 
 	b64quote= g_base64_encode((const guchar *) quote, sz);
+
 	printf("{\n");
 	printf("\"isvEnclaveQuote\":\"%s\"", b64quote);
 	if ( flag_nonce ) {

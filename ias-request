@@ -87,6 +87,12 @@ if ( defined($url) && !defined((&parse_url($url))[0]) ) {
 	die "Invalid destination URL $url\n";
 }
 
+# Does the cert file exist?
+
+if ( defined($certfile) && ! -f $certfile ) {
+	die "$certfile: $!\n";
+}
+
 # Get our destination
 
 if ( ! defined($url) ) {
@@ -294,8 +300,12 @@ sub do_request_s_client {
 
 	unlink($tmpfile);
 
-	$response= HTTP::Response->parse($str);
-	return $response;
+	if (length($str)) {
+		$response= HTTP::Response->parse($str);
+		return $response;
+	}
+
+	return undef;
 }
 
 # Read the response, output the header and body, and validate the signature
@@ -308,7 +318,9 @@ sub handle_response {
 	
 	&debug("HTTP::Response object:\n%s\n", Dumper($response));
 	unless ( $response->is_success ) {
-		printf("HTTP %d (%s)\n", $response->code, $response->message);
+		my $msg= $response->message;
+		$msg=~ s/\l\r/\n/g;
+		printf("HTTP %d %s\n", $response->code, $msg);
 		print $response->content;
 		return;
 	}
