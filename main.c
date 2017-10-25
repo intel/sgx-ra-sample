@@ -102,7 +102,7 @@ int main (int argc, char *argv[])
 	uint32_t sz= 0;
 	sgx_target_info_t target_info;
 	sgx_epid_group_id_t epid_gid;
-	uint32_t *n_epid_gid= 0xdeadbeef;
+	uint32_t n_epid_gid= 0xdeadbeef;
 	unsigned char *cp;
 	gchar *b64quote= NULL;
 	uint16_t linkable= SGX_UNLINKABLE_SIGNATURE;

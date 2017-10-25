@@ -33,7 +33,7 @@ sub EX_EXEC { 100; }
 my (%opt, $version, $cmd, @data, $req, $flag_proxy, $certfile,
 	$flag_tunnel, $flag_help, $flag_prod, $proxyurl, $url, $agent,
 	$response, $proxy, $tunnel, $flag_dryrun, $outfile, %Agents,
-	$flag_list_agents);
+	$flag_list_agents, $flag_quiet, $rv);
 
 ($Prog= $0)=~ s#^.*/##;
 
@@ -47,6 +47,7 @@ $flag_list_agents= 0;
 $version= 2;
 $outfile= 'out';
 $agent= A_SCLIENT;
+$rv= 0;
 
 GetOptions(
 	'help'		=> sub { &usage(); },
@@ -58,6 +59,7 @@ GetOptions(
 								exists($Agents{$oval});
 							$agent= $Agents{$oval};
 						},
+	'q|quiet'		=> \$flag_quiet,
 	'd|debug'		=> \$DEBUG,
 	'proxy!'		=> \$flag_proxy,
 	'p|proxy-url=s'	=> \$proxyurl,
@@ -145,7 +147,7 @@ if ( $flag_dryrun ) {
 	print $req->as_string, "\n";
 } else {
 	$response= &do_request($req, $url, $proxyurl, $tunnel, $certfile, $agent);
-	&handle_response($response, $outfile);
+	$rv= &handle_response($response, $outfile, $flag_quiet);
 }
 
 if ( $Pid ) {
@@ -154,7 +156,7 @@ if ( $Pid ) {
 	kill 'HUP', $Pid;
 }
 
-0;
+exit($rv);
 
 # Generate an HTTP::Request object to send to IAS
 
@@ -274,7 +276,7 @@ sub do_request_s_client {
 
 	&debug("Executing: openssl %s\n", @sslopt);
 	&debug("Directing output to temp file %s\n", $tmpfile);
-	&debug("Request\n%s\n%s\n%s\n", "-="x20, $request->as_string, "-="x20);
+	&debug("Request\n%s\n%s\n%1\$s\n", "-="x38, $request->as_string);
 
 	open(SAVEOUT, ">&STDOUT");
 	open(TMPFILE, ">$tmpfile");
@@ -294,10 +296,6 @@ sub do_request_s_client {
 	}
 	close(TMPFILE);
 
-	if ( length($str) ) {
-		&debug("Response\n%s\n%s\n%s\n", "-="x20, $str, "-="x20);
-	}
-
 	unlink($tmpfile);
 
 	if (length($str)) {
@@ -311,25 +309,28 @@ sub do_request_s_client {
 # Read the response, output the header and body, and validate the signature
 
 sub handle_response {
-	my ($response, $outfile)= @_;
-	my ($data);
+	my ($response, $outfile, $quiet)= @_;
+	my ($data, $rv);
 
-	return unless (defined($response) && $response->code);
+	return 0 unless (defined($response) && $response->code);
 	
 	&debug("HTTP::Response object:\n%s\n", Dumper($response));
 	unless ( $response->is_success ) {
 		my $msg= $response->message;
 		$msg=~ s/\l\r/\n/g;
 		printf("HTTP %d %s\n", $response->code, $msg);
-		print $response->content;
-		return;
+		print $response->content unless $quiet;
+		return 0;
 	}
 
-	&output($outfile, 'signcert',
-		uri_unescape($response->header('X-IASReport-Signing-Certificate')));
-	&output($outfile, 'signature',
-		decode_base64($response->header('X-IASReport-Signature')));
-	&output($outfile, 'body', $response->content);
+	unless ( $quiet ) {
+		printf ("Response\n%s\n%s\n%1\$s\n", "-="x38, $response->content);
+		&output($outfile, 'signcert',
+			uri_unescape($response->header('X-IASReport-Signing-Certificate')));
+		&output($outfile, 'signature',
+			decode_base64($response->header('X-IASReport-Signature')));
+		&output($outfile, 'body', $response->content);
+	}
 
 	&debug("Extracting public key from %s.signcert\n", $outfile);
 	$data= '';
@@ -344,12 +345,28 @@ sub handle_response {
 
 	# Now do a verification
 
-	print '-'x76, "\n";
-	printf('Verifying signature in %s.signature with %1$s.signkey, using %1$s.body', $outfile);
-	print "\n", '-'x76, "\n";
-	system 'openssl', 'dgst', '-sha256', '-verify', "$outfile.signkey",
-		'-signature', "$outfile.signature", "$outfile.body";
+	unless ( $quiet ) {
+		print '-'x76, "\n";
+		printf('Verifying signature in %s.signature with %1$s.signkey, using %1$s.body', $outfile);
+		print "\n", '-'x76, "\n";
+	}
 
+	open(DGST, "-|") || exec 'openssl', 'dgst', '-sha256', '-verify',
+		$outfile.".signkey", '-signature', $outfile.".signature",
+		$outfile.".body";
+	while (<DGST>) {
+		if ( /^Verification Failure$/ ) {
+			print "Signature verification failure.\n";
+			$rv= 1;
+			last;
+		} elsif ( /^Verified OK$/ ) {
+			print "Signature verified OK\n";
+			$rv= 0;
+			last;
+		}
+	}
+	close(DGST);
+	return $rv;
 }
 
 # Write output to a file with a given base name
@@ -400,6 +417,9 @@ Options:
                            access to the internet or proxies.
 
   -v, --version=VERSION  The IAS API version to use. Default is 2.
+
+  -q, --quiet            Quiet mode. Suppress most of the output sent to
+                           stdout.
 
 Commands:
   sigrl epid_gid
