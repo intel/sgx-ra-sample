@@ -1,0 +1,445 @@
+#!/usr/bin/perl
+#
+# Send a request to the Intel Attestation Service
+#
+
+$DevUrl= 'https://test-as.sgx.trustedservices.intel.com';
+$ProdUrl= 'https://as.sgx.trustedservices.intel.com';
+
+$DEBUG= 0;
+$EXITING= 0;
+
+use strict;
+use Getopt::Long;
+use vars qw( $Prog $ProdUrl $DevUrl $DEBUG $Pid $EXITING );
+use POSIX qw( strftime :sys_wait_h );
+use HTTP::Request;
+use HTTP::Headers;
+use HTTP::Response;
+use Net::Domain qw(hostdomain);
+use MIME::Base64;
+use URI::Escape;
+use Data::Dumper;
+
+sub EX_TERM { 50; }
+sub EX_EXEC { 100; }
+
+my (%opt, $version, $cmd, @data, $req, $flag_proxy, $certfile,
+	$flag_tunnel, $flag_help, $flag_prod, $proxyurl, $url,
+	$response, $proxy, $tunnel, $outfile);
+
+($Prog= $0)=~ s#^.*/##;
+
+$flag_proxy= -1;	# auto-detect
+$version= 2;
+$outfile= 'out';
+
+GetOptions(
+	'help'		=> sub { &usage(); },
+
+	'd|debug'		=> \$DEBUG,
+	'proxy!'		=> \$flag_proxy,
+	'p|proxy-url=s'	=> \$proxyurl,
+	'P|production'	=> \$flag_prod,
+	'o|out=s'		=> \$outfile,
+	'c|cert=s'		=> \$certfile,
+	't|tunnel'		=> \$flag_tunnel,
+	'u|url=s'			=> \$url,
+	'v|version=i'		=> \$version,
+) or &usage();
+
+&usage if ( $flag_prod && defined($url) );
+&usage if ( $flag_proxy == 0 && $flag_tunnel );
+&usage if ( $version < 1 );
+&usage unless(@ARGV);
+
+if ( defined($url) && !defined((&parse_url($url))[0]) ) {
+	die "Invalid destination URL $url\n";
+}
+
+# Get our destination
+
+if ( ! defined($url) ) {
+	$url= ( $flag_prod ) ? $ProdUrl : $DevUrl;
+}
+
+# Do we need a proxy?
+
+if ( $flag_proxy ) {
+	($flag_proxy, $proxyurl) = &choose_proxy($flag_proxy==1, $url, $proxyurl);
+}
+
+
+# Do we need to create a proxy tunnel for s_client?
+
+if ( $flag_tunnel ) {
+	$tunnel= &create_tunnel($proxyurl, $url);
+} elsif ( $flag_proxy ) {
+	&debug("Using proxy $proxyurl to connect to $url\n");
+} else {
+	&debug("Direct connect to $url\n");
+}
+
+$cmd= shift(@ARGV);
+
+if ( $cmd eq 'sigrl' ) {
+	if ( @ARGV != 1 ) { &usage(); }
+
+	$req= &gen_request('sigrl', $version, undef, @ARGV);
+
+} elsif ( $cmd eq 'report' ) {
+	if ( @ARGV != 0 ) { &usage(); }
+	chomp(@data= <STDIN>);
+
+	$req= &gen_request('report', $version, \@data);
+
+} elsif ( $cmd eq 'retrieve' ) {
+	if ( @ARGV != 1 ) { &usage(); }
+
+	if ( $version != 1 ) { &usage(); }
+	$req= &gen_request('report', $version, undef, @ARGV);
+
+} else { 
+	&usage();
+}
+
+$response= &do_request($req, $url, $proxy, $tunnel, $certfile, undef);
+&handle_response($response, $outfile);
+
+if ( $Pid ) {
+	$EXITING= 1;
+	&debug("Killing proxytunnel on pid %d\n", $Pid);
+	kill 'HUP', $Pid;
+}
+
+0;
+
+# Generate an HTTP::Request object to send to IAS
+
+sub gen_request {
+	my ($cmd, $ver, $dataref, @pathinfo)= @_;
+	my $method= 'GET';	# default method
+	my ($req, $uri, $hdr);
+
+	# Other methods
+
+	if ( $cmd eq 'report' && defined($dataref) && scalar(@$dataref) ) {
+		$method= 'POST';
+	}
+
+	$uri= sprintf("/attestation/sgx/v%d/%s", $version, $cmd);
+	if ( scalar @pathinfo ) {
+		$uri= join('/', $uri, @pathinfo);
+	}
+
+	$hdr= new HTTP::Headers(
+		Date         => strftime('%a, %d %b %Y %T GMT', gmtime)
+	);
+
+	$req= new HTTP::Request($method, $uri, $hdr);
+	if ( defined $dataref ) {
+		my $content= join('', @$dataref);
+		$req->content($content);
+		$req->content_length(length($content));
+		$req->content_type('application/json');
+	}
+
+	return $req;
+}
+
+# Dispatch our request to IAS
+
+sub do_request {
+	my ($response);
+	my $client= pop(@_);
+
+	if ( $client eq 'native' ) {
+	} else {
+		$response= do_request_s_client(@_);
+	}
+
+}
+
+sub do_request_s_client {
+	my ($request, $url, $proxy, $tunnel, $certfile)= @_;
+	my ($str, $response);
+	my @sslopt= (qw[
+		s_client -quiet -tls1_2 -sess_out session.out
+	]);
+	my $tmpfile= "/tmp/s_client.out.$$";
+
+	if ( $tunnel ) {
+		push(@sslopt, '-connect', 'localhost:'.$tunnel);
+	} else {
+		push(@sslopt, '-connect', (&parse_url($url)));
+	}
+
+	if ( defined($certfile) ) {
+		push(@sslopt, '-cert',  $certfile);
+	}
+
+	&debug("Executing: openssl %s\n", @sslopt);
+	&debug("Directing output to temp file %s\n", $tmpfile);
+	&debug("Request\n%s\n%s\n%s\n", "-="x20, $request->as_string, "-="x20);
+
+	open(SAVEOUT, ">&STDOUT");
+	open(TMPFILE, ">$tmpfile");
+	open(STDOUT, ">&TMPFILE");
+
+	open(OPENSSL, "|-") || exec 'openssl', @sslopt;
+	print OPENSSL $request->as_string;
+	close(OPENSSL);
+
+	close(STDOUT);
+	open(STDOUT, ">&SAVEOUT");
+
+	close(TMPFILE);
+	open(TMPFILE, "$tmpfile");
+	while(<TMPFILE>) {
+	        $str.= $_;
+	}
+	close(TMPFILE);
+
+	&debug("Response\n%s\n%s\n%s\n", "-="x20, $str, "-="x20);
+
+	unlink($tmpfile);
+
+	$response= HTTP::Response->parse($str);
+	return $response;
+}
+
+# Read the response, output the header and body, and validate the signature
+
+sub handle_response {
+	my ($response, $outfile)= @_;
+	my ($data);
+
+	&output($outfile, 'signcert',
+		uri_unescape($response->header('X-IASReport-Signing-Certificate')));
+	&output($outfile, 'signature',
+		decode_base64($response->header('X-IASReport-Signature')));
+	&output($outfile, 'body', $response->content);
+
+	&debug("Extracting public key from %s.signcert\n", $outfile);
+	$data= '';
+	open(OPENSSL, "-|") || exec 'openssl', 'x509', '-in', "$outfile.signcert",
+		'-pubkey', '-noout';
+	while(<OPENSSL>) {
+		$data.= $_;
+	}
+	close(OPENSSL);
+
+	&output($outfile, 'signkey', $data);
+
+	# Now do a verification
+
+	print '-'x76, "\n";
+	printf('Verifying signature in %s.signature with %1$s.signkey, using %1$s.body', $outfile);
+	print "\n", '-'x76, "\n";
+	system 'openssl', 'dgst', '-sha256', '-verify', "$outfile.signkey",
+		'-signature', "$outfile.signature", "$outfile.body";
+
+}
+
+# Write output to a file with a given base name
+
+sub output {
+	my ($prefix, $name, $data)= @_;
+
+	my $file= "$prefix.$name";
+
+	open(FILE, ">$file") or die "$file: $!\n";
+	print FILE $data;
+	close(FILE);
+	debug("Created output file %s\n", $file);
+}
+
+sub usage {
+        print STDERR <<EOM;
+usage: $Prog [ options ] cmd args...
+Options:
+  -P, --production       Use the production Intel Attestation server 
+                           instead of the development server.
+
+  -t, --tunnel           Use a proxy tunnel instead of HTTP proxying. This
+                           requires that the 'proxytunnel' package be
+                           installed. This option forces the use of a 
+                           proxy server.
+
+  -d, --debug            Turn on debugging info
+
+  --[no-]proxy           Force the use of a proxy server, or ignore the
+                           proxy server, regardless of the system proxy
+                           settings.
+
+  -c, --cert=FILE        The user certificate file, in PEM format.
+
+  -o, --out=FILE_PREFIX  Write the body and headers to files with
+                           the given prefix. Default is 'out'.
+
+  -p, --proxy-url=URL    Override the system proxy server. no_proxy
+                           settings are still honored.
+
+  -u, --url=SERVER_URL   The URL to contact instead of the Intel 
+                           Attestation server. Cannot be combined with
+                           --production.
+
+  -v, --version=VERSION  The IAS API version to use. Default is 2.
+
+Commands:
+  sigrl epid_gid
+      Retrieve the SigRl for the given EPID group.
+
+  report
+      Verify attestation evidence, retrieving the attestation 
+	  verification report. The quote payload is read from stdin.
+
+  retrieve-report id
+      Retrieve the attestation verification report for the given 
+	  report id (version 1 API only).
+
+EOM
+        exit 1;
+}
+
+sub debug {
+	return unless $DEBUG;
+	printf STDERR @_;
+}
+
+# Use proxytunnel to establish a tunnel through a proxy server
+
+sub create_tunnel {
+	my ($proxyurl, $url)= @_;
+	my @proxy= parse_url($proxyurl);
+	my @dest= parse_url($url);
+	my $tport= int(rand()*10000)+50000;
+	
+	$SIG{'CHLD'}= \&reaper;
+
+	$Pid= fork();
+	if ( $Pid ) {					# Parent
+		&debug("Using tunnel localhost:%d -> %s:%s -> %s:%s\n",
+			$tport, @proxy, @dest);
+		return $tport;
+
+	} elsif ( defined($Pid) )	{	# Child
+		$SIG{'CHLD'}= 'IGNORE';
+
+		exec 'proxytunnel', '-p', join(':', @proxy), '-d', join(':', @dest),
+			'-a', $tport;
+
+		exit(EX_EXEC);
+	} 
+
+	die "fork: $!\n";
+}
+
+# Handle proxytunnel being term'd.
+
+sub child_hangup {
+	exit(EX_TERM);
+}
+
+# proxytunnel exited, but why?
+
+sub reaper {
+	my ($kid);
+	$SIG{'CHLD'}= 'IGNORE';
+
+	do {
+		$kid= waitpid($Pid, WNOHANG);
+		if ( $kid == $Pid ) {
+			my $ec= ($? >> 8);
+
+			return if $EXITING;
+
+			if ( $? & 127 ) {
+				# A signal did it
+
+				die "proxytunnel (pid $Pid) unexpectedly terminated\n";
+			} elsif ( $ec == EX_EXEC ) {
+				# exec couldn't exec it.
+
+				die "exec: proxytunnel: command not found\n";
+			} else {
+				die "proxytunnel (pid $Pid) exited prematurely\n";
+			}
+		}
+	} while ($kid>0);
+
+	$SIG{'CHLD'}= \&reaper;
+}
+
+# Determine the proxy server to use:
+#
+#   1. Supplied server (if present)
+#   2. $ENV variables
+#
+
+sub choose_proxy {
+	my ($force, $dest, $preferred)= @_;
+	my ($proxyurl, $fqdn, $host, $domain, $ip);
+
+	if ( defined($preferred) ) {
+		return (1, $preferred);
+	}
+
+	if ( exists $ENV{'https_proxy'} ) {
+		$proxyurl= $ENV{'https_proxy'};
+	} elsif ( exists $ENV{'http_proxy'} ) {
+		$proxyurl= $ENV{'http_proxy'};
+	} else {
+		return (0, undef);
+	}
+
+	if ( $force || !defined($ENV{'no_proxy'}) ) {
+		return (1, $proxyurl);
+	}
+
+	# Does the proxy apply?
+
+	($host)= parse_url($dest);
+	if ( ! defined($host) ) {
+		return (0, undef);
+	}
+
+	if ( $host !~ m/\./ ) {
+		$fqdn= $host . '.' . hostdomain();
+	}
+
+	foreach my $hostspec (split('\s*,\s*', $ENV{'no_proxy'})) {
+		$hostspec=~ s/\./\\./g;
+		$hostspec=~ s/\*/.*/g;
+
+		if ( $host=~ /${hostspec}/i ) {
+			return (0, undef);
+		}
+		if ( defined($fqdn) && $fqdn=~ /$hostspec/i ) {
+			return (0, undef);
+		}
+	}
+
+	return (1, $proxyurl);
+}
+
+# Parse a URL into host:port
+
+sub parse_url {
+	my ($url)= @_;
+	$url=~ m#^(([a-z]+)://)?([^/:]+):?([0-9]+)?/?$#i;
+
+	my ($proto, $host, $port)= ($2, $3, $4);
+
+	if ( lc $proto eq 'http' ) {
+		$port= 80 unless $port;
+	} elsif ( lc $proto eq 'https' ) {
+		$port= 443 unless $port;
+	} else {
+		return (undef, undef);
+	}
+
+	return ($host, $port);
+}
+
+
