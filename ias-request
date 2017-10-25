@@ -15,7 +15,6 @@ use strict;
 use Getopt::Long qw(:config no_ignore_case);
 use vars qw( $Prog $ProdUrl $DevUrl $DEBUG $Pid $EXITING );
 use POSIX qw( strftime :sys_wait_h );
-use IO::Socket::SSL;
 use HTTP::Request;
 use HTTP::Headers;
 use HTTP::Response;
@@ -217,6 +216,11 @@ sub do_request_lwp {
 
 	while ( my ($key, $val)= each %sslopts ) {
 		$ua->ssl_opts($key => $val);
+	}
+
+	unless ( $ua->is_protocol_supported('https') ) {
+		printf STDERR "LWP::UserAgent: HTTPS not supported\n";
+		return undef;
 	}
 
 	if ( $tunnel ) {
