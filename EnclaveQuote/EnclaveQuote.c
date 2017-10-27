@@ -34,8 +34,36 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "EnclaveQuote_t.h"
 #include <string.h>
 #include <sgx_utils.h>
+#include <sgx_tae_service.h>
 
 sgx_status_t get_report(sgx_report_t *report, sgx_target_info_t *target_info)
 {
 	return sgx_create_report(target_info, NULL, report);
 }
+
+/* Platform services are not supported on Linux */
+
+sgx_status_t get_ps_sec_prop(sgx_ps_sec_prop_desc_t *prop)
+{
+	sgx_status_t status= SGX_ERROR_SERVICE_UNAVAILABLE;
+
+#ifdef _WIN32
+	sgx_ps_sec_prop_desc_t ps_sec_prop_desc;
+	int retries= 5;
+
+	do {
+		status= sgx_create_pse_session();
+		if ( status != SGX_SUCCESS ) return status;
+	} while (status == SGX_ERROR_BUSY && retries--);
+	if ( status != SGX_SUCCESS ) return status;
+
+	status= sgx_get_ps_sec_prop(&ps_sec_prop_desc);
+	if ( status != SGX_SUCCESS ) return status;
+
+	*prop= ps_sec_prop_desc;
+
+	sgx_close_pse_session();
+#endif
+	return status;
+}
+

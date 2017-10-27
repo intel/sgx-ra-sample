@@ -120,6 +120,8 @@ int main (int argc, char *argv[])
 #ifdef _WIN32
 	LPTSTR b64quote = NULL;
 	DWORD sz_b64quote = 0;
+	sgx_ps_cap_t ps_cap;
+	sgx_ps_sec_prop_desc_t sec_prop_desc;
 #else
 	gchar *b64quote= NULL;
 #endif
@@ -272,6 +274,21 @@ int main (int argc, char *argv[])
 			status);
 		if ( status == SGX_ERROR_ENCLAVE_FILE_ACCESS ) 
 			fprintf(stderr, "Did you forget to set LD_LIBRARY_PATH?\n");
+		return 1;
+	}
+#endif
+
+	/* Platfor services info */
+#ifdef _WIN32
+	status= sgx_get_ps_cap(&ps_cap);
+	if ( status != SGX_SUCCESS ) {
+		fprintf(stderr, "sgx_get_ps_cap: %08x\n", status);
+		return 1;
+	}
+
+	status= get_ps_sec_prop_desc(&sec_prop_desc);
+	if ( status != SGX_SUCCESS ) {
+		fprintf(stderr, "sgx_get_ps_sec_prop_desc: %08x\n", status);
 		return 1;
 	}
 #endif

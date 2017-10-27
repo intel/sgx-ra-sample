@@ -4,6 +4,8 @@ enclave {
 	trusted {
 		public sgx_status_t get_report([out] sgx_report_t *report,
 			[in] sgx_target_info_t *target_info);
+
+		sgx_status_t get_ps_sec_prop([out] sgx_ps_sec_prop_desc_t *prop);
 	};
 
 	untrusted {
