@@ -43,7 +43,16 @@ sgx_status_t get_report(sgx_report_t *report, sgx_target_info_t *target_info)
 
 /* Platform services are not supported on Linux */
 
-sgx_status_t get_ps_sec_prop(sgx_ps_sec_prop_desc_t *prop)
+size_t get_pse_manifest_size ()
+{
+#ifdef _WIN32
+	return sizeof(sgx_ps_sec_prop_desc_t);
+#else
+	return 0;
+#endif
+}
+
+sgx_status_t get_pse_manifest(char *buf, size_t sz)
 {
 	sgx_status_t status= SGX_ERROR_SERVICE_UNAVAILABLE;
 
@@ -60,10 +69,11 @@ sgx_status_t get_ps_sec_prop(sgx_ps_sec_prop_desc_t *prop)
 	status= sgx_get_ps_sec_prop(&ps_sec_prop_desc);
 	if ( status != SGX_SUCCESS ) return status;
 
-	*prop= ps_sec_prop_desc;
+	memcpy(buf, &ps_sec_prop_desc, sizeof(ps_sec_prop_desc));
 
 	sgx_close_pse_session();
 #endif
+
 	return status;
 }
 

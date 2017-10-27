@@ -4,8 +4,10 @@ enclave {
 	trusted {
 		public sgx_status_t get_report([out] sgx_report_t *report,
 			[in] sgx_target_info_t *target_info);
-
-		sgx_status_t get_ps_sec_prop([out] sgx_ps_sec_prop_desc_t *prop);
+#ifdef _WIN32
+		size_t get_pse_manifest_size();
+		sgx_status_t get_pse_manifest([out, count=sz] char *buf, size_t sz);
+#endif
 	};
 
 	untrusted {
