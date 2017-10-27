@@ -304,7 +304,7 @@
     <ClInclude Include="getopt.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="win_sgx_detection.h" />
+    <ClInclude Include="sgx_detect.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="EnclaveQuote_u.c">
@@ -328,7 +328,7 @@
     <ClCompile Include="getopt.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="stdafx.cpp" />
-    <ClCompile Include="win_sgx_detection.cpp" />
+    <ClCompile Include="sgx_detect_win.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="EnclaveQuote\EnclaveQuote.edl">

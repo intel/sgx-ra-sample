@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <sgx_utils.h>
 
-int get_report(sgx_report_t *report, sgx_target_info_t *target_info)
+sgx_status_t get_report(sgx_report_t *report, sgx_target_info_t *target_info)
 {
 	return sgx_create_report(target_info, NULL, report);
 }

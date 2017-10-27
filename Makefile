@@ -1,21 +1,21 @@
-SGX_ENCLAVES:=@SGX_ENCLAVES@
+SGX_ENCLAVES:=EnclaveQuote
 
-CC=@CC@
+CC=gcc
 # Define ENCLAVE_LIBDIR to hardcode the library path that enclaves 
 # are loaded from. Otherwise, create_enclave will search in the
 # programs current working directory.
-#CFLAGS=@CFLAGS@ -fno-builtin-memset
-CFLAGS=@CFLAGS@ -fno-builtin-memset -mrdrnd
-CPPFLAGS=@CPPFLAGS@
-LDFLAGS=@LDFLAGS@ -L$(SGXSDK_LIBDIR)
-LIBS=@LIBS@
+#CFLAGS=-g -O2 -fno-builtin-memset
+CFLAGS=-g -O2 -fno-builtin-memset -mrdrnd
+CPPFLAGS= -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include
+LDFLAGS= -L$(SGXSDK_LIBDIR)
+LIBS=-g -O2 -lglib-2.0
 
-INSTALL=@INSTALL@
-prefix=@prefix@
-exec_prefix=@exec_prefix@
-bindir=@bindir@
-libdir=@libdir@
-enclave_libdir=@enclave_libdir@
+INSTALL=/usr/bin/install -c
+prefix=/usr/local
+exec_prefix=${prefix}
+bindir=${exec_prefix}/bin
+libdir=${exec_prefix}/lib
+enclave_libdir=${exec_prefix}/lib
 
 APP_OBJS=main.o sgx_stub.o sgx_detect_linux.o
 

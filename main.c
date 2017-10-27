@@ -46,13 +46,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef _WIN32
 #include <intrin.h>
 #include "getopt.h"
-#include "win_sgx_detection.h"
 #else
 #include <getopt.h>
 #include <unistd.h>
 #include <glib.h>
 #endif
 #include <sgx_uae_service.h>
+#include "sgx_detect.h"
 
 
 #define MAX_LEN 80
@@ -223,7 +223,7 @@ int main (int argc, char *argv[])
 	}
 
 	/* Can we run SGX? */
-#ifdef _WIN32
+
 	sgx_support = get_sgx_support();
 	if (sgx_support & SGX_SUPPORT_NO) {
 		fprintf(stderr, "This system does not support Intel SGX.\n");
@@ -243,13 +243,6 @@ int main (int argc, char *argv[])
 			return 1;
 		}
 	} 
-#else
-	if ( ! have_sgx_psw() ) {
-		fprintf(stderr, "Intel SGX runtime libraries not found.\n");
-		fprintf(stderr, "This system cannot use Intel SGX.\n");
-		return 1;
-	}
-#endif
 
 	/* Did they ask for the EPID GID? */
 
@@ -259,7 +252,7 @@ int main (int argc, char *argv[])
 			fprintf(stderr, "sgx_get_extended_epid_group_id: %08x\n", status);
 			return 1;
 		}
-		printf("%lu\n", n_epid_gid);
+		printf("%lu\n", (unsigned long) n_epid_gid);
 		return 0;
 	}
 
