@@ -286,11 +286,6 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 
-	status= get_ps_sec_prop_desc(&sec_prop_desc);
-	if ( status != SGX_SUCCESS ) {
-		fprintf(stderr, "sgx_get_ps_sec_prop_desc: %08x\n", status);
-		return 1;
-	}
 #endif
 
 	memset(&report, 0, sizeof(report));
