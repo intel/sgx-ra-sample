@@ -37,9 +37,5 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 int get_report(sgx_report_t *report, sgx_target_info_t *target_info)
 {
-	sgx_status_t status;
-
-	status= sgx_create_report(target_info, NULL, report);
-	if ( status != SGX_SUCCESS ) return status;
+	return sgx_create_report(target_info, NULL, report);
 }
-

@@ -31,22 +31,35 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifdef _WIN32
+#pragma comment(lib, "crypt32.lib")
+#else
 #include "config.h"
+#endif
 #include "EnclaveQuote_u.h"
 #include "sgx_stub.h"
-#include <getopt.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <stdio.h>
 #include <sgx_urts.h>
 #include <sys/stat.h>
+#ifdef _WIN32
+#include <intrin.h>
+#include "getopt.h"
+#include "win_sgx_detection.h"
+#else
+#include <getopt.h>
 #include <unistd.h>
-#include <sgx_uae_service.h>
 #include <glib.h>
+#endif
+#include <sgx_uae_service.h>
+
 
 #define MAX_LEN 80
 
+#ifndef WIN32
 #define _rdrand64_step(x) ({ unsigned char err; asm volatile("rdrand %0; setc %1":"=r"(*x), "=qm"(err)); err; })
+#endif
 
 #ifdef __x86_64__
 #define DEF_LIB_SEARCHPATH "/lib:/lib64:/usr/lib:/usr/lib64"
@@ -90,21 +103,26 @@ void usage ()
 int main (int argc, char *argv[])
 {
 	sgx_launch_token_t token= { 0 };
-	sgx_status_t status;
+	sgx_status_t status, sgxrv;
 	sgx_enclave_id_t eid= 0;
 	sgx_quote_t *quote;
 	sgx_spid_t spid;
 	sgx_report_t qe_report;
 	int updated= 0;
-	int rv;
-	uint32_t i, opt;
+	int sgx_support;
+	uint32_t i;
 	sgx_report_t report;
 	uint32_t sz= 0;
 	sgx_target_info_t target_info;
 	sgx_epid_group_id_t epid_gid;
 	uint32_t n_epid_gid= 0xdeadbeef;
 	unsigned char *cp;
+#ifdef _WIN32
+	LPTSTR b64quote = NULL;
+	DWORD sz_b64quote = 0;
+#else
 	gchar *b64quote= NULL;
+#endif
 	uint16_t linkable= SGX_UNLINKABLE_SIGNATURE;
 	sgx_quote_nonce_t nonce;
 
@@ -205,12 +223,33 @@ int main (int argc, char *argv[])
 	}
 
 	/* Can we run SGX? */
-
+#ifdef _WIN32
+	sgx_support = get_sgx_support();
+	if (sgx_support & SGX_SUPPORT_NO) {
+		fprintf(stderr, "This system does not support Intel SGX.\n");
+		return 1;
+	} else {
+		if (sgx_support & SGX_SUPPORT_ENABLE_REQUIRED) {
+			fprintf(stderr, "Intel SGX is supported on this system but disabled in the BIOS\n");
+			return 1;
+		}
+		else if (sgx_support & SGX_SUPPORT_REBOOT_REQUIRED) {
+			fprintf(stderr, "Intel SGX will be enabled after the next reboot\n");
+			return 1;
+		}
+		else if (!(sgx_support & SGX_SUPPORT_ENABLED)) {
+			fprintf(stderr, "Intel SGX is supported on this sytem but not available for use\n");
+			fprintf(stderr, "The system may lock BIOS support, or the Platform Software is not available\n");
+			return 1;
+		}
+	} 
+#else
 	if ( ! have_sgx_psw() ) {
 		fprintf(stderr, "Intel SGX runtime libraries not found.\n");
 		fprintf(stderr, "This system cannot use Intel SGX.\n");
 		return 1;
 	}
+#endif
 
 	/* Did they ask for the EPID GID? */
 
@@ -220,13 +259,21 @@ int main (int argc, char *argv[])
 			fprintf(stderr, "sgx_get_extended_epid_group_id: %08x\n", status);
 			return 1;
 		}
-		printf("%llu\n", n_epid_gid);
+		printf("%lu\n", n_epid_gid);
 		return 0;
 	}
 
 	/* Launch the enclave */
 
-	status= sgx_create_enclave_search("EnclaveQuote.signed.so", SGX_DEBUG_FLAG, &token, &updated, &eid, 0);
+#ifdef _WIN32
+	status = sgx_create_enclave("EnclaveQuote.signed.dll", SGX_DEBUG_FLAG, &token, &updated, &eid, 0);
+	if (status != SGX_SUCCESS) {
+		fprintf(stderr, "sgx_create_enclave: EnclaveQuote.signed.dll: %08x\n",
+			status);
+		return 1;
+	}
+#else
+	status = sgx_create_enclave_search("EnclaveQuote.signed.so", SGX_DEBUG_FLAG, &token, &updated, &eid, 0);
 	if ( status != SGX_SUCCESS ) {
 		fprintf(stderr, "sgx_create_enclave: EnclaveQuote.signed.so: %08x\n",
 			status);
@@ -234,6 +281,7 @@ int main (int argc, char *argv[])
 			fprintf(stderr, "Did you forget to set LD_LIBRARY_PATH?\n");
 		return 1;
 	}
+#endif
 
 	memset(&report, 0, sizeof(report));
 
@@ -243,12 +291,12 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 
-	status= get_report(eid, &rv, &report, &target_info);
+	status= get_report(eid, &sgxrv, &report, &target_info);
 	if ( status != SGX_SUCCESS ) {
 		fprintf(stderr, "get_report: %08x\n", status);
 		return 1;
 	}
-	if ( rv != SGX_SUCCESS ) {
+	if ( sgxrv != SGX_SUCCESS ) {
 		fprintf(stderr, "sgx_get_report: %08x\n", status);
 		return 1;
 	}
@@ -276,7 +324,23 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 
+#ifdef _WIN32
+	// We could also just do ((4 * sz / 3) + 3) & ~3
+	// but it's cleaner to use the API.
+
+	if (CryptBinaryToString((LPTSTR) quote, sz, CRYPT_STRING_BASE64|CRYPT_STRING_NOCRLF, NULL, &sz_b64quote) == FALSE) {
+		fprintf(stderr, "CryptBinaryToString: could not get Base64 encoded quote length\n");
+		return 1;
+	}
+
+	b64quote = malloc(sz_b64quote);
+	if (CryptBinaryToString((LPTSTR) quote, sz, CRYPT_STRING_BASE64|CRYPT_STRING_NOCRLF, b64quote, &sz_b64quote) == FALSE) {
+		fprintf(stderr, "CryptBinaryToString: could not get Base64 encoded quote length\n");
+		return 1;
+	}
+#else
 	b64quote= g_base64_encode((const guchar *) quote, sz);
+#endif
 
 	printf("{\n");
 	printf("\"isvEnclaveQuote\":\"%s\"", b64quote);
@@ -295,8 +359,13 @@ int from_hexstring_file (unsigned char *dest, unsigned char *file, size_t len)
 
 		sbuf= (unsigned char *) malloc(len*2);
 
+#ifdef _WIN32
+		if (fopen_s(&fp, file, "r") != 0) {
+			fprintf(stderr, "fopen_s: ");
+#else
 		if ( (fp= fopen(file, "r")) == NULL ) {
 			fprintf(stderr, "fopen: ");
+#endif
 			perror(file);
 			exit(1);
 		}
@@ -319,7 +388,11 @@ void from_hexstring (unsigned char *dest, unsigned char *src, size_t len)
 
 	for (i= 0; i<len; ++i) {
 		unsigned int v;
+#ifdef _WIN32
+		sscanf_s(&src[i * 2], "%2xhh", &v);
+#else
 		sscanf(&src[i*2], "%2xhh", &v);
+#endif
 		dest[i]= (unsigned char) v;
 	}
 }
@@ -337,6 +410,7 @@ void print_hexstring (FILE *fp, void *src, size_t len)
  * Search for the enclave file and then try and load it.
  */
 
+#ifndef _WIN32
 sgx_status_t sgx_create_enclave_search (const char *filename, const int debug,
 	sgx_launch_token_t *token, int *updated, sgx_enclave_id_t *eid,
 	sgx_misc_attribute_t *attr)
@@ -421,3 +495,4 @@ int file_in_searchpath (const char *file, char *search, char *fullpath,
 	return 0;
 }
 
+#endif
