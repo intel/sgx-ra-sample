@@ -4,7 +4,7 @@
 #include <sgx_urts.h>
 #include <sgx_uae_service.h>
 #include <sgx.h>
-#include "win_sgx_detection.h"
+#include "sgx_detect.h"
 
 static HINSTANCE h_urts = NULL;
 static HINSTANCE h_service = NULL;

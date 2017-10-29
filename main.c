@@ -120,14 +120,18 @@ int main (int argc, char *argv[])
 #ifdef _WIN32
 	LPTSTR b64quote = NULL;
 	DWORD sz_b64quote = 0;
+	LPTSTR b64manifest = NULL;
+	DWORD sz_b64manifest = 0;
 	sgx_ps_cap_t ps_cap;
-	sgx_ps_sec_prop_desc_t sec_prop_desc;
+	char *pse_manifest;
+	size_t pse_manifest_sz;
 #else
 	gchar *b64quote= NULL;
 #endif
 	uint16_t linkable= SGX_UNLINKABLE_SIGNATURE;
 	sgx_quote_nonce_t nonce;
 
+	char flag_manifest = 0;
 	char flag_nonce= 0;
 	char flag_spid= 0;
 	char flag_epid= 0;
@@ -136,6 +140,9 @@ int main (int argc, char *argv[])
 	{
 		{"help",		no_argument, 		0, 'h'},
 		{"epid-gid",	no_argument,		0, 'e'},
+#ifdef _WIN32
+		{"pse-manifest",	no_argument,	0, 'm'},
+#endif
 		{"nonce",		required_argument,	0, 'n'},
 		{"nonce-file",	required_argument,	0, 'N'},
 		{"rand-nonce",  no_argument,        0, 'r'},
@@ -151,7 +158,7 @@ int main (int argc, char *argv[])
 		int c;
 		int opt_index= 0;
 
-		c= getopt_long(argc, argv, "ehln:N:rs:S:", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "ehlmn:N:rs:S:", long_opt, &opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
@@ -202,6 +209,11 @@ int main (int argc, char *argv[])
 			from_hexstring((unsigned char *) &spid, (unsigned char *) optarg, 16);
 			++flag_spid;
 			break;
+#ifdef _WIN32
+		case 'm':
+			flag_manifest = 1;
+			break;
+#endif
 		case 'n':
 			if ( strlen(optarg) < 32 ) {
 				fprintf(stderr, "nonce must be 32-byte hex string\n");
@@ -280,12 +292,34 @@ int main (int argc, char *argv[])
 
 	/* Platfor services info */
 #ifdef _WIN32
-	status= sgx_get_ps_cap(&ps_cap);
-	if ( status != SGX_SUCCESS ) {
-		fprintf(stderr, "sgx_get_ps_cap: %08x\n", status);
-		return 1;
-	}
+	if (flag_manifest) {
+		status = sgx_get_ps_cap(&ps_cap);
+		if (status != SGX_SUCCESS) {
+			fprintf(stderr, "sgx_get_ps_cap: %08x\n", status);
+			return 1;
+		}
 
+		status = get_pse_manifest_size(eid, &pse_manifest_sz);
+		if (status != SGX_SUCCESS) {
+			fprintf(stderr, "get_pse_manifest_size: %08x\n",
+				status);
+			return 1;
+		}
+
+		pse_manifest = malloc(pse_manifest_sz);
+
+		status = get_pse_manifest(eid, &sgxrv, pse_manifest, pse_manifest_sz);
+		if (status != SGX_SUCCESS) {
+			fprintf(stderr, "get_pse_manifest: %08x\n",
+				status);
+			return 1;
+		}
+		if (sgxrv != SGX_SUCCESS) {
+			fprintf(stderr, "get_sec_prop_desc_ex: %08x\n",
+				status);
+			return 1;
+		}
+	}
 #endif
 
 	memset(&report, 0, sizeof(report));
@@ -343,6 +377,19 @@ int main (int argc, char *argv[])
 		fprintf(stderr, "CryptBinaryToString: could not get Base64 encoded quote length\n");
 		return 1;
 	}
+
+	if (flag_manifest) {
+		if (CryptBinaryToString((LPTSTR)pse_manifest, pse_manifest_sz, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL, &sz_b64manifest) == FALSE) {
+			fprintf(stderr, "CryptBinaryToString: could not get Base64 encoded manifest length\n");
+			return 1;
+		}
+
+		b64manifest = malloc(sz_b64manifest);
+		if (CryptBinaryToString((LPTSTR)pse_manifest, pse_manifest_sz, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, b64manifest, &sz_b64manifest) == FALSE) {
+			fprintf(stderr, "CryptBinaryToString: could not get Base64 encoded manifest length\n");
+			return 1;
+		}
+	}
 #else
 	b64quote= g_base64_encode((const guchar *) quote, sz);
 #endif
@@ -353,6 +400,9 @@ int main (int argc, char *argv[])
 		printf(",\n\"nonce\":\"");
 		print_hexstring(stdout, &nonce, 16);
 		printf("\"");
+	}
+	if (flag_manifest) {
+		printf(",\n\"pseManifest\":\"%s\"", b64manifest);	
 	}
 	printf("\n}\n");
 }

@@ -112,30 +112,49 @@ static int _getopt_ (int argc, char* const argv[], const char* optstring, const 
 					char const* spec_long = argv[optind] + 2;
 					char const* pos_eq = strchr(spec_long, '=');
 					/* Changed to size_t to eliminate compiler warning. -JM */
-					size_t spec_len = (pos_eq == NULL ? strlen(spec_long) : pos_eq - spec_long); 
+					size_t spec_len = (pos_eq == NULL) ? strlen(spec_long) : pos_eq - spec_long; 
 					int index_search = 0;
 					int index_found = -1;
 					const struct option* optdef = 0;
-					while (longopts->name != 0) {
-						if (strncmp(spec_long, longopts->name, spec_len) == 0) {
-							if (optdef != 0) {
-								if (opterr) {
-									fprintf(stderr, "ambiguous option: %s\n", spec_long);
-								}
-								return '?';
-							}
+					const struct option* orig_longopts= longopts;
+
+					/* First try to find a perfect match. -JM  */
+					while (longopts->name != 0 ) {
+						if (strncmp(spec_long, longopts->name, spec_len) == 0 && 
+							strlen(longopts->name) == spec_len ) {
+
 							optdef = longopts;
 							index_found = index_search;
+							break;
 						}
 						longopts++;
 						index_search++;
 					}
-					if (optdef == 0) {
-						if (opterr) {
-							fprintf(stderr, "no such a option: %s\n", spec_long);
+					if (index_found == -1) {
+						index_search = 0;
+						longopts = orig_longopts;
+						while (longopts->name != 0) {
+							if (strncmp(spec_long, longopts->name, spec_len) == 0) {
+								if (optdef != 0) {
+									if (opterr) {
+										fprintf(stderr, "ambiguous option: %s\n", spec_long);
+									}
+									return '?';
+								}
+								optdef = longopts;
+								index_found = index_search;
+							}
+							longopts++;
+							index_search++;
 						}
-						return '?';
+						if (optdef == 0) {
+							if (opterr) {
+								fprintf(stderr, "no such a option: %s\n", spec_long);
+							}
+							return '?';
+						}
 					}
+
 					switch (optdef->has_arg) {
 					case no_argument:
 						optarg = 0;
@@ -153,6 +172,12 @@ static int _getopt_ (int argc, char* const argv[], const char* optstring, const 
 						}
 						else {
 							optarg = (char*)pos_eq + 1;
+						}
+						if (optarg == NULL) {
+							fprintf(stderr,
+								"%s: option requires an argument --%s\n",
+								argv[0], optdef->name);
+							return '?';
 						}
 						break;
 					}

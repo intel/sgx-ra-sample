@@ -1,12 +1,18 @@
+
+
 enclave {
 	include "sgx_utils.h"
+
+#ifdef _WIN32
+	from "sgx_tae_service.edl" import *;
+#endif
 
 	trusted {
 		public sgx_status_t get_report([out] sgx_report_t *report,
 			[in] sgx_target_info_t *target_info);
 #ifdef _WIN32
-		size_t get_pse_manifest_size();
-		sgx_status_t get_pse_manifest([out, count=sz] char *buf, size_t sz);
+		public size_t get_pse_manifest_size();
+		public sgx_status_t get_pse_manifest([out, count=sz] char *buf, size_t sz);
 #endif
 	};
 
