@@ -74,7 +74,7 @@ $flag_proxy= -1;	# auto-detect
 $flag_list_agents= 0;
 $version= 2;
 $outfile= 'out';
-$agent= A_SCLIENT;
+$agent= A_LWP;
 $rv= 0;
 
 GetOptions(
@@ -117,9 +117,11 @@ if ( defined($url) && !defined((&parse_url($url))[0]) ) {
 	die "Invalid destination URL $url\n";
 }
 
-# Does the cert file exist?
+# Did we supply a cert option? Does the cert file exist?
 
-if ( defined($certfile) && ! -f $certfile ) {
+if ( ! defined($certfile) ) {
+	die "No certificate file specified.\n";
+} elsif ( ! -f $certfile ) {
 	die "$certfile: $!\n";
 }
 
@@ -155,12 +157,12 @@ if ( $cmd eq 'sigrl' ) {
 	$req= &gen_request('sigrl', $version, undef, @ARGV);
 
 } elsif ( $cmd eq 'report' ) {
-	if ( @ARGV != 0 ) { &usage(); }
-	chomp(@data= <STDIN>);
+	if ( @ARGV > 1 ) { &usage(); }
+	chomp(@data= <>);
 
 	$req= &gen_request('report', $version, \@data);
 
-} elsif ( $cmd eq 'retrieve' ) {
+} elsif ( $cmd eq 'retrieve-report' ) {
 	if ( @ARGV != 1 ) { &usage(); }
 
 	if ( $version != 1 ) { &usage(); }
@@ -295,7 +297,10 @@ sub do_request_s_client {
 	if ( $tunnel ) {
 		push(@sslopt, '-connect', 'localhost:'.$tunnel);
 	} else {
-		push(@sslopt, '-connect', (&parse_url($url)));
+		if ( defined($proxy) ) {
+			die "s_client: proxy servers not supported. Use the --tunnel option\n"
+		}
+		push(@sslopt, '-connect', join(':', &parse_url($url)));
 	}
 
 	if ( defined($certfile) ) {
@@ -413,30 +418,35 @@ sub output {
 sub usage {
         print STDERR <<EOM;
 usage: $Prog [ options ] cmd args...
-Options:
-  -P, --production       Use the production Intel Attestation server 
-                           instead of the development server.
 
-  -t, --tunnel           Use an HTTP tunnel instead of HTTP proxying. This
-                           requires that the 'proxytunnel' package be
-                           installed. This option forces the use of a 
-                           proxy server.
+Required arguments:
+
+  -c, --cert=FILE        The user certificate file, in PEM format. 
+
+
+Options:
 
   -d, --debug            Turn on debugging info
 
   -n, --dryrun           Dry run. Don't connect to IAS.
 
+  -o, --out=FILE_PREFIX  Write the body and headers to files with
+                           the given prefix. Default is 'out'.
+
+  -P, --production       Use the production Intel Attestation server 
+                           instead of the development server.
+
   --[no-]proxy           Force the use of a proxy server, or ignore the
                            proxy server, regardless of the system proxy
                            settings.
 
-  -c, --cert=FILE        The user certificate file, in PEM format.
-
-  -o, --out=FILE_PREFIX  Write the body and headers to files with
-                           the given prefix. Default is 'out'.
-
   -p, --proxy-url=URL    Override the system proxy server. no_proxy
                            settings are still honored.
+
+  -t, --tunnel           Use an HTTP tunnel instead of HTTP proxying. This
+                           requires that the 'proxytunnel' package be
+                           installed. This option forces the use of a 
+                           proxy server.
 
   -u, --url=SERVER_URL   The URL to contact instead of the Intel 
                            Attestation server. Cannot be combined with
@@ -453,9 +463,10 @@ Commands:
   sigrl epid_gid
       Retrieve the SigRl for the given EPID group.
 
-  report
+  report [filename]
       Verify attestation evidence, retrieving the attestation 
-	  verification report. The quote payload is read from stdin.
+	  verification report. The quote payload is read from the
+	  filename argument, or from STDIN if no filename is given.
 
   retrieve-report id
       Retrieve the attestation verification report for the given 

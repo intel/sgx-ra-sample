@@ -91,12 +91,15 @@ void usage ()
 	fprintf(stderr, "  -S, --spid-file=FILE      Set the SPID from a file containg a 32-byte\n");
 	fprintf(stderr, "                              ASCII hex string\n");
 	fprintf(stderr, "                           One of --spid or --spid-file is required\n");
-	fprintf(stderr, "  -r                       Generate a nonce using RDRAND\n");
 	fprintf(stderr, "  -e, --epid-gid           Get the EPID Group ID instead of a quote\n");
+	fprintf(stderr, "  -l, --linkable           Specify a linkable quote (default: unlinkable)\n");
+	fprintf(stderr, "  -r                       Generate a nonce using RDRAND\n");
+#ifdef _WIN32
+	fprintf(stderr, "  -m, --pse-manifest       Include the PSE manifest in the quote\n");
+#endif
 	fprintf(stderr, "  -n, --nonce=HEXSTRING    Set a nonce from a 32-byte ASCII hex string\n");
 	fprintf(stderr, "  -N, --nonce-file=FILE     Set a nonce from a file containing a 32-byte\n");
 	fprintf(stderr, "                              ASCII hex string\n");
-	fprintf(stderr, "  -l, --linkable           Specify a linkable quote (default: unlinkable)\n");
 	exit(1);
 }
 
@@ -401,9 +404,11 @@ int main (int argc, char *argv[])
 		print_hexstring(stdout, &nonce, 16);
 		printf("\"");
 	}
+#ifdef _WIN32
 	if (flag_manifest) {
 		printf(",\n\"pseManifest\":\"%s\"", b64manifest);	
 	}
+#endif
 	printf("\n}\n");
 }
 
