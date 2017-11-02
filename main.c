@@ -64,6 +64,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #else
 #include "config.h"
 #endif
+
 #include "EnclaveQuote_u.h"
 #include "sgx_stub.h"
 #include <stdlib.h>
