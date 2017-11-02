@@ -31,7 +31,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef _WIN32
 #include "../config.h"
+#endif
 #include "EnclaveQuote_t.h"
 #include <string.h>
 #include <sgx_utils.h>
@@ -69,7 +71,7 @@ sgx_status_t get_report(sgx_report_t *report, sgx_target_info_t *target_info)
 #ifdef SGX_HW_SIM
 	return sgx_create_report(NULL, NULL, report);
 #else
-	return sgx_create_report(target_info, &report_data, report);
+	return sgx_create_report(target_info, NULL, report);
 #endif
 }
 

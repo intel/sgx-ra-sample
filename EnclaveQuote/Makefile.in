@@ -32,5 +32,5 @@ clean:
 	rm -f $(OBJS) $(ENCLAVE_CLEAN) 
 
 distclean: clean
-	rm -f Makefile $(ENCLAVE_DISTCLEAN)
+	rm -f Makefile EnclaveQuote.edl $(ENCLAVE_DISTCLEAN)
 
