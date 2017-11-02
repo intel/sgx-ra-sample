@@ -66,7 +66,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "EnclaveQuote_u.h"
+#ifndef _WIN32
 #include "sgx_stub.h"
+#endif
 #include <stdlib.h>
 #include <limits.h>
 #include <stdio.h>

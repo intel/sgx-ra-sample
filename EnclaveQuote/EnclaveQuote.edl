@@ -6,7 +6,9 @@ enclave {
 	from "sgx_tae_service.edl" import *;
 
 	trusted {
+#ifndef _WIN32
 		include "../config.h"
+#endif
 
 		public sgx_status_t get_report([out] sgx_report_t *report,
 			[in] sgx_target_info_t *target_info);
@@ -17,7 +19,9 @@ enclave {
 	};
 
 	untrusted {
+#ifndef _WIN32
 		include "config.h"
+#endif
 	};
 };
 
