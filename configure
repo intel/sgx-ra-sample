@@ -3191,9 +3191,10 @@ ac_config_files="$ac_config_files Makefile"
 
 if test "$SGX_HW_SIM" = "1"
 then
-	ac_config_files="$ac_config_files EnclaveQuote/EnclaveQuote.edl:EnclaveQuote/EnclaveQuote-linux.edl.in"
-
+	sim="-sim"
 fi
+	ac_config_files="$ac_config_files EnclaveQuote/EnclaveQuote.edl:EnclaveQuote/EnclaveQuote-linux${sim}.edl.in"
+
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -3891,7 +3892,7 @@ do
     "/EnclaveQuote/Makefile") CONFIG_FILES="$CONFIG_FILES /EnclaveQuote/Makefile" ;;
     "sgx_enclave.mk") CONFIG_FILES="$CONFIG_FILES sgx_enclave.mk" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
-    "EnclaveQuote/EnclaveQuote.edl") CONFIG_FILES="$CONFIG_FILES EnclaveQuote/EnclaveQuote.edl:EnclaveQuote/EnclaveQuote-linux.edl.in" ;;
+    "EnclaveQuote/EnclaveQuote.edl") CONFIG_FILES="$CONFIG_FILES EnclaveQuote/EnclaveQuote.edl:EnclaveQuote/EnclaveQuote-linux${sim}.edl.in" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

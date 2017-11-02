@@ -3,6 +3,8 @@
 enclave {
 	include "sgx_utils.h"
 
+	from "sgx_tae_service.edl" import *;
+
 	trusted {
 		include "../config.h"
 

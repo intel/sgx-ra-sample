@@ -33,8 +33,9 @@ AC_CONFIG_FILES([Makefile])
 
 if test "$SGX_HW_SIM" = "1"
 then
-	AC_CONFIG_FILES([EnclaveQuote/EnclaveQuote.edl:EnclaveQuote/EnclaveQuote-linux.edl.in])
+	sim="-sim"
 fi
+	AC_CONFIG_FILES(EnclaveQuote/EnclaveQuote.edl:EnclaveQuote/EnclaveQuote-linux${sim}.edl.in)
 
 AC_OUTPUT()
 
