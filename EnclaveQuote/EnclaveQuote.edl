@@ -1,9 +1,13 @@
-
+#ifndef _WIN32
+#include "../config.h"
+#endif
 
 enclave {
 	include "sgx_utils.h"
 
+#if defined(_WIN32)||defined(SGX_HW_SIM)
 	from "sgx_tae_service.edl" import *;
+#endif
 
 	trusted {
 #ifndef _WIN32
@@ -24,4 +28,5 @@ enclave {
 #endif
 	};
 };
+
 

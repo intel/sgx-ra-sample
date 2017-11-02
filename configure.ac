@@ -2,6 +2,7 @@ AC_INIT(sgxautosample, 1.0, john.p.mechalas@intel.com)
 
 AC_PROG_CC()
 AC_PROG_CXX()
+AC_PROG_CPP()
 AC_PROG_INSTALL()
 
 AC_CONFIG_HEADERS([config.h])
@@ -31,11 +32,6 @@ AC_SUBST(glib_incdir)
 
 AC_CONFIG_FILES([Makefile])
 
-if test "$SGX_HW_SIM" = "1"
-then
-	sim="-sim"
-fi
-	AC_CONFIG_FILES(EnclaveQuote/EnclaveQuote.edl:EnclaveQuote/EnclaveQuote-linux${sim}.edl.in)
-
 AC_OUTPUT()
+
 

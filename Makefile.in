@@ -16,6 +16,7 @@ prefix=@prefix@
 exec_prefix=@exec_prefix@
 bindir=@bindir@
 libdir=@libdir@
+srcdir=@srcdir@
 enclave_libdir=@enclave_libdir@
 
 APP_OBJS=main.o sgx_stub.o sgx_detect_linux.o
@@ -51,5 +52,5 @@ EnclaveQuote.signed.so:
 
 distclean: clean distclean_enclaves
 	rm -rf Makefile config.log config.status config.h autom4te.cache
-	rm -rf sgx_app.mk sgx_enclave.mk
+	rm -rf sgx_app.mk sgx_enclave.mk 
 
