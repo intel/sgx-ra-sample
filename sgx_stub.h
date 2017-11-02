@@ -39,9 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern "C" {
 #endif
 
-#ifndef SGX_HW_SIM
 	int have_sgx_psw();
-#endif
 
 #ifdef __cplusplus
 };
