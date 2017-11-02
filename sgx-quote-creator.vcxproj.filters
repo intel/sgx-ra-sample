@@ -14,7 +14,7 @@
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
     <Filter Include="Generated Files">
-      <UniqueIdentifier>{c0c83124-7880-4eed-b450-dbb7e900938f}</UniqueIdentifier>
+      <UniqueIdentifier>{855f0f06-5cfc-4214-bca9-41cc81f10b96}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -24,14 +24,14 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EnclaveQuote_u.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
     <ClInclude Include="getopt.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="sgx_detect.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EnclaveQuote_u.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -41,14 +41,14 @@
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="EnclaveQuote_u.c">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="getopt.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="sgx_detect_win.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EnclaveQuote_u.c">
+      <Filter>Generated Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

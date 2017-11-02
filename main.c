@@ -66,7 +66,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "EnclaveQuote_u.h"
-#if !defined(SGX_HW_SIM)||!defined(_WIN32)
+#if !defined(SGX_HW_SIM)&&!defined(_WIN32)
 #include "sgx_stub.h"
 #endif
 #include <stdlib.h>
@@ -150,7 +150,6 @@ int main (int argc, char *argv[])
 	sgx_target_info_t target_info;
 	sgx_epid_group_id_t epid_gid;
 	uint32_t n_epid_gid= 0xdeadbeef;
-	unsigned char *cp;
 #if(defined(_WIN32)||defined(SGX_HW_SIM))
 	sgx_ps_cap_t ps_cap;
 	char *pse_manifest;
