@@ -33,11 +33,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __SGX_STUB_H
 #define __SGX_STUB_H
 
+#include "config.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#ifndef SGX_HW_SIM
 	int have_sgx_psw();
+#endif
 
 #ifdef __cplusplus
 };

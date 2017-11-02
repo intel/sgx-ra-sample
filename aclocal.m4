@@ -15,6 +15,8 @@ AC_DEFUN([SGX_INIT],[
 			AC_SUBST(SGX_TSERVICE_LIB, [sgx_tservice_sim])
 			AC_SUBST(SGX_UAE_SERVICE_LIB, [sgx_uae_service_sim])
 			AC_SUBST(SGX_URTS_LIB, [sgx_urts_sim])
+			AC_SUBST(LIBS_HW_SIMU, ["-lsgx_urts_sim -lsgx_uae_service_sim"])
+			AC_DEFINE(SGX_HW_SIM, 1, [Enable hardware simulation mode])
 		], [
 			AC_SUBST(SGX_TRTS_LIB, [sgx_trts])
 			AC_SUBST(SGX_TSERVICE_LIB, [sgx_tservice])

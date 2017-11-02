@@ -31,6 +31,34 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+
+/*----------------------------------------------------------------------
+ * WARNING
+ *----------------------------------------------------------------------
+ *
+ * DO NOT USE THIS CODE AS A TEMPLATE FOR IMPLEMENTING REMOTE
+ * ATTESTATION. This code short-circuits the RA process in order 
+ * to generate an enclave quote directly!
+ *
+ * The high-level functions provided for remote attestation take
+ * care of the low-level details of quote generation for you:
+ *
+ *   sgx_ra_init()
+ *   sgx_ra_get_msg1
+ *   sgx_ra_proc_msg2
+ *
+ * End developers should not normally be calling these functions
+ * directly when doing remote attestation: 
+ *
+ *    sgx_get_ps_sec_prop()
+ *    sgx_get_quote()
+ *    sgx_get_quote_size()
+ *    sgx_get_report()
+ *    sgx_init_quote()
+ *
+ *----------------------------------------------------------------------
+ */
+
 #ifdef _WIN32
 #pragma comment(lib, "crypt32.lib")
 #else
@@ -94,7 +122,7 @@ void usage ()
 	fprintf(stderr, "  -e, --epid-gid           Get the EPID Group ID instead of a quote\n");
 	fprintf(stderr, "  -l, --linkable           Specify a linkable quote (default: unlinkable)\n");
 	fprintf(stderr, "  -r                       Generate a nonce using RDRAND\n");
-#ifdef _WIN32
+#if(defined(_WIN32)||defined(SGX_HW_SIM))
 	fprintf(stderr, "  -m, --pse-manifest       Include the PSE manifest in the quote\n");
 #endif
 	fprintf(stderr, "  -n, --nonce=HEXSTRING    Set a nonce from a 32-byte ASCII hex string\n");
@@ -120,16 +148,21 @@ int main (int argc, char *argv[])
 	sgx_epid_group_id_t epid_gid;
 	uint32_t n_epid_gid= 0xdeadbeef;
 	unsigned char *cp;
+#if(defined(_WIN32)||defined(SGX_HW_SIM))
+	sgx_ps_cap_t ps_cap;
+	char *pse_manifest;
+	size_t pse_manifest_sz;
+#endif
 #ifdef _WIN32
 	LPTSTR b64quote = NULL;
 	DWORD sz_b64quote = 0;
 	LPTSTR b64manifest = NULL;
 	DWORD sz_b64manifest = 0;
-	sgx_ps_cap_t ps_cap;
-	char *pse_manifest;
-	size_t pse_manifest_sz;
 #else
 	gchar *b64quote= NULL;
+# ifdef SGX_HW_SIM
+	gchar *b64manifest = NULL;
+# endif
 #endif
 	uint16_t linkable= SGX_UNLINKABLE_SIGNATURE;
 	sgx_quote_nonce_t nonce;
@@ -143,7 +176,7 @@ int main (int argc, char *argv[])
 	{
 		{"help",		no_argument, 		0, 'h'},
 		{"epid-gid",	no_argument,		0, 'e'},
-#ifdef _WIN32
+#if(defined(_WIN32)||defined(SGX_HW_SIM))
 		{"pse-manifest",	no_argument,	0, 'm'},
 #endif
 		{"nonce",		required_argument,	0, 'n'},
@@ -212,7 +245,7 @@ int main (int argc, char *argv[])
 			from_hexstring((unsigned char *) &spid, (unsigned char *) optarg, 16);
 			++flag_spid;
 			break;
-#ifdef _WIN32
+#if(defined(_WIN32)||defined(SGX_HW_SIM))
 		case 'm':
 			flag_manifest = 1;
 			break;
@@ -241,6 +274,7 @@ int main (int argc, char *argv[])
 
 	/* Can we run SGX? */
 
+#ifndef SGX_HW_SIM
 	sgx_support = get_sgx_support();
 	if (sgx_support & SGX_SUPPORT_NO) {
 		fprintf(stderr, "This system does not support Intel SGX.\n");
@@ -260,6 +294,7 @@ int main (int argc, char *argv[])
 			return 1;
 		}
 	} 
+#endif
 
 	/* Did they ask for the EPID GID? */
 
@@ -294,7 +329,7 @@ int main (int argc, char *argv[])
 #endif
 
 	/* Platfor services info */
-#ifdef _WIN32
+#if(defined(_WIN32)||defined(SGX_HW_SIM))
 	if (flag_manifest) {
 		status = sgx_get_ps_cap(&ps_cap);
 		if (status != SGX_SUCCESS) {
@@ -319,7 +354,7 @@ int main (int argc, char *argv[])
 		}
 		if (sgxrv != SGX_SUCCESS) {
 			fprintf(stderr, "get_sec_prop_desc_ex: %08x\n",
-				status);
+				sgxrv);
 			return 1;
 		}
 	}
@@ -339,7 +374,7 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 	if ( sgxrv != SGX_SUCCESS ) {
-		fprintf(stderr, "sgx_get_report: %08x\n", status);
+		fprintf(stderr, "sgx_create_report: %08x\n", sgxrv);
 		return 1;
 	}
 
@@ -395,6 +430,12 @@ int main (int argc, char *argv[])
 	}
 #else
 	b64quote= g_base64_encode((const guchar *) quote, sz);
+# ifdef SGX_HW_SIM
+	if (flag_manifest) {
+		b64manifest= g_base64_encode((const guchar *) pse_manifest, 
+			pse_manifest_sz);
+	}
+# endif
 #endif
 
 	printf("{\n");
@@ -404,12 +445,17 @@ int main (int argc, char *argv[])
 		print_hexstring(stdout, &nonce, 16);
 		printf("\"");
 	}
-#ifdef _WIN32
+#if(defined(_WIN32)||defined(SGX_HW_SIM))
 	if (flag_manifest) {
 		printf(",\n\"pseManifest\":\"%s\"", b64manifest);	
 	}
 #endif
 	printf("\n}\n");
+
+#ifdef SGX_HW_SIM
+	fprintf(stderr, "WARNING! Built in h/w simulation mode. This quote will not be verifiable.\n");
+#endif
+
 }
 
 int from_hexstring_file (unsigned char *dest, unsigned char *file, size_t len)

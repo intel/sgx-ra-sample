@@ -73,5 +73,5 @@ $(ENCLAVE_PKEY):
 	openssl genrsa -3 -out $@ 3072
 
 $(ENCLAVE)_t.c: $(ENCLAVE).edl 
-	$(SGX_EDGER8R) $(SGX_EDGER8R_FLAGS) --trusted $<
+	$(SGX_EDGER8R) --search-path $(SGXSDK_INCDIR) $(SGX_EDGER8R_FLAGS) --trusted $<
 

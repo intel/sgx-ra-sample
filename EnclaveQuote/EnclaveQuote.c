@@ -31,21 +31,53 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "../config.h"
 #include "EnclaveQuote_t.h"
 #include <string.h>
 #include <sgx_utils.h>
 #include <sgx_tae_service.h>
 
+/*----------------------------------------------------------------------
+ * WARNING
+ *----------------------------------------------------------------------
+ *
+ * DO NOT USE THIS CODE AS A TEMPLATE FOR IMPLEMENTING REMOTE
+ * ATTESTATION. This code short-circuits the RA process in order 
+ * to generate an enclave quote directly!
+ *
+ * The high-level functions provided for remote attestation take
+ * care of the low-level details of quote generation for you:
+ *
+ *   sgx_ra_init()
+ *   sgx_ra_get_msg1
+ *   sgx_ra_proc_msg2
+ *
+ * End developers should not normally be calling these functions
+ * directly when doing remote attestation: 
+ *
+ *    sgx_get_ps_sec_prop()
+ *    sgx_get_quote()
+ *    sgx_get_quote_size()
+ *    sgx_get_report()
+ *    sgx_init_quote()
+ *
+ *----------------------------------------------------------------------
+ */
+
 sgx_status_t get_report(sgx_report_t *report, sgx_target_info_t *target_info)
 {
-	return sgx_create_report(target_info, NULL, report);
+#ifdef SGX_HW_SIM
+	return sgx_create_report(NULL, NULL, report);
+#else
+	return sgx_create_report(target_info, &report_data, report);
+#endif
 }
 
 /* Platform services are not supported on Linux */
 
 size_t get_pse_manifest_size ()
 {
-#ifdef _WIN32
+#if defined(_WIN32)||defined(SGX_HW_SIM)
 	return sizeof(sgx_ps_sec_prop_desc_t);
 #else
 	return 0;
@@ -56,7 +88,7 @@ sgx_status_t get_pse_manifest(char *buf, size_t sz)
 {
 	sgx_status_t status= SGX_ERROR_SERVICE_UNAVAILABLE;
 
-#ifdef _WIN32
+#if defined(_WIN32)||defined(SGX_HW_SIM)
 	sgx_ps_sec_prop_desc_t ps_sec_prop_desc;
 	int retries= 5;
 

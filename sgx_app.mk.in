@@ -40,7 +40,7 @@ ENCLAVE_CLEAN += $(2)_u.o $(2)_u.c $(2)_u.h
 ENCLAVE_UDEPS += $(2)_u.c $(2)_u.h
 
 $(2)_u.h $(2)_u.c: $(3)/$(1)/$(2).edl 
-	$$(SGX_EDGER8R) $$(SGX_EDGER8R_FLAGS) --untrusted $$<
+	$$(SGX_EDGER8R) --search-path $$(SGXSDK_INCDIR) $$(SGX_EDGER8R_FLAGS) --untrusted $$<
 
 $(2)_u.o: $(2)_u.c $(2)_u.h
 endef

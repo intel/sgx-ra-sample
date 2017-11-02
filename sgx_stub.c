@@ -31,6 +31,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "config.h"
+#ifndef SGX_HW_SIM
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -336,3 +338,5 @@ sgx_status_t sgx_create_enclave(const char *file_name, const int debug, sgx_laun
 
 	return (sgx_status_t) p_sgx_create_enclave(file_name, debug, launch_token, launch_token_updated, enclave_id, misc_attr);
 }
+
+#endif

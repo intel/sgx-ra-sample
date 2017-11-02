@@ -594,6 +594,7 @@ SGXSDK_BINDIR
 SGXSDK_LIBDIR
 SGX_DEBUG_FLAGS
 ENCLAVE_SIGN_TARGET
+LIBS_HW_SIMU
 SGX_URTS_LIB
 SGX_UAE_SERVICE_LIB
 SGX_TSERVICE_LIB
@@ -3027,6 +3028,11 @@ fi
 			SGX_UAE_SERVICE_LIB=sgx_uae_service_sim
 
 			SGX_URTS_LIB=sgx_urts_sim
+
+			LIBS_HW_SIMU="-lsgx_urts_sim -lsgx_uae_service_sim"
+
+
+$as_echo "#define SGX_HW_SIM 1" >>confdefs.h
 
 
 else

@@ -1,3 +1,6 @@
+#ifndef _CONFIG_H
+#define _CONFIG_H
+
 /* Enable general debugging code */
 #undef DEBUG
 
@@ -7,3 +10,7 @@
 /* Set for enclave apps built in release or prerelease mode */
 #undef NDEBUG
 
+/* Set for simulation mode */
+#undef SGX_HW_SIM
+
+#endif
