@@ -65,6 +65,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "config.h"
 #endif
 
+#define PSE_SUPPORT 1
+#if(defined(_WIN32)||defined(SGX_HW_SIM))
+#define PSE_SUPPORT 1
+#endif
+
 #include "EnclaveQuote_u.h"
 #if !defined(SGX_HW_SIM)&&!defined(_WIN32)
 #include "sgx_stub.h"
@@ -125,7 +130,7 @@ void usage ()
 	fprintf(stderr, "  -e, --epid-gid           Get the EPID Group ID instead of a quote\n");
 	fprintf(stderr, "  -l, --linkable           Specify a linkable quote (default: unlinkable)\n");
 	fprintf(stderr, "  -r                       Generate a nonce using RDRAND\n");
-#if(defined(_WIN32)||defined(SGX_HW_SIM))
+#ifdef PSE_SUPPORT
 	fprintf(stderr, "  -m, --pse-manifest       Include the PSE manifest in the quote\n");
 #endif
 	fprintf(stderr, "  -n, --nonce=HEXSTRING    Set a nonce from a 32-byte ASCII hex string\n");
@@ -150,7 +155,7 @@ int main (int argc, char *argv[])
 	sgx_target_info_t target_info;
 	sgx_epid_group_id_t epid_gid;
 	uint32_t n_epid_gid= 0xdeadbeef;
-#if(defined(_WIN32)||defined(SGX_HW_SIM))
+#ifdef PSE_SUPPORT
 	sgx_ps_cap_t ps_cap;
 	char *pse_manifest;
 	size_t pse_manifest_sz;
@@ -162,7 +167,7 @@ int main (int argc, char *argv[])
 	DWORD sz_b64manifest = 0;
 #else
 	gchar *b64quote= NULL;
-# ifdef SGX_HW_SIM
+# ifdef PSE_SUPPORT
 	gchar *b64manifest = NULL;
 # endif
 #endif
@@ -178,7 +183,7 @@ int main (int argc, char *argv[])
 	{
 		{"help",		no_argument, 		0, 'h'},
 		{"epid-gid",	no_argument,		0, 'e'},
-#if(defined(_WIN32)||defined(SGX_HW_SIM))
+#ifdef PSE_SUPPORT
 		{"pse-manifest",	no_argument,	0, 'm'},
 #endif
 		{"nonce",		required_argument,	0, 'n'},
@@ -247,7 +252,7 @@ int main (int argc, char *argv[])
 			from_hexstring((unsigned char *) &spid, (unsigned char *) optarg, 16);
 			++flag_spid;
 			break;
-#if(defined(_WIN32)||defined(SGX_HW_SIM))
+#ifdef PSE_SUPPORT
 		case 'm':
 			flag_manifest = 1;
 			break;
@@ -331,7 +336,7 @@ int main (int argc, char *argv[])
 #endif
 
 	/* Platfor services info */
-#if(defined(_WIN32)||defined(SGX_HW_SIM))
+#ifdef PSE_SUPPORT
 	if (flag_manifest) {
 		status = sgx_get_ps_cap(&ps_cap);
 		if (status != SGX_SUCCESS) {
@@ -432,7 +437,7 @@ int main (int argc, char *argv[])
 	}
 #else
 	b64quote= g_base64_encode((const guchar *) quote, sz);
-# ifdef SGX_HW_SIM
+#ifdef PSE_SUPPORT
 	if (flag_manifest) {
 		b64manifest= g_base64_encode((const guchar *) pse_manifest, 
 			pse_manifest_sz);
@@ -447,7 +452,7 @@ int main (int argc, char *argv[])
 		print_hexstring(stdout, &nonce, 16);
 		printf("\"");
 	}
-#if(defined(_WIN32)||defined(SGX_HW_SIM))
+#ifdef PSE_SUPPORT
 	if (flag_manifest) {
 		printf(",\n\"pseManifest\":\"%s\"", b64manifest);	
 	}
