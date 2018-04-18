@@ -8,8 +8,8 @@ CC=@CC@
 CFLAGS=@CFLAGS@ -fno-builtin-memset -mrdrnd
 CPPFLAGS=@CPPFLAGS@
 LDFLAGS=@LDFLAGS@ -L$(SGXSDK_LIBDIR)
-LIBS_HW_SIM=@LIBS_HW_SIMU@
-LIBS=@LIBS@ $(LIBS_HW_SIM)
+LIBS_HW_SIM=@LIBS_HW_SIMU@ 
+LIBS=@LIBS@ $(LIBS_HW_SIM) -lsgx_ukey_exchange -l$(SGX_UAE_SERVICE_LIB) -l$(SGX_URTS_LIB) -lpthread
 
 INSTALL=@INSTALL@
 prefix=@prefix@
@@ -19,12 +19,14 @@ libdir=@libdir@
 srcdir=@srcdir@
 enclave_libdir=@enclave_libdir@
 
-APP_OBJS=main.o sgx_stub.o sgx_detect_linux.o
+COMMON_OBJS=hexutil.o fileio.o
+QUOTE_OBJS=main.o sgx_stub.o sgx_detect_linux.o $(COMMON_OBJS)
+SP_OBJS=sp.o eckey.o crypto_init.o $(COMMON_OBJS)
 
 %.o: %.c
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) -I$(SGXSDK_INCDIR) $<
 
-all: quote $(SGX_ENCLAVES) link
+all: quote sp $(SGX_ENCLAVES) link
 
 install: install-program install-enclaves
 
@@ -39,8 +41,11 @@ install-enclaves:
 
 include sgx_app.mk
 
-quote: $(ENCLAVE_UOBJS) $(APP_OBJS)
-	$(CC) -o $@ $(LDFLAGS) $(APP_OBJS) $(ENCLAVE_UOBJS) $(LIBS) -ldl -l:libsgx_capable.a
+quote: $(ENCLAVE_UOBJS) $(QUOTE_OBJS)
+	g++ -o $@ $(LDFLAGS) $(QUOTE_OBJS) $(ENCLAVE_UOBJS) $(LIBS) -ldl -l:libsgx_capable.a
+
+sp: $(SP_OBJS)
+	$(CC) -o $@ $(SP_OBJS) -lcrypto
 
 clean: clean_enclaves
 	rm -f quote $(APP_OBJS) $(ENCLAVE_CLEAN) EnclaveQuote.signed.so

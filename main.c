@@ -88,8 +88,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <glib.h>
 #endif
 #include <sgx_uae_service.h>
+#include <sgx_ukey_exchange.h>
 #include "sgx_detect.h"
-
+#include "hexutil.h"
+#include "fileio.h"
 
 #define MAX_LEN 80
 
@@ -116,26 +118,30 @@ sgx_status_t sgx_create_enclave_search (
 );
 
 void usage();
-void from_hexstring(unsigned char *dest, unsigned char *src, size_t len);
-void print_hexstring(FILE *fp, void *src, size_t len);
-int from_hexstring_file(unsigned char *dest, unsigned char *file, size_t len);
 
 void usage () 
 {
-	fprintf(stderr, "usage: quote [ options ]\n");
-	fprintf(stderr, "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string\n");
-	fprintf(stderr, "  -S, --spid-file=FILE      Set the SPID from a file containg a 32-byte\n");
+	fprintf(stderr, "usage: quote [ options ]\n\n");
+	fprintf(stderr, "Required:\n");
+	fprintf(stderr, "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte\n");
 	fprintf(stderr, "                              ASCII hex string\n");
-	fprintf(stderr, "                           One of --spid or --spid-file is required\n");
+	fprintf(stderr, "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string\n");
+	fprintf(stderr, "\nOne of --spid OR --spid-file is required\n\n");
+	fprintf(stderr, "Optional:\n");
+	fprintf(stderr, "  -N, --nonce-file=FILE    Set a nonce from a file containing a 32-byte\n");
+	fprintf(stderr, "                              ASCII hex string\n");
 	fprintf(stderr, "  -e, --epid-gid           Get the EPID Group ID instead of a quote\n");
 	fprintf(stderr, "  -l, --linkable           Specify a linkable quote (default: unlinkable)\n");
-	fprintf(stderr, "  -r                       Generate a nonce using RDRAND\n");
 #ifdef PSE_SUPPORT
 	fprintf(stderr, "  -m, --pse-manifest       Include the PSE manifest in the quote\n");
 #endif
 	fprintf(stderr, "  -n, --nonce=HEXSTRING    Set a nonce from a 32-byte ASCII hex string\n");
-	fprintf(stderr, "  -N, --nonce-file=FILE     Set a nonce from a file containing a 32-byte\n");
-	fprintf(stderr, "                              ASCII hex string\n");
+	fprintf(stderr, "  -r                       Generate a nonce using RDRAND\n");
+	fprintf(stderr, "\nRemote Attestation options:\n");
+	fprintf(stderr, "  -1, --msg1               Generate msg1. Requires -p or -P.\n");
+	fprintf(stderr, "  -p, --pubkey=HEXSTRING   The public key of the service provider as an\n");
+	fprintf(stderr, "                              ASCII hex string.\n");
+	fprintf(stderr, "  -P, --pubkey-file=FILE   File containing the public key of the service provider.\n");
 	exit(1);
 }
 
@@ -155,6 +161,7 @@ int main (int argc, char *argv[])
 	sgx_target_info_t target_info;
 	sgx_epid_group_id_t epid_gid;
 	uint32_t n_epid_gid= 0xdeadbeef;
+	sgx_ec256_public_t pubkey;
 #ifdef PSE_SUPPORT
 	sgx_ps_cap_t ps_cap;
 	char *pse_manifest;
@@ -178,6 +185,8 @@ int main (int argc, char *argv[])
 	char flag_nonce= 0;
 	char flag_spid= 0;
 	char flag_epid= 0;
+	char flag_msg1= 0;
+	char flag_pubkey= 0;
 
 	static struct option long_opt[] =
 	{
@@ -192,6 +201,9 @@ int main (int argc, char *argv[])
 		{"spid",		required_argument,	0, 's'},
 		{"spid-file",	required_argument,	0, 'S'},
 		{"linkable",	no_argument,		0, 'l'},
+		{"msg1",		no_argument,		0, '1'},
+		{"pubkey",		required_argument,	0, 'p'},
+		{"pubkey-file",	required_argument,	0, 'P'},
 		{ 0, 0, 0, 0}
 	};
 
@@ -200,12 +212,35 @@ int main (int argc, char *argv[])
 	while (1) {
 		int c;
 		int opt_index= 0;
+		off_t sz;
+		unsigned char *keydata;
+		unsigned char keyin[64];
 
-		c= getopt_long(argc, argv, "ehlmn:N:rs:S:", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "1N:P:S:ehlmn:p:rs:", long_opt, &opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
 		case 0:
+			break;
+		case '1':
+			++flag_msg1;
+			break;
+		case 'P':
+			fprintf(stderr, "Not implemented\n");
+			exit(1);
+
+			break;
+		case 'p':
+			if ( ! from_hexstring((unsigned char *) keyin, (unsigned char *) optarg, 64)) {
+				fprintf(stderr, "SPID must be 128-byte hex string\n");
+				exit(1);
+			}
+
+			/* Reverse the byte stream to make a little endien style value */
+			for(i= 0; i< 32; ++i) pubkey.gx[i]= keyin[31-i];
+			for(i= 0; i< 32; ++i) pubkey.gy[i]= keyin[63-i];
+			++flag_pubkey;
+
 			break;
 		case 'l':
 			linkable= SGX_LINKABLE_SIGNATURE;
@@ -249,7 +284,10 @@ int main (int argc, char *argv[])
 				fprintf(stderr, "SPID must be 32-byte hex string\n");
 				exit(1);
 			}
-			from_hexstring((unsigned char *) &spid, (unsigned char *) optarg, 16);
+			if ( ! from_hexstring((unsigned char *) &spid, (unsigned char *) optarg, 16) ) {
+				fprintf(stderr, "SPID must be 32-byte hex string\n");
+				exit(1);
+			}
 			++flag_spid;
 			break;
 #ifdef PSE_SUPPORT
@@ -262,7 +300,10 @@ int main (int argc, char *argv[])
 				fprintf(stderr, "nonce must be 32-byte hex string\n");
 				exit(1);
 			}
-			from_hexstring((unsigned char *) &nonce, (unsigned char *) optarg, 16);
+			if ( ! from_hexstring((unsigned char *) &nonce, (unsigned char *) optarg, 16) ) {
+				fprintf(stderr, "nonce must be 32-byte hex string\n");
+				exit(1);
+			}
 
 			++flag_nonce;
 
@@ -272,6 +313,11 @@ int main (int argc, char *argv[])
 		default:
 			usage();
 		}
+	}
+
+	if ( flag_msg1 && ! flag_pubkey ) {
+		fprintf(stderr, "public key required. Use one of --pubkey or --pubkey-file \n");
+		return 1;
 	}
 
 	if ( ! flag_spid && ! flag_epid ) {
@@ -303,18 +349,6 @@ int main (int argc, char *argv[])
 	} 
 #endif
 
-	/* Did they ask for the EPID GID? */
-
-	if ( flag_epid ) {
-		status= sgx_get_extended_epid_group_id(&n_epid_gid);
-		if ( status != SGX_SUCCESS ) {
-			fprintf(stderr, "sgx_get_extended_epid_group_id: %08x\n", status);
-			return 1;
-		}
-		printf("%lu\n", (unsigned long) n_epid_gid);
-		return 0;
-	}
-
 	/* Launch the enclave */
 
 #ifdef _WIN32
@@ -335,7 +369,7 @@ int main (int argc, char *argv[])
 	}
 #endif
 
-	/* Platfor services info */
+	/* Platform services info */
 #ifdef PSE_SUPPORT
 	if (flag_manifest) {
 		status = sgx_get_ps_cap(&ps_cap);
@@ -367,12 +401,21 @@ int main (int argc, char *argv[])
 	}
 #endif
 
+	/* Get our quote */
+
 	memset(&report, 0, sizeof(report));
 
 	status= sgx_init_quote(&target_info, &epid_gid);
 	if ( status != SGX_SUCCESS ) {
 		fprintf(stderr, "sgx_init_quote: %08x\n", status);
 		return 1;
+	}
+
+	/* Did they ask for just the EPID? */
+	if ( flag_epid ) {
+		print_hexstring(stdout, &epid_gid, 4);
+		printf("\n");
+		exit(0);
 	}
 
 	status= get_report(eid, &sgxrv, &report, &target_info);
@@ -407,6 +450,35 @@ int main (int argc, char *argv[])
 		fprintf(stderr, "sgx_get_quote: %08x\n", status);
 		return 1;
 	}
+
+	if ( flag_msg1 ) {
+		sgx_ra_context_t ctx= 0;
+		sgx_ra_msg1_t msg1;
+
+		status= enclave_ra_init(eid, &sgxrv, pubkey, 0, &ctx);
+		if ( status != SGX_SUCCESS ) {
+			fprintf(stderr, "enclave_ra_init: %08x\n", status);
+			return 1;
+		}
+		if ( sgxrv != SGX_SUCCESS ) {
+			fprintf(stderr, "sgx_ra_init: %08x\n", sgxrv);
+			return 1;
+		}
+
+		status= sgx_ra_get_msg1(ctx, eid, sgx_ra_get_ga, &msg1);
+		if ( status != SGX_SUCCESS ) {
+			fprintf(stderr, "sgx_ra_get_msg1: %08x\n", status);
+			return 1;
+		}
+
+		printf("{\n\"msg1\":\"");
+		print_hexstring(stdout, &msg1, sizeof(msg1));
+		printf("\"\n}\n");
+
+		exit(0);
+	}
+
+	/* Print our quote */
 
 #ifdef _WIN32
 	// We could also just do ((4 * sz / 3) + 3) & ~3
@@ -463,60 +535,6 @@ int main (int argc, char *argv[])
 	fprintf(stderr, "WARNING! Built in h/w simulation mode. This quote will not be verifiable.\n");
 #endif
 
-}
-
-int from_hexstring_file (unsigned char *dest, unsigned char *file, size_t len)
-{
-		unsigned char *sbuf;
-		FILE *fp;
-
-		sbuf= (unsigned char *) malloc(len*2);
-
-#ifdef _WIN32
-		if (fopen_s(&fp, file, "r") != 0) {
-			fprintf(stderr, "fopen_s: ");
-#else
-		if ( (fp= fopen(file, "r")) == NULL ) {
-			fprintf(stderr, "fopen: ");
-#endif
-			perror(file);
-			exit(1);
-		}
-		if ( fread(sbuf, len*2, 1, fp) != 1 ) {
-			free(sbuf);
-			return 0;
-		}
-		fclose(fp);
-
-		from_hexstring(dest, sbuf, 16);
-
-		free(sbuf);
-
-		return 1;
-}
-
-void from_hexstring (unsigned char *dest, unsigned char *src, size_t len)
-{
-	size_t i;
-
-	for (i= 0; i<len; ++i) {
-		unsigned int v;
-#ifdef _WIN32
-		sscanf_s(&src[i * 2], "%2xhh", &v);
-#else
-		sscanf(&src[i*2], "%2xhh", &v);
-#endif
-		dest[i]= (unsigned char) v;
-	}
-}
-
-void print_hexstring (FILE *fp, void *src, size_t len)
-{
-	unsigned char *sp= src;
-	size_t i;
-	for(i= 0; i< len; ++i) {
-		fprintf(fp, "%02x", sp[i]);
-	}
 }
 
 /*

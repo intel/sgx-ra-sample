@@ -11,6 +11,7 @@ libdir=@libdir@
 enclave_libdir=@enclave_libdir@
 
 ENCLAVE=EnclaveQuote
+ENCLAVE_EXTRA_LIBS=-lsgx_tkey_exchange 
 
 OBJS=$(ENCLAVE).o
 
