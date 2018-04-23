@@ -7,7 +7,8 @@ AC_PROG_INSTALL()
 
 AC_CONFIG_HEADERS([config.h])
 
-CPPFLAGS="$CPPFLAGS `pkg-config --cflags glib-2.0`"
+CPPFLAGS="$CPPFLAGS `pkg-config --cflags glib-2.0` -I/opt/openssl/1.1.0f/include"
+LDFLAGS="-L/opt/openssl/1.1.0f/lib"
 LIBS="$CFLAGS `pkg-config --libs glib-2.0`"
 
 SGX_INIT()

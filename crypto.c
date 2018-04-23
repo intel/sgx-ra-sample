@@ -1,6 +1,10 @@
-#include <openssl/pem.h>
-#include <openssl/evp.h>
+#include <openssl/cmac.h>
+#include <openssl/conf.h>
 #include <openssl/ec.h>
+#include <openssl/ecdsa.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
 #include <openssl/bn.h>
 #include <stdio.h>
 #include <sgx_key_exchange.h>
@@ -13,6 +17,38 @@ static enum _error_type {
 } error_type= e_none;
 
 static const char *ep= NULL;
+
+void crypto_init ()
+{
+	/* Load error strings for libcrypto */
+	ERR_load_crypto_strings();
+
+	/* Load digest and ciphers */
+	OpenSSL_add_all_algorithms();
+}
+
+void crypto_destroy ()
+{
+	EVP_cleanup();
+
+	CRYPTO_cleanup_all_ex_data();
+
+	ERR_free_strings();
+}
+
+/* Print the error */
+
+void crypto_perror (const char *prefix)
+{
+	fprintf(stderr, "%s: ", prefix);
+	if ( error_type == e_none ) fprintf(stderr, "no error\n");
+	else if ( error_type == e_system ) perror(ep);
+	else if ( error_type == e_crypto ) ERR_print_errors_fp(stderr);
+}
+
+/*============================================================================
+ * EC key functions 
+ *============================================================================ */
 
 /* Load an EC key from a file in PEM format */
 
@@ -179,14 +215,12 @@ unsigned char *key_shared_secret (EC_KEY *ec_g_a, size_t *slen)
 		error_type= e_crypto;
 		goto cleanup;
 	}
-	fprintf(stderr, "slen= %u\n", *slen);
 
 	secret= OPENSSL_malloc(*slen);
 	if ( secret == NULL ) {
 		error_type= e_crypto;
 		goto cleanup;
 	}
-	fprintf(stderr, "secret= 0x%08x\n", secret);
 
 	if ( ! EVP_PKEY_derive(sctx, secret, slen) ) {
 		error_type= e_crypto;
@@ -205,13 +239,84 @@ cleanup:
 	return secret;
 }
 
-/* Print the error */
+/*============================================================================
+ * AES-CMAC
+ *============================================================================ */
 
-void key_perror (const char *prefix)
+int cmac128(unsigned char key[16], unsigned char *message, size_t mlen,
+	unsigned char mac[16])
 {
-	fprintf(stderr, "%s: ", prefix);
-	if ( error_type == e_none ) fprintf(stderr, "no error\n");
-	else if ( error_type == e_system ) perror(ep);
-	else if ( error_type == e_crypto ) ERR_print_errors_fp(stderr);
+	size_t maclen;
+	error_type= e_none;
+
+
+	CMAC_CTX *ctx= CMAC_CTX_new();
+	if ( ctx == NULL ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	if ( ! CMAC_Init(ctx, key, 16, EVP_aes_128_cbc(), NULL) ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	if ( ! CMAC_Update(ctx, message, mlen) ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	if ( ! CMAC_Final(ctx, mac, &maclen) ) error_type= e_crypto;
+
+cleanup:
+	if ( ctx != NULL ) CMAC_CTX_free(ctx);
+	return (error_type == e_none);
+}
+
+/*============================================================================
+ * ECDSA
+ *============================================================================ */
+
+int ecdsa_sign(unsigned char *msg, size_t mlen, EVP_PKEY *key,
+	unsigned char hash[64])
+{
+	ECDSA_SIG *sig;
+	EC_KEY *eckey;
+	BIGNUM *r, *s;
+
+	error_type= e_none;
+
+	eckey= EVP_PKEY_get1_EC_KEY(key);
+	if ( eckey == NULL ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	sig= ECDSA_do_sign(msg, mlen, eckey);
+	
+	/* 
+	 * OpenSSL represents ECDSA_SIG as two BIGNUMs, r and s. Turn these into
+	 * byte streams, in little endian format, assuming 32-byte integers.
+	 */
+
+	if ( ! ECDSA_SIG_set0(sig, r, s) ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	if ( ! BN_bn2lebinpad(r, hash, 32) ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	if ( ! BN_bn2lebinpad(s, &hash[32], 32) ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+cleanup:
+	if ( sig != NULL ) ECDSA_SIG_free(sig);
+	if ( eckey != NULL ) EC_KEY_free(eckey);
+	return (error_type == e_none);
 }
 

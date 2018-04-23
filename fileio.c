@@ -90,7 +90,7 @@ int from_hexstring_file (unsigned char *dest, unsigned char *file, size_t len)
 		fprintf(stderr, "fopen: ");
 #endif
 		perror(file);
-		exit(1);
+		return 0;
 	}
 	if ( fread(sbuf, len*2, 1, fp) != 1 ) {
 		free(sbuf);
@@ -103,5 +103,27 @@ int from_hexstring_file (unsigned char *dest, unsigned char *file, size_t len)
 	free(sbuf);
 
 	return rv;
+}
+
+int to_hexstring_file (unsigned char *src, unsigned char *file, size_t len)
+{
+	FILE *fp;
+
+#ifdef _WIN32
+	if (fopen_s(&fp, file, "w") != 0) {
+		fprintf(stderr, "fopen_s: ");
+#else
+	if ( (fp= fopen(file, "w")) == NULL ) {
+		fprintf(stderr, "fopen: ");
+#endif
+		perror(file);
+		return 0;
+	}
+	
+	print_hexstring(fp, src, len);
+
+	fclose(fp);
+
+	return 1;
 }
 

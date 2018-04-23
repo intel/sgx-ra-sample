@@ -232,7 +232,7 @@ int main (int argc, char *argv[])
 			break;
 		case 'p':
 			if ( ! from_hexstring((unsigned char *) keyin, (unsigned char *) optarg, 64)) {
-				fprintf(stderr, "SPID must be 128-byte hex string\n");
+				fprintf(stderr, "key must be 128-byte hex string\n");
 				exit(1);
 			}
 
@@ -413,8 +413,7 @@ int main (int argc, char *argv[])
 
 	/* Did they ask for just the EPID? */
 	if ( flag_epid ) {
-		print_hexstring(stdout, &epid_gid, 4);
-		printf("\n");
+		printf("%08x\n", *(uint32_t *)epid_gid);
 		exit(0);
 	}
 
@@ -471,9 +470,8 @@ int main (int argc, char *argv[])
 			return 1;
 		}
 
-		printf("{\n\"msg1\":\"");
 		print_hexstring(stdout, &msg1, sizeof(msg1));
-		printf("\"\n}\n");
+		printf("\n");
 
 		exit(0);
 	}

@@ -19,14 +19,14 @@ libdir=@libdir@
 srcdir=@srcdir@
 enclave_libdir=@enclave_libdir@
 
-COMMON_OBJS=hexutil.o fileio.o
+COMMON_OBJS=hexutil.o fileio.o byteorder.o
 QUOTE_OBJS=main.o sgx_stub.o sgx_detect_linux.o $(COMMON_OBJS)
-SP_OBJS=sp.o eckey.o crypto_init.o $(COMMON_OBJS)
+SP_OBJS=sp.o crypto.o $(COMMON_OBJS)
 
 %.o: %.c
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) -I$(SGXSDK_INCDIR) $<
 
-all: quote sp $(SGX_ENCLAVES) link
+all: quote $(SGX_ENCLAVES) link sp
 
 install: install-program install-enclaves
 
@@ -45,10 +45,10 @@ quote: $(ENCLAVE_UOBJS) $(QUOTE_OBJS)
 	g++ -o $@ $(LDFLAGS) $(QUOTE_OBJS) $(ENCLAVE_UOBJS) $(LIBS) -ldl -l:libsgx_capable.a
 
 sp: $(SP_OBJS)
-	$(CC) -o $@ $(SP_OBJS) -lcrypto
+	$(CC) -o $@ $(SP_OBJS) $(LDFLAGS) -l:libcrypto.a -ldl -lpthread
 
 clean: clean_enclaves
-	rm -f quote $(APP_OBJS) $(ENCLAVE_CLEAN) EnclaveQuote.signed.so
+	rm -f quote *.o $(ENCLAVE_CLEAN) EnclaveQuote.signed.so
 
 link: EnclaveQuote.signed.so quote
 
