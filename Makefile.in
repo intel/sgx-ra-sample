@@ -26,7 +26,7 @@ SP_OBJS=sp.o eckey.o crypto_init.o $(COMMON_OBJS)
 %.o: %.c
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) -I$(SGXSDK_INCDIR) $<
 
-all: quote sp $(SGX_ENCLAVES) link
+all: quote $(SGX_ENCLAVES) link sp
 
 install: install-program install-enclaves
 
