@@ -413,8 +413,7 @@ int main (int argc, char *argv[])
 
 	/* Did they ask for just the EPID? */
 	if ( flag_epid ) {
-		print_hexstring(stdout, &epid_gid, 4);
-		printf("\n");
+		printf("%08x\n", *(uint32_t *)epid_gid);
 		exit(0);
 	}
 
