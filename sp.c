@@ -73,8 +73,8 @@ void usage ()
 	fprintf(stderr, "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte\n");
 	fprintf(stderr, "                              ASCII hex string\n");
 	fprintf(stderr, "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string\n");
-	fprintf(stderr, "  -1, --msg1               Read msg1 from stdin, print msg2\n");
-	fprintf(stderr, "  -3, --msg3               Read msg3 from stdin, print msg4\n");
+	fprintf(stderr, "  -2, --msg2               Read msg1 from stdin, print msg2\n");
+	fprintf(stderr, "  -4, --msg4               Read msg3 from stdin, print msg4\n");
 	fprintf(stderr, "\nOne of --spid OR --spid-file is required\n\n");
 	fprintf(stderr, "\nOne of --msg1 OR --msg3 is required\n\n");
 	fprintf(stderr, "Optional:\n");
@@ -99,7 +99,7 @@ int main (int argc, char *argv[])
 
 	static struct option long_opt[] =
 	{
-		{"msg1",		no_argument,		0, '1'},
+		{"msg2",		no_argument,		0, '2'},
 		{"kdk-file",	required_argument,	0, 'K'},
 		{"key-file",	required_argument,	0, 'P'},
 		{"spid-file",	required_argument,	0, 'S'},
