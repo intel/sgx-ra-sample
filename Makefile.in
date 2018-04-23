@@ -48,7 +48,7 @@ sp: $(SP_OBJS)
 	$(CC) -o $@ $(SP_OBJS) -lcrypto
 
 clean: clean_enclaves
-	rm -f quote $(APP_OBJS) $(ENCLAVE_CLEAN) EnclaveQuote.signed.so
+	rm -f quote *.o $(ENCLAVE_CLEAN) EnclaveQuote.signed.so
 
 link: EnclaveQuote.signed.so quote
 
