@@ -8,7 +8,7 @@
 #include <openssl/bn.h>
 #include <stdio.h>
 #include <sgx_key_exchange.h>
-#include "eckey.h"
+#include "crypto.h"
 
 static enum _error_type {
 	e_none,

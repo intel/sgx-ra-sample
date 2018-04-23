@@ -40,10 +40,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern "C" {
 #endif
 
-int from_file(unsigned char *dest, unsigned char *file, off_t *len);
+int from_file(unsigned char *dest, char *file, off_t *len);
 
-int from_hexstring_file(unsigned char *dest, unsigned char *file, size_t len);
-int to_hexstring_file(unsigned char *dest, unsigned char *file, size_t len);
+int from_hexstring_file(unsigned char *dest, char *file, size_t len);
+int to_hexstring_file(unsigned char *dest, char *file, size_t len);
 
 #ifdef __cplusplus
 };

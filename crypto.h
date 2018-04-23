@@ -1,6 +1,9 @@
 #ifndef _CRYPTO_INIT_H
 #define _CRYPTO_INIT_H
 
+#include <openssl/evp.h>
+#include <sgx_key_exchange.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -24,7 +27,8 @@ unsigned char *key_shared_secret (EC_KEY *g_a, size_t *slen);
 
 /* ECDSA signature */
 
-int ecdsa_sign(unsigned char *msg, size_t mlen, unsigned char hash[64]);
+int ecdsa_sign(unsigned char *msg, size_t mlen, EVP_PKEY *key,
+	unsigned char hash[64]);
 
 #ifdef __cplusplus
 };

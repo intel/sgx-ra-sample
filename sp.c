@@ -76,7 +76,7 @@ void usage ()
 	fprintf(stderr, "  -2, --msg2               Read msg1 from stdin, print msg2\n");
 	fprintf(stderr, "  -4, --msg4               Read msg3 from stdin, print msg4\n");
 	fprintf(stderr, "\nOne of --spid OR --spid-file is required\n\n");
-	fprintf(stderr, "\nOne of --msg1 OR --msg3 is required\n\n");
+	fprintf(stderr, "\nOne of --msg2 OR --msg4 is required\n\n");
 	fprintf(stderr, "Optional:\n");
 	fprintf(stderr, "  -l, --linkable           Request a linkable quote (default: unlinkable)\n");
 	fprintf(stderr, "  -r, --sigrl-file=FILE    Read the revocation list from FILE\n");

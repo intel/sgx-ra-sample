@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/stat.h>
 #include "fileio.h"
 
-int from_file (unsigned char *dest, unsigned char *file, off_t *len)
+int from_file (unsigned char *dest, char *file, off_t *len)
 {
 	FILE *fp;
 
@@ -74,7 +74,7 @@ int from_file (unsigned char *dest, unsigned char *file, off_t *len)
 	return 1;
 }
 
-int from_hexstring_file (unsigned char *dest, unsigned char *file, size_t len)
+int from_hexstring_file (unsigned char *dest, char *file, size_t len)
 {
 	unsigned char *sbuf;
 	FILE *fp;
@@ -105,7 +105,7 @@ int from_hexstring_file (unsigned char *dest, unsigned char *file, size_t len)
 	return rv;
 }
 
-int to_hexstring_file (unsigned char *src, unsigned char *file, size_t len)
+int to_hexstring_file (unsigned char *src, char *file, size_t len)
 {
 	FILE *fp;
 

@@ -1,38 +1,37 @@
 AC_INIT(sgxautosample, 1.0, john.p.mechalas@intel.com)
 
-AC_PROG_CC()
-AC_PROG_CXX()
-AC_PROG_CPP()
-AC_PROG_INSTALL()
+AC_CONFIG_MACRO_DIRS([m4])
+AM_INIT_AUTOMAKE([foreign])
+
+AC_PROG_CXX
+AC_PROG_CPP
+AC_PROG_INSTALL
+AM_PROG_CC_C_O
 
 AC_CONFIG_HEADERS([config.h])
 
-CPPFLAGS="$CPPFLAGS `pkg-config --cflags glib-2.0` -I/opt/openssl/1.1.0f/include"
-LDFLAGS="-L/opt/openssl/1.1.0f/lib"
-LIBS="$CFLAGS `pkg-config --libs glib-2.0`"
-
 SGX_INIT()
 
-# List your enclaves here. The build system expects each enclave to be in
-# its own subdirectory, named after the enclave, containing an EDL file
-# also named after the Enclave.
-# 
-# For example, if your enclave is called "MyEnclave" it should have its
-# EDL file at MyEnclave/MyEnclave.edl).
-#
-# If your enclaves have a parent directory somewhere other than the
-# current directory, supply that path as the second argument.
-#
-# Examples: 
-# 	SGX_ADD_ENCLAVES([ MyEnclave ]);
-# 	SGX_ADD_ENCLAVES([ MyEnclave1 MyEnclave2 ], [ enclaves ]);
+AC_ARG_WITH([openssl],
+	[AC_HELP_STRING([--with-openssl=DIR], [Specify location of OpenSSL])],
+	[openssl=$withval],[])
 
-SGX_ADD_ENCLAVES(EnclaveQuote)
+dnl Don't blindly add -lcrypto to LIBS
+old_LDFLAGS="$LDFLAGS"
+old_LIBS="$LIBS"
+LDFLAGS="$LDFLAGS -L${openssl}/lib"
+AC_SEARCH_LIBS([ECDSA_SIG_set0], [crypto], [], [
+	AC_MSG_ERROR([Need OpenSSL v1.1.0 or later])
+])
+LDFLAGS="$old_LDFLAGS"
+LIBS="$old_LIBS"
 
-AC_SUBST(glib_incdir)
+AS_IF([test "$openssl" != ""], [
+	AC_SUBST([OPENSSL_CPPFLAGS], [-I$openssl/include])
+	AC_SUBST([OPENSSL_LDFLAGS], [-L$openssl/lib])
+])
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile EnclaveQuote/Makefile])
 
-AC_OUTPUT()
-
+AC_OUTPUT
 

@@ -1,0 +1,8 @@
+testing
+configure
+*.o
+*.so
+EnclaveQuote_u.h
+EnclaveQuote_u.c
+EnclaveQuote/EnclaveQuote_t.h
+EnclaveQuote/EnclaveQuote_t.c

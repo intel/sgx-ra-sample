@@ -85,13 +85,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #else
 #include <getopt.h>
 #include <unistd.h>
-#include <glib.h>
 #endif
 #include <sgx_uae_service.h>
 #include <sgx_ukey_exchange.h>
 #include "sgx_detect.h"
 #include "hexutil.h"
 #include "fileio.h"
+#include "base64.h"
 
 #define MAX_LEN 80
 
@@ -173,12 +173,12 @@ int main (int argc, char *argv[])
 	LPTSTR b64manifest = NULL;
 	DWORD sz_b64manifest = 0;
 #else
-	gchar *b64quote= NULL;
+	unsigned char  *b64quote= NULL;
 # ifdef PSE_SUPPORT
-	gchar *b64manifest = NULL;
+	unsigned char *b64manifest = NULL;
 # endif
 #endif
-	uint16_t linkable= SGX_UNLINKABLE_SIGNATURE;
+	sgx_quote_sign_type_t linkable= SGX_UNLINKABLE_SIGNATURE;
 	sgx_quote_nonce_t nonce;
 
 	char flag_manifest = 0;
@@ -385,7 +385,7 @@ int main (int argc, char *argv[])
 			return 1;
 		}
 
-		pse_manifest = malloc(pse_manifest_sz);
+		pse_manifest = (char *) malloc(pse_manifest_sz);
 
 		status = get_pse_manifest(eid, &sgxrv, pse_manifest, pse_manifest_sz);
 		if (status != SGX_SUCCESS) {
@@ -439,20 +439,20 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 
-	memset(quote, 0, sz);
-	status= sgx_get_quote(&report, linkable, &spid,
-		(flag_nonce) ? &nonce : NULL,
-		NULL, 0,
-		(flag_nonce) ? &qe_report : NULL, 
-		quote, sz);
-	if ( status != SGX_SUCCESS ) {
-		fprintf(stderr, "sgx_get_quote: %08x\n", status);
-		return 1;
-	}
-
 	if ( flag_msg1 ) {
 		sgx_ra_context_t ctx= 0;
 		sgx_ra_msg1_t msg1;
+
+		/*
+		 * WARNING! Normally, the public key would be hardcoded into the
+		 * enclave, not passed in as a parameter. Hardcoding prevents
+		 * the enclave using an unauthorized key.
+		 *
+		 * This is diagnostic/test application, however, so we need
+		 * the flexibility of a dynamically assigned key.
+		 */
+
+		/* Executes an ECALL that runs sgx_ra_init() */
 
 		status= enclave_ra_init(eid, &sgxrv, pubkey, 0, &ctx);
 		if ( status != SGX_SUCCESS ) {
@@ -464,6 +464,8 @@ int main (int argc, char *argv[])
 			return 1;
 		}
 
+		/* Get msg1 */
+
 		status= sgx_ra_get_msg1(ctx, eid, sgx_ra_get_ga, &msg1);
 		if ( status != SGX_SUCCESS ) {
 			fprintf(stderr, "sgx_ra_get_msg1: %08x\n", status);
@@ -474,6 +476,17 @@ int main (int argc, char *argv[])
 		printf("\n");
 
 		exit(0);
+	}
+
+	memset(quote, 0, sz);
+	status= sgx_get_quote(&report, linkable, &spid,
+		(flag_nonce) ? &nonce : NULL,
+		NULL, 0,
+		(flag_nonce) ? &qe_report : NULL, 
+		quote, sz);
+	if ( status != SGX_SUCCESS ) {
+		fprintf(stderr, "sgx_get_quote: %08x\n", status);
+		return 1;
 	}
 
 	/* Print our quote */
@@ -506,11 +519,10 @@ int main (int argc, char *argv[])
 		}
 	}
 #else
-	b64quote= g_base64_encode((const guchar *) quote, sz);
+	b64quote= base64_encode((unsigned char *) quote, sz);
 #ifdef PSE_SUPPORT
 	if (flag_manifest) {
-		b64manifest= g_base64_encode((const guchar *) pse_manifest, 
-			pse_manifest_sz);
+		b64manifest= base64_encode((unsigned char *) pse_manifest, pse_manifest_sz);
 	}
 # endif
 #endif

@@ -1,16 +1,40 @@
-#ifndef _CONFIG_H
-#define _CONFIG_H
+/* config.h.in.  Generated from configure.ac by autoheader.  */
 
-/* Enable general debugging code */
+/* Enable debugging */
 #undef DEBUG
 
-/* Set for enclave apps built in prerelease mode */
+/* Flag set for prerelease builds */
 #undef EDEBUG
 
-/* Set for enclave apps built in release or prerelease mode */
+/* Flag set for prerelease and release builds */
 #undef NDEBUG
 
-/* Set for simulation mode */
+/* Define to 1 if your C compiler doesn't accept -c and -o together. */
+#undef NO_MINUS_C_MINUS_O
+
+/* Name of package */
+#undef PACKAGE
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* Enable hardware simulation mode */
 #undef SGX_HW_SIM
 
-#endif
+/* Version number of package */
+#undef VERSION

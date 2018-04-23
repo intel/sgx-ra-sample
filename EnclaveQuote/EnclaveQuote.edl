@@ -1,9 +1,9 @@
 #ifndef _WIN32
-#include "../config.h"
+#include "config.h"
 #endif
 
 enclave {
-    include "sgx_trts.h"
+	include "sgx_trts.h"
 	include "sgx_utils.h"
 	include "sgx_tkey_exchange.h"
 
@@ -14,7 +14,7 @@ enclave {
 
 	trusted {
 #ifndef _WIN32
-		include "../config.h"
+		include "config.h"
 #endif
 
 		public sgx_status_t get_report([out] sgx_report_t *report,
