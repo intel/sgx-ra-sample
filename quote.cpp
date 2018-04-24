@@ -141,6 +141,8 @@ void usage ()
 	fprintf(stderr, "  -r                       Generate a nonce using RDRAND\n");
 	fprintf(stderr, "\nRemote Attestation options:\n");
 	fprintf(stderr, "  -1, --msg1               Generate msg1.\n");
+	fprintf(stderr, "  -W, --write-context=FILE Save RA context to FILE. (msg1)\n");
+	fprintf(stderr, "  -R, --read-context=FILE  Read RA context from FILE. (msg3)\n");
 	fprintf(stderr, "Optional:\n");
 	fprintf(stderr, "  -p, --pubkey=HEXSTRING   The public key of the service provider as an\n");
 	fprintf(stderr, "                              ASCII hex string.\n");
@@ -186,6 +188,8 @@ int main (int argc, char *argv[])
 #endif
 	sgx_quote_sign_type_t linkable= SGX_UNLINKABLE_SIGNATURE;
 	sgx_quote_nonce_t nonce;
+	sgx_ra_context_t ra_ctx= 0xdeadbeef;
+	char *context_file= NULL;
 
 	char flag_manifest = 0;
 	char flag_nonce= 0;
@@ -193,6 +197,7 @@ int main (int argc, char *argv[])
 	char flag_epid= 0;
 	char flag_msg1= 0;
 	char flag_pubkey= 0;
+	char flag_context= 0;
 
 	static struct option long_opt[] =
 	{
@@ -210,6 +215,8 @@ int main (int argc, char *argv[])
 		{"msg1",		no_argument,		0, '1'},
 		{"pubkey",		optional_argument,	0, 'p'},
 		{"pubkey-file",	optional_argument,	0, 'P'},
+		{"write-context",	optional_argument,	0,	'W'},
+		{"read-context",	optional_argument,	0,	'R'},
 		{ 0, 0, 0, 0 }
 	};
 
@@ -222,7 +229,7 @@ int main (int argc, char *argv[])
 		unsigned char *keydata;
 		unsigned char keyin[64];
 
-		c= getopt_long(argc, argv, "1N:P:S:ehlmn:p:rs:", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "1N:P:R:S:W:ehlmn:p:rs:", long_opt, &opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
@@ -255,6 +262,14 @@ int main (int argc, char *argv[])
 			++flag_pubkey;
 
 			break;
+		case 'R':
+			if ( ! from_hexstring_file((unsigned char *)&ra_ctx, optarg, 
+				sizeof(ra_ctx)) ) {
+				fprintf(stderr, "could not read context\n");
+				exit(1);
+			}
+			++flag_context;
+			break;
 		case 'S':
 			if ( ! from_hexstring_file((unsigned char *) &spid, optarg, 16)) {
 				fprintf(stderr, "SPID must be 32-byte hex string\n");
@@ -262,6 +277,10 @@ int main (int argc, char *argv[])
 			}
 			++flag_spid;
 
+			break;
+		case 'W':
+			context_file= optarg;
+			++flag_context;
 			break;
 		case 'e':
 			++flag_epid;
@@ -451,7 +470,6 @@ int main (int argc, char *argv[])
 	}
 
 	if ( flag_msg1 ) {
-		sgx_ra_context_t ctx= 0;
 		sgx_ra_msg1_t msg1;
 
 		/*
@@ -466,9 +484,9 @@ int main (int argc, char *argv[])
 		/* Executes an ECALL that runs sgx_ra_init() */
 
 		if ( flag_pubkey ) {
-			status= enclave_ra_init(eid, &sgxrv, pubkey, 0, &ctx);
+			status= enclave_ra_init(eid, &sgxrv, pubkey, 0, &ra_ctx);
 		} else {
-			status= enclave_ra_init_def(eid, &sgxrv, 0, &ctx);
+			status= enclave_ra_init_def(eid, &sgxrv, 0, &ra_ctx);
 		}
 		if ( status != SGX_SUCCESS ) {
 			fprintf(stderr, "enclave_ra_init: %08x\n", status);
@@ -479,9 +497,19 @@ int main (int argc, char *argv[])
 			return 1;
 		}
 
+		printf("context=%u\n", ra_ctx);
+		if ( flag_context ) {
+			if ( ! to_hexstring_file((unsigned char *) &ra_ctx, context_file,
+				sizeof(sgx_ra_context_t)) ) {
+
+				fprintf(stderr, "%s: couldn't write context\n", context_file);
+				return 1;
+			}
+		}
+
 		/* Get msg1 */
 
-		status= sgx_ra_get_msg1(ctx, eid, sgx_ra_get_ga, &msg1);
+		status= sgx_ra_get_msg1(ra_ctx, eid, sgx_ra_get_ga, &msg1);
 		if ( status != SGX_SUCCESS ) {
 			fprintf(stderr, "sgx_ra_get_msg1: %08x\n", status);
 			return 1;
