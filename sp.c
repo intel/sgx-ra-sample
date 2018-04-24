@@ -134,7 +134,7 @@ int main (int argc, char *argv[])
 			kdkfile= strdup(optarg);
 			break;
 		case 'P':
-			if ( ! key_load_file(&service_private_key, optarg) ) {
+			if ( ! key_load_file(&service_private_key, optarg, KEY_PRIVATE) ) {
 				fprintf(stderr, "%s: could not load EC private key\n", optarg);
 				exit(1);
 			}
@@ -268,8 +268,8 @@ int main (int argc, char *argv[])
 		 * where:
 		 *
 		 * A      = Gb || SPID || TYPE || KDF-ID || SigSP(Gb, Ga) 
-		 * Ga     = Client enclave's public session key (64 bytes)
-		 * Gb     = Service Provider's private session key (Gb.x || Gb.y) (64 bytes)
+		 * Ga     = Client enclave's session key
+		 * Gb     = Service Provider's session key
 		 * SPID   = The Service Provider ID, issued by Intel to the vendor
 		 * TYPE   = Quote type (0= linkable, 1= linkable) (2 bytes)
 		 * KDF-ID = (0x0001= CMAC entropy extraction and key derivation) (2 bytes)
