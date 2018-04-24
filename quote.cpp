@@ -140,7 +140,8 @@ void usage ()
 	fprintf(stderr, "  -n, --nonce=HEXSTRING    Set a nonce from a 32-byte ASCII hex string\n");
 	fprintf(stderr, "  -r                       Generate a nonce using RDRAND\n");
 	fprintf(stderr, "\nRemote Attestation options:\n");
-	fprintf(stderr, "  -1, --msg1               Generate msg1. Requires -p or -P.\n");
+	fprintf(stderr, "  -1, --msg1               Generate msg1.\n");
+	fprintf(stderr, "Optional:\n");
 	fprintf(stderr, "  -p, --pubkey=HEXSTRING   The public key of the service provider as an\n");
 	fprintf(stderr, "                              ASCII hex string.\n");
 	fprintf(stderr, "  -P, --pubkey-file=FILE   File containing the public key of the service provider.\n");
@@ -207,9 +208,9 @@ int main (int argc, char *argv[])
 		{"spid-file",	required_argument,	0, 'S'},
 		{"linkable",	no_argument,		0, 'l'},
 		{"msg1",		no_argument,		0, '1'},
-		{"pubkey",		required_argument,	0, 'p'},
-		{"pubkey-file",	required_argument,	0, 'P'},
-		{ 0, 0, 0, 0}
+		{"pubkey",		optional_argument,	0, 'p'},
+		{"pubkey-file",	optional_argument,	0, 'P'},
+		{ 0, 0, 0, 0 }
 	};
 
 	/* Parse our options */
@@ -328,11 +329,6 @@ int main (int argc, char *argv[])
 		default:
 			usage();
 		}
-	}
-
-	if ( flag_msg1 && ! flag_pubkey ) {
-		fprintf(stderr, "public key required. Use one of --pubkey or --pubkey-file \n");
-		return 1;
 	}
 
 	if ( ! flag_spid && ! flag_epid ) {
@@ -469,7 +465,11 @@ int main (int argc, char *argv[])
 
 		/* Executes an ECALL that runs sgx_ra_init() */
 
-		status= enclave_ra_init(eid, &sgxrv, pubkey, 0, &ctx);
+		if ( flag_pubkey ) {
+			status= enclave_ra_init(eid, &sgxrv, pubkey, 0, &ctx);
+		} else {
+			status= enclave_ra_init_def(eid, &sgxrv, 0, &ctx);
+		}
 		if ( status != SGX_SUCCESS ) {
 			fprintf(stderr, "enclave_ra_init: %08x\n", status);
 			return 1;

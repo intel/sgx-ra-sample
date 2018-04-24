@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sgx_tae_service.h>
 #include <sgx_tkey_exchange.h>
 
-static const sgx_ec256_public_t g_sp_pub_key = {
+static const sgx_ec256_public_t def_service_public_key = {
     {
         0x72, 0x12, 0x8a, 0x7a, 0x17, 0x52, 0x6e, 0xbf,
         0x85, 0xd0, 0x3a, 0x62, 0x37, 0x30, 0xae, 0xad,
@@ -133,8 +133,13 @@ sgx_status_t enclave_ra_init(sgx_ec256_public_t key, int b_pse,
 	sgx_ra_context_t *ctx)
 {
 
-	/* sgx_status_t status= sgx_ra_init(&g_sp_pub_key, b_pse, ctx); */
 	sgx_status_t status= sgx_ra_init(&key, b_pse, ctx);
+	return status;
+}
+
+sgx_status_t enclave_ra_init_def(int b_pse, sgx_ra_context_t *ctx)
+{
+	sgx_status_t status= sgx_ra_init(&def_service_public_key, b_pse, ctx);
 	return status;
 }
 
