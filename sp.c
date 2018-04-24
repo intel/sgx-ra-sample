@@ -256,11 +256,13 @@ int main (int argc, char *argv[])
 		 * where:
 		 *
 		 * A      = g_b || SPID || TYPE || KDF-ID || SigSP(g_b, g_a) 
-		 * g_b    = Our private key (g_b.x || g_b.y) (64 bytes)
-		 * SPID   = The Service Provide ID, issued by Intel to the vendor
+		 * g_a    = Client enclave's public session key (64 bytes)
+		 * g_b    = Service Provider's private session key (g_b.x || g_b.y) (64 bytes)
+		 * SPID   = The Service Provider ID, issued by Intel to the vendor
 		 * TYPE   = Quote type (0= linkable, 1= linkable) (2 bytes)
 		 * KDF-ID = (0x0001= CMAC entropy extraction and key derivation) (2 bytes)
 		 * SigSP  = ECDSA signature of (g_b.x || g_b.y || g_a.x || g_a.y) as r || s
+		 *          (signed with the Service Provider's private key)
 		 * 
 		 * || denotes concatenation
 		 *
