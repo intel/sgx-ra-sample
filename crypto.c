@@ -353,7 +353,8 @@ int ecdsa_sign(unsigned char *msg, size_t mlen, EVP_PKEY *key,
 {
 	ECDSA_SIG *sig;
 	EC_KEY *eckey;
-	BIGNUM *r, *s;
+	const BIGNUM *r= NULL;
+	const BIGNUM *s= NULL;
 
 	error_type= e_none;
 
@@ -364,16 +365,17 @@ int ecdsa_sign(unsigned char *msg, size_t mlen, EVP_PKEY *key,
 	}
 
 	sig= ECDSA_do_sign(msg, mlen, eckey);
+	if ( sig == NULL ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
 	
 	/* 
 	 * OpenSSL represents ECDSA_SIG as two BIGNUMs, r and s. Turn these into
 	 * byte streams, in little endian format, assuming 32-byte integers.
 	 */
 
-	if ( ! ECDSA_SIG_set0(sig, r, s) ) {
-		error_type= e_crypto;
-		goto cleanup;
-	}
+	ECDSA_SIG_get0(sig, &r, &s);
 
 	if ( ! BN_bn2lebinpad(r, hash, 32) ) {
 		error_type= e_crypto;

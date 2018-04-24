@@ -121,7 +121,7 @@ int main (int argc, char *argv[])
 		int c;
 		int opt_index= 0;
 
-		c= getopt_long(argc, argv, "1K:S:hls:", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "1K:P:S:hls:", long_opt, &opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
@@ -168,8 +168,13 @@ int main (int argc, char *argv[])
 		}
 	}
 
-	if ( kdkfile == NULL ) {
+	if ( service_private_key == NULL ) {
 		fprintf(stderr, "--key-file is required.\n");
+		usage();
+	}
+
+	if ( kdkfile == NULL ) {
+		fprintf(stderr, "--kdk-file is required.\n");
 		usage();
 	}
 
@@ -208,7 +213,7 @@ int main (int argc, char *argv[])
 	if ( flag_msg == 1 ) {
 		sgx_ra_msg1_t msg1;
 		sgx_ra_msg2_t msg2;
-		unsigned char kdk[16], smk[16], sigsp[64];
+		unsigned char kdk[16], smk[16], gb_ga[128];
 		EVP_PKEY *Gb;
 		mode_t fmode;
 
@@ -285,7 +290,48 @@ int main (int argc, char *argv[])
 
 		key_to_sgx_ec256(&msg2.g_b, Gb);
 		memcpy(&msg2.spid, &spid, sizeof(sgx_spid_t));
-		
+		msg2.quote_type= linkable;
+		msg2.kdf_id= 1;
+
+		/* For now */
+		msg2.sig_rl_size= 0;
+
+		memcpy(gb_ga, &msg2.g_b, 64);
+		memcpy(&gb_ga[64], &msg1.g_a, 64);
+
+		ecdsa_sign(gb_ga, 128, service_private_key, (unsigned char *) &msg2.sign_gb_ga);
+		printf("Ga=");
+		print_hexstring(stdout, &msg1.g_a, 64);
+		printf("\n");
+
+		printf("Gb=");
+		print_hexstring(stdout, &msg2.g_b, 64);
+		printf("\n");
+
+		printf("SPID=");
+		print_hexstring(stdout, &msg2.spid, 16);
+		printf("\n");
+
+		printf("Link type=");
+		print_hexstring(stdout, &msg2.quote_type, 2);
+		printf("\n");
+
+		printf("KDF ID=");
+		print_hexstring(stdout, &msg2.kdf_id, 2);
+		printf("\n");
+
+		printf("A=");
+		print_hexstring(stdout, &msg2, 84);
+		printf("\n");
+
+		printf("message=");
+		print_hexstring(stdout, gb_ga, 128);
+		printf("\n");
+
+		printf("SignSP=");
+		print_hexstring(stdout, &msg2.sign_gb_ga, 64);
+		printf("\n");
+
 	}
 
 	crypto_destroy();
