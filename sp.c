@@ -51,7 +51,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #endif
 #include <sgx_key_exchange.h>
-#include <openssl/ec.h>
+#include <openssl/evp.h>
 #include "hexutil.h"
 #include "fileio.h"
 #include "crypto.h"
@@ -62,7 +62,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 void usage();
 
-int derive_kdk(unsigned char kdk[16], sgx_ra_msg1_t *msg1);
+int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1);
 
 void usage () 
 {
@@ -90,8 +90,8 @@ int main (int argc, char *argv[])
 	char flag_msg= 0;
 	char flag_pubkey= 0;
 	char *kdkfile= NULL;
-	u_int32_t spid[16];
-	EC_KEY *prkey;
+	sgx_spid_t spid;
+	EVP_PKEY *service_private_key= NULL;
 	unsigned int linkable= SGX_UNLINKABLE_SIGNATURE;
 	/* Use a fixed buffer which is much larger than we'll need */
 	size_t blen= 0;
@@ -134,7 +134,7 @@ int main (int argc, char *argv[])
 			kdkfile= strdup(optarg);
 			break;
 		case 'P':
-			if ( ! key_load_file(&prkey, optarg) ) {
+			if ( ! key_load_file(&service_private_key, optarg) ) {
 				fprintf(stderr, "%s: could not load EC private key\n", optarg);
 				exit(1);
 			}
@@ -169,6 +169,7 @@ int main (int argc, char *argv[])
 	}
 
 	if ( kdkfile == NULL ) {
+		fprintf(stderr, "--key-file is required.\n");
 		usage();
 	}
 
@@ -206,8 +207,9 @@ int main (int argc, char *argv[])
 
 	if ( flag_msg == 1 ) {
 		sgx_ra_msg1_t msg1;
-		sgx_ra_msg2_t *msg2;
+		sgx_ra_msg2_t msg2;
 		unsigned char kdk[16], smk[16], sigsp[64];
+		EVP_PKEY *Gb;
 		mode_t fmode;
 
 		if ( blen != 2*sizeof(msg1) ) {
@@ -222,7 +224,17 @@ int main (int argc, char *argv[])
 			exit(1);
 		}
 
-		if ( ! derive_kdk(kdk, &msg1) ) {
+		/* Generate our session key */
+
+		Gb= key_generate();
+		if ( Gb == NULL ) {
+			fprintf(stderr, "Could not create a session key\n");
+			exit(1);
+		}
+
+		/* Derive the KDK from the key (Ga) in msg1 and our session key */
+
+		if ( ! derive_kdk(Gb, kdk, &msg1) ) {
 			fprintf(stderr, "Could not derive the KDK\n");
 			exit(1);
 		}
@@ -255,23 +267,24 @@ int main (int argc, char *argv[])
 		 *
 		 * where:
 		 *
-		 * A      = g_b || SPID || TYPE || KDF-ID || SigSP(g_b, g_a) 
-		 * g_a    = Client enclave's public session key (64 bytes)
-		 * g_b    = Service Provider's private session key (g_b.x || g_b.y) (64 bytes)
+		 * A      = Gb || SPID || TYPE || KDF-ID || SigSP(Gb, Ga) 
+		 * Ga     = Client enclave's public session key (64 bytes)
+		 * Gb     = Service Provider's private session key (Gb.x || Gb.y) (64 bytes)
 		 * SPID   = The Service Provider ID, issued by Intel to the vendor
 		 * TYPE   = Quote type (0= linkable, 1= linkable) (2 bytes)
 		 * KDF-ID = (0x0001= CMAC entropy extraction and key derivation) (2 bytes)
-		 * SigSP  = ECDSA signature of (g_b.x || g_b.y || g_a.x || g_a.y) as r || s
+		 * SigSP  = ECDSA signature of (Gb.x || Gb.y || Ga.x || Ga.y) as r || s
 		 *          (signed with the Service Provider's private key)
 		 * 
 		 * || denotes concatenation
 		 *
-		 * Note that all key components (g_a.x, etc.) are in little endian 
+		 * Note that all key components (Ga.x, etc.) are in little endian 
 		 * format, meaning the byte streams need to be reversed.
 		 *
 		 */
 
-		
+		key_to_sgx_ec256(&msg2.g_b, Gb);
+		memcpy(&msg2.spid, &spid, sizeof(sgx_spid_t));
 		
 	}
 
@@ -284,11 +297,11 @@ int main (int argc, char *argv[])
  * Process msg1 and produce msg2.
  */
 
-int derive_kdk(unsigned char kdk[16], sgx_ra_msg1_t *msg1)
+int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1)
 {
-	unsigned char *g_ab_x;
+	unsigned char *Gab_x;
 	size_t slen;
-	EC_KEY *g_a;
+	EVP_PKEY *Ga;
 	unsigned char cmackey[16];
 
 	memset(cmackey, 0, 16);
@@ -298,15 +311,15 @@ int derive_kdk(unsigned char kdk[16], sgx_ra_msg1_t *msg1)
      * public/private key.
      */
 
-	g_a= key_from_sgx_ec256(msg1->g_a);
-	if ( g_a == NULL ) {
+	Ga= key_from_sgx_ec256(&msg1->g_a);
+	if ( Ga == NULL ) {
 		crypto_perror("key_from_sgx_ec256");
 		return 0;
 	}
 
-	/* The shared secret in a DH exchange is the x-coordinate of g_ab */
-	g_ab_x= key_shared_secret(g_a, &slen);
-	if ( g_ab_x == NULL ) {
+	/* The shared secret in a DH exchange is the x-coordinate of Gab */
+	Gab_x= key_shared_secret(Gb, Ga, &slen);
+	if ( Gab_x == NULL ) {
 		crypto_perror("key_shared_secret");
 		return 0;
 	}
@@ -314,7 +327,7 @@ int derive_kdk(unsigned char kdk[16], sgx_ra_msg1_t *msg1)
 	/* We need it in little endian order, so reverse the bytes. */
 	/* We'll do this in-place. */
 
-	reverse_bytes(g_ab_x, g_ab_x, slen);
+	reverse_bytes(Gab_x, Gab_x, slen);
 
 	/* Now hash that to get our KDK (Key Definition Key) */
 
@@ -322,7 +335,7 @@ int derive_kdk(unsigned char kdk[16], sgx_ra_msg1_t *msg1)
      * KDK = AES_CMAC(0x00000000000000000000000000000000, secret)
      */
 
-	cmac128(cmackey, g_ab_x, slen, kdk);
+	cmac128(cmackey, Gab_x, slen, kdk);
 
 	return 1;
 }

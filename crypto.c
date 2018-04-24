@@ -52,35 +52,87 @@ void crypto_perror (const char *prefix)
 
 /* Load an EC key from a file in PEM format */
 
-int key_load_file (EC_KEY **eckey, const char *filename)
+int key_load_file (EVP_PKEY **key, const char *filename)
 {
-	EVP_PKEY *key;
 	FILE *fp;
 
 	error_type= e_none;
 
-	key= EVP_PKEY_new();
+	*key= EVP_PKEY_new();
 
 	if ( (fp= fopen(filename, "r")) == NULL ) {
 		error_type= e_system;
 		ep= filename;
 		return 0;
 	}
-	PEM_read_PrivateKey(fp, &key, NULL, NULL);
+	PEM_read_PrivateKey(fp, key, NULL, NULL);
 	fclose(fp);
-
-	*eckey= EVP_PKEY_get1_EC_KEY(key);
-	if ( *eckey == NULL ) {
-		error_type= e_crypto;
-		return 0;
-	}
 
 	return 1;
 }
 
-EC_KEY *key_from_sgx_ec256 (sgx_ec256_public_t k)
+int key_to_sgx_ec256 (sgx_ec256_public_t *k, EVP_PKEY *key)
+{
+	EC_KEY *eckey= NULL;
+	const EC_POINT *ecpt= NULL;
+	EC_GROUP *ecgroup= NULL;
+	BIGNUM *gx= NULL;
+	BIGNUM *gy= NULL;
+
+	error_type= e_none;
+
+	eckey= EVP_PKEY_get1_EC_KEY(key);
+	if ( key == NULL ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	ecgroup= EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1);
+	if ( ecgroup == NULL ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	ecpt= EC_KEY_get0_public_key(eckey);
+
+	gx= BN_new();
+	if ( gx == NULL ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	gy= BN_new();
+	if ( gy == NULL ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	if ( ! EC_POINT_get_affine_coordinates_GFp(ecgroup, ecpt, gx, gy, NULL) ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	if ( ! BN_bn2lebinpad(gx, k->gx, sizeof(k->gx)) ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	if ( ! BN_bn2lebinpad(gy, k->gy, sizeof(k->gy)) ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+cleanup:
+	if ( gy != NULL ) BN_free(gy);
+	if ( gx != NULL ) BN_free(gx);
+	if ( ecgroup != NULL ) EC_GROUP_free(ecgroup);
+	return (error_type == e_none);
+}
+
+EVP_PKEY *key_from_sgx_ec256 (sgx_ec256_public_t *k)
 {
 	EC_KEY *key= NULL;
+	EVP_PKEY *pkey= NULL;
 
 	error_type= e_none;
 
@@ -89,12 +141,12 @@ EC_KEY *key_from_sgx_ec256 (sgx_ec256_public_t k)
 
 	/* Get gx and gy as BIGNUMs */
 
-	if ( (gx= BN_lebin2bn((unsigned char *) k.gx, 32, NULL)) == NULL ) {
+	if ( (gx= BN_lebin2bn((unsigned char *) k->gx, sizeof(k->gx), NULL)) == NULL ) {
 		error_type= e_crypto;
 		goto cleanup;
 	}
 
-	if ( (gy= BN_lebin2bn((unsigned char *) k.gy, 32, NULL)) == NULL ) {
+	if ( (gy= BN_lebin2bn((unsigned char *) k->gy, sizeof(k->gy), NULL)) == NULL ) {
 		error_type= e_crypto;
 		goto cleanup;
 	}
@@ -112,30 +164,38 @@ EC_KEY *key_from_sgx_ec256 (sgx_ec256_public_t k)
 		goto cleanup;
 	}
 
+	/* Get the peer key as an EVP_PKEY object */
+
+	pkey= EVP_PKEY_new();
+	if ( pkey == NULL ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	if ( ! EVP_PKEY_set1_EC_KEY(pkey, key) ) {
+		error_type= e_crypto;
+		EVP_PKEY_free(pkey);
+		pkey= NULL;
+	}
 
 cleanup:
+	if ( key != NULL ) EC_KEY_free(key);
 	if ( gy != NULL ) BN_free(gy);
 	if ( gx != NULL ) BN_free(gx);
 
-	return key;
+	return pkey;
 }
 
-/* Compute a shared secret using the peer's public key and a generated key */
+/* Generate a new EC key. */
 
-unsigned char *key_shared_secret (EC_KEY *ec_g_a, size_t *slen)
+EVP_PKEY *key_generate()
 {
+	EVP_PKEY *key= NULL;
 	EVP_PKEY_CTX *pctx= NULL;
 	EVP_PKEY_CTX *kctx= NULL;
-	EVP_PKEY_CTX *sctx= NULL;
 	EVP_PKEY *params= NULL;
-	EVP_PKEY *key= NULL;
-	EVP_PKEY *g_a= NULL;
-	unsigned char *secret= NULL;
 
-	*slen= 0;
 	error_type= e_none;
-
-	/* Generate a new EC key. */
 
 	/* Set up the parameter context */
 	pctx= EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL);
@@ -176,21 +236,27 @@ unsigned char *key_shared_secret (EC_KEY *ec_g_a, size_t *slen)
 
 	if ( ! EVP_PKEY_keygen(kctx, &key) ) {
 		error_type= e_crypto;
-		goto cleanup;
+		EVP_PKEY_free(key);
+		key= NULL;
 	}
 
-	/* Get the peer key as an EVP_PKEY object */
+cleanup:
+	if ( kctx != NULL ) EVP_PKEY_CTX_free(kctx);
+	if ( params != NULL ) EVP_PKEY_free(params);
+	if ( pctx != NULL ) EVP_PKEY_CTX_free(pctx);
 
-	g_a= EVP_PKEY_new();
-	if ( g_a == NULL ) {
-		error_type= e_crypto;
-		goto cleanup;
-	}
+	return key;
+}
 
-	if ( ! EVP_PKEY_set1_EC_KEY(g_a, ec_g_a) ) {
-		error_type= e_crypto;
-		goto cleanup;
-	}
+/* Compute a shared secret using the peer's public key and a generated key */
+
+unsigned char *key_shared_secret (EVP_PKEY *key, EVP_PKEY *peerkey, size_t *slen)
+{
+	EVP_PKEY_CTX *sctx= NULL;
+	unsigned char *secret= NULL;
+
+	*slen= 0;
+	error_type= e_none;
 
 	/* Set up the shared secret derivation */
 
@@ -205,12 +271,13 @@ unsigned char *key_shared_secret (EC_KEY *ec_g_a, size_t *slen)
 		goto cleanup;
 	}
 
-	if ( ! EVP_PKEY_derive_set_peer(sctx, g_a) ) {
+	if ( ! EVP_PKEY_derive_set_peer(sctx, peerkey) ) {
 		error_type= e_crypto;
 		goto cleanup;
 	}
 
 	/* Get the secret length */
+
 	if ( ! EVP_PKEY_derive(sctx, NULL, slen) ) {
 		error_type= e_crypto;
 		goto cleanup;
@@ -222,6 +289,8 @@ unsigned char *key_shared_secret (EC_KEY *ec_g_a, size_t *slen)
 		goto cleanup;
 	}
 
+	/* Derive the shared secret */
+
 	if ( ! EVP_PKEY_derive(sctx, secret, slen) ) {
 		error_type= e_crypto;
 		OPENSSL_free(secret);
@@ -230,11 +299,6 @@ unsigned char *key_shared_secret (EC_KEY *ec_g_a, size_t *slen)
 
 cleanup:
 	if ( sctx != NULL ) EVP_PKEY_CTX_free(sctx);
-	if ( g_a != NULL ) EVP_PKEY_free(g_a);
-	if ( key != NULL ) EVP_PKEY_free(key);
-	if ( kctx != NULL ) EVP_PKEY_CTX_free(kctx);
-	if ( params != NULL ) EVP_PKEY_free(params);
-	if ( pctx != NULL ) EVP_PKEY_CTX_free(pctx);
 
 	return secret;
 }

@@ -1,0 +1,16 @@
+#! /bin/sh
+
+if [ ! -f kparams.pem ]
+then
+	# Create EC parameters
+	openssl ecparam -genkey -name secp256r1 -out kparams.pem
+fi
+
+# Create public and prive service keys
+#
+# The public key is used by the enclave.
+# The private key is used by the service.
+
+openssl ec -in kparams.pem -pubout -out service-pubkey.pem
+openssl ec -in kparams.pem -out service-privkey.pem
+
