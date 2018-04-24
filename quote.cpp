@@ -83,6 +83,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <intrin.h>
 #include "getopt.h"
 #else
+#include <openssl/evp.h>
 #include <getopt.h>
 #include <unistd.h>
 #endif
@@ -92,6 +93,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hexutil.h"
 #include "fileio.h"
 #include "base64.h"
+#include "crypto.h"
 
 #define MAX_LEN 80
 
@@ -161,6 +163,9 @@ int main (int argc, char *argv[])
 	sgx_target_info_t target_info;
 	sgx_epid_group_id_t epid_gid;
 	uint32_t n_epid_gid= 0xdeadbeef;
+#ifndef _WIN32
+	EVP_PKEY *service_public_key= NULL;
+#endif
 	sgx_ec256_public_t pubkey;
 #ifdef PSE_SUPPORT
 	sgx_ps_cap_t ps_cap;
@@ -225,25 +230,29 @@ int main (int argc, char *argv[])
 		case '1':
 			++flag_msg1;
 			break;
-		case 'P':
-			fprintf(stderr, "Not implemented\n");
-			exit(1);
+		case 'N':
+			if ( ! from_hexstring_file((unsigned char *) &nonce, optarg, 16)) {
+				fprintf(stderr, "nonce must be 32-byte hex string\n");
+				exit(1);
+			}
+			++flag_nonce;
 
 			break;
-		case 'p':
-			if ( ! from_hexstring((unsigned char *) keyin, (unsigned char *) optarg, 64)) {
-				fprintf(stderr, "key must be 128-byte hex string\n");
+		case 'P':
+			if ( ! key_load_file(&service_public_key, optarg, KEY_PUBLIC) ) {
+				fprintf(stderr, "%s: ", optarg);
+				crypto_perror("load_key_from_file");
+				exit(1);
+			} 
+
+			if ( ! key_to_sgx_ec256(&pubkey, service_public_key) ) {
+				fprintf(stderr, "%s: ", optarg);
+				crypto_perror("key_to_sgx_ec256");
 				exit(1);
 			}
 
-			/* Reverse the byte stream to make a little endien style value */
-			for(i= 0; i< 32; ++i) pubkey.gx[i]= keyin[31-i];
-			for(i= 0; i< 32; ++i) pubkey.gy[i]= keyin[63-i];
 			++flag_pubkey;
 
-			break;
-		case 'l':
-			linkable= SGX_LINKABLE_SIGNATURE;
 			break;
 		case 'S':
 			if ( ! from_hexstring_file((unsigned char *) &spid, optarg, 16)) {
@@ -256,39 +265,8 @@ int main (int argc, char *argv[])
 		case 'e':
 			++flag_epid;
 			break;
-		case 'r':
-			for(i= 0; i< 2; ++i) {
-				int retry= 10;
-				unsigned char ok= 0;
-				uint64_t *np= (uint64_t *) &nonce;
-
-				while ( !ok && retry ) ok= _rdrand64_step(&np[i]);
-				if ( ok == 0 ) {
-					fprintf(stderr, "nonce: RDRAND underflow\n");
-					exit(1);
-				}
-			}
-			++flag_nonce;
-			break;
-
-		case 'N':
-			if ( ! from_hexstring_file((unsigned char *) &nonce, optarg, 16)) {
-				fprintf(stderr, "nonce must be 32-byte hex string\n");
-				exit(1);
-			}
-			++flag_nonce;
-
-			break;
-		case 's':
-			if ( strlen(optarg) < 32 ) {
-				fprintf(stderr, "SPID must be 32-byte hex string\n");
-				exit(1);
-			}
-			if ( ! from_hexstring((unsigned char *) &spid, (unsigned char *) optarg, 16) ) {
-				fprintf(stderr, "SPID must be 32-byte hex string\n");
-				exit(1);
-			}
-			++flag_spid;
+		case 'l':
+			linkable= SGX_LINKABLE_SIGNATURE;
 			break;
 #ifdef PSE_SUPPORT
 		case 'm':
@@ -307,6 +285,43 @@ int main (int argc, char *argv[])
 
 			++flag_nonce;
 
+			break;
+		case 'p':
+			if ( ! from_hexstring((unsigned char *) keyin, (unsigned char *) optarg, 64)) {
+				fprintf(stderr, "key must be 128-byte hex string\n");
+				exit(1);
+			}
+
+			/* Reverse the byte stream to make a little endien style value */
+			for(i= 0; i< 32; ++i) pubkey.gx[i]= keyin[31-i];
+			for(i= 0; i< 32; ++i) pubkey.gy[i]= keyin[63-i];
+			++flag_pubkey;
+
+			break;
+		case 'r':
+			for(i= 0; i< 2; ++i) {
+				int retry= 10;
+				unsigned char ok= 0;
+				uint64_t *np= (uint64_t *) &nonce;
+
+				while ( !ok && retry ) ok= _rdrand64_step(&np[i]);
+				if ( ok == 0 ) {
+					fprintf(stderr, "nonce: RDRAND underflow\n");
+					exit(1);
+				}
+			}
+			++flag_nonce;
+			break;
+		case 's':
+			if ( strlen(optarg) < 32 ) {
+				fprintf(stderr, "SPID must be 32-byte hex string\n");
+				exit(1);
+			}
+			if ( ! from_hexstring((unsigned char *) &spid, (unsigned char *) optarg, 16) ) {
+				fprintf(stderr, "SPID must be 32-byte hex string\n");
+				exit(1);
+			}
+			++flag_spid;
 			break;
 		case 'h':
 		case '?':

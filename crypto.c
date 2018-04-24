@@ -13,7 +13,8 @@
 static enum _error_type {
 	e_none,
 	e_crypto,
-	e_system
+	e_system,
+	e_api
 } error_type= e_none;
 
 static const char *ep= NULL;
@@ -44,6 +45,7 @@ void crypto_perror (const char *prefix)
 	if ( error_type == e_none ) fprintf(stderr, "no error\n");
 	else if ( error_type == e_system ) perror(ep);
 	else if ( error_type == e_crypto ) ERR_print_errors_fp(stderr);
+	else if ( error_type == e_api ) fprintf(stderr, "invalid parameter\n");
 }
 
 /*============================================================================
@@ -52,7 +54,7 @@ void crypto_perror (const char *prefix)
 
 /* Load an EC key from a file in PEM format */
 
-int key_load_file (EVP_PKEY **key, const char *filename)
+int key_load_file (EVP_PKEY **key, const char *filename, int keytype)
 {
 	FILE *fp;
 
@@ -65,10 +67,15 @@ int key_load_file (EVP_PKEY **key, const char *filename)
 		ep= filename;
 		return 0;
 	}
-	PEM_read_PrivateKey(fp, key, NULL, NULL);
+	if ( keytype == KEY_PRIVATE ) PEM_read_PrivateKey(fp, key, NULL, NULL);
+	else if ( keytype == KEY_PUBLIC ) PEM_read_PUBKEY(fp, key, NULL, NULL);
+	else {
+		error_type= e_api;
+	}
+
 	fclose(fp);
 
-	return 1;
+	return (error_type == e_none);
 }
 
 int key_to_sgx_ec256 (sgx_ec256_public_t *k, EVP_PKEY *key)
@@ -82,7 +89,7 @@ int key_to_sgx_ec256 (sgx_ec256_public_t *k, EVP_PKEY *key)
 	error_type= e_none;
 
 	eckey= EVP_PKEY_get1_EC_KEY(key);
-	if ( key == NULL ) {
+	if ( eckey == NULL ) {
 		error_type= e_crypto;
 		goto cleanup;
 	}
