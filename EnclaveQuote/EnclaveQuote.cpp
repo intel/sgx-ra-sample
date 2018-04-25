@@ -56,7 +56,6 @@ static const sgx_ec256_public_t def_service_public_key = {
 
 };
 
-
 /*----------------------------------------------------------------------
  * WARNING
  *----------------------------------------------------------------------
@@ -132,14 +131,13 @@ sgx_status_t get_pse_manifest(char *buf, size_t sz)
 sgx_status_t enclave_ra_init(sgx_ec256_public_t key, int b_pse, 
 	sgx_ra_context_t *ctx)
 {
-
+	unsigned char *dbitem;
 	sgx_status_t status= sgx_ra_init(&key, b_pse, ctx);
 	return status;
 }
 
 sgx_status_t enclave_ra_init_def(int b_pse, sgx_ra_context_t *ctx)
 {
-	sgx_status_t status= sgx_ra_init(&def_service_public_key, b_pse, ctx);
-	return status;
+	return enclave_ra_init(def_service_public_key, b_pse, ctx);
 }
 

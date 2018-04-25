@@ -32,33 +32,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-/*----------------------------------------------------------------------
- * WARNING
- *----------------------------------------------------------------------
- *
- * DO NOT USE THIS CODE AS A TEMPLATE FOR IMPLEMENTING REMOTE
- * ATTESTATION. This code short-circuits the RA process in order 
- * to generate an enclave quote directly!
- *
- * The high-level functions provided for remote attestation take
- * care of the low-level details of quote generation for you:
- *
- *   sgx_ra_init()
- *   sgx_ra_get_msg1
- *   sgx_ra_proc_msg2
- *
- * End developers should not normally be calling these functions
- * directly when doing remote attestation: 
- *
- *    sgx_get_ps_sec_prop()
- *    sgx_get_quote()
- *    sgx_get_quote_size()
- *    sgx_get_report()
- *    sgx_init_quote()
- *
- *----------------------------------------------------------------------
- */
-
 #ifdef _WIN32
 #pragma comment(lib, "crypt32.lib")
 #else
@@ -81,7 +54,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/stat.h>
 #ifdef _WIN32
 #include <intrin.h>
-#include "getopt.h"
+#include "win32/getopt.h"
 #else
 #include <openssl/evp.h>
 #include <getopt.h>
@@ -107,6 +80,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DEF_LIB_SEARCHPATH "/lib:/usr/lib"
 #endif
 
+typedef struct config_struct {
+	char mode;
+	uint32_t flags;
+	sgx_spid_t spid;
+	sgx_ec256_public_t pubkey;
+	sgx_quote_nonce_t nonce;
+} config_t;
+
 int file_in_searchpath (const char *file, char *search, char *fullpath,
 	size_t len);
 
@@ -120,88 +101,45 @@ sgx_status_t sgx_create_enclave_search (
 );
 
 void usage();
+int do_quote(sgx_enclave_id_t eid, config_t *config);
+int do_attestation(sgx_enclave_id_t eid, config_t *config);
 
-void usage () 
-{
-	fprintf(stderr, "usage: quote [ options ]\n\n");
-	fprintf(stderr, "Required:\n");
-	fprintf(stderr, "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte\n");
-	fprintf(stderr, "                              ASCII hex string\n");
-	fprintf(stderr, "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string\n");
-	fprintf(stderr, "\nOne of --spid OR --spid-file is required\n\n");
-	fprintf(stderr, "Optional:\n");
-	fprintf(stderr, "  -N, --nonce-file=FILE    Set a nonce from a file containing a 32-byte\n");
-	fprintf(stderr, "                              ASCII hex string\n");
-	fprintf(stderr, "  -e, --epid-gid           Get the EPID Group ID instead of a quote\n");
-	fprintf(stderr, "  -l, --linkable           Specify a linkable quote (default: unlinkable)\n");
-#ifdef PSE_SUPPORT
-	fprintf(stderr, "  -m, --pse-manifest       Include the PSE manifest in the quote\n");
-#endif
-	fprintf(stderr, "  -n, --nonce=HEXSTRING    Set a nonce from a 32-byte ASCII hex string\n");
-	fprintf(stderr, "  -r                       Generate a nonce using RDRAND\n");
-	fprintf(stderr, "\nRemote Attestation options:\n");
-	fprintf(stderr, "  -1, --msg1               Generate msg1.\n");
-	fprintf(stderr, "  -W, --write-context=FILE Save RA context to FILE. (msg1)\n");
-	fprintf(stderr, "  -R, --read-context=FILE  Read RA context from FILE. (msg3)\n");
-	fprintf(stderr, "Optional:\n");
-	fprintf(stderr, "  -p, --pubkey=HEXSTRING   The public key of the service provider as an\n");
-	fprintf(stderr, "                              ASCII hex string.\n");
-	fprintf(stderr, "  -P, --pubkey-file=FILE   File containing the public key of the service provider.\n");
-	exit(1);
-}
+#define MODE_QUOTE 	0x0
+#define MODE_EPID 	0x1
+#define MODE_ATTEST	0x2
+
+#define OPT_PSE		0x01
+#define OPT_NONCE	0x02
+#define OPT_LINK	0x04
+#define OPT_PUBKEY	0x08
+
+/* Macros to set, clear, and get the mode and options */
+
+#define SET_OPT(x,y)	x|=y
+#define CLEAR_OPT(x,y)	x=x&~y
+#define OPT_ISSET(x,y)	x&y
 
 int main (int argc, char *argv[])
 {
+	config_t config;
 	sgx_launch_token_t token= { 0 };
 	sgx_status_t status, sgxrv;
 	sgx_enclave_id_t eid= 0;
-	sgx_quote_t *quote;
-	sgx_spid_t spid;
-	sgx_report_t qe_report;
 	int updated= 0;
 	int sgx_support;
 	uint32_t i;
-	sgx_report_t report;
-	uint32_t sz= 0;
-	sgx_target_info_t target_info;
-	sgx_epid_group_id_t epid_gid;
-	uint32_t n_epid_gid= 0xdeadbeef;
 #ifndef _WIN32
 	EVP_PKEY *service_public_key= NULL;
 #endif
-	sgx_ec256_public_t pubkey;
-#ifdef PSE_SUPPORT
-	sgx_ps_cap_t ps_cap;
-	char *pse_manifest;
-	size_t pse_manifest_sz;
-#endif
-#ifdef _WIN32
-	LPTSTR b64quote = NULL;
-	DWORD sz_b64quote = 0;
-	LPTSTR b64manifest = NULL;
-	DWORD sz_b64manifest = 0;
-#else
-	unsigned char  *b64quote= NULL;
-# ifdef PSE_SUPPORT
-	unsigned char *b64manifest = NULL;
-# endif
-#endif
-	sgx_quote_sign_type_t linkable= SGX_UNLINKABLE_SIGNATURE;
-	sgx_quote_nonce_t nonce;
-	sgx_ra_context_t ra_ctx= 0xdeadbeef;
-	char *context_file= NULL;
+	char have_spid= 0;
 
-	char flag_manifest = 0;
-	char flag_nonce= 0;
-	char flag_spid= 0;
-	char flag_epid= 0;
-	char flag_msg1= 0;
-	char flag_pubkey= 0;
-	char flag_context= 0;
+	config.flags= 0;
+	config.mode= MODE_QUOTE;
 
 	static struct option long_opt[] =
 	{
 		{"help",		no_argument, 		0, 'h'},
+		{"attest",		no_argument,		0, 'a'},
 		{"epid-gid",	no_argument,		0, 'e'},
 #ifdef PSE_SUPPORT
 		{"pse-manifest",	no_argument,	0, 'm'},
@@ -212,11 +150,8 @@ int main (int argc, char *argv[])
 		{"spid",		required_argument,	0, 's'},
 		{"spid-file",	required_argument,	0, 'S'},
 		{"linkable",	no_argument,		0, 'l'},
-		{"msg1",		no_argument,		0, '1'},
 		{"pubkey",		optional_argument,	0, 'p'},
 		{"pubkey-file",	optional_argument,	0, 'P'},
-		{"write-context",	optional_argument,	0,	'W'},
-		{"read-context",	optional_argument,	0,	'R'},
 		{ 0, 0, 0, 0 }
 	};
 
@@ -225,25 +160,26 @@ int main (int argc, char *argv[])
 	while (1) {
 		int c;
 		int opt_index= 0;
-		off_t sz;
 		unsigned char *keydata;
 		unsigned char keyin[64];
 
-		c= getopt_long(argc, argv, "1N:P:R:S:W:ehlmn:p:rs:", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "N:P:S:aehlmn:p:rs:", long_opt, &opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
 		case 0:
 			break;
-		case '1':
-			++flag_msg1;
+		case 'a':
+			config.mode= MODE_ATTEST;
 			break;
 		case 'N':
-			if ( ! from_hexstring_file((unsigned char *) &nonce, optarg, 16)) {
+			if ( ! from_hexstring_file((unsigned char *) &config.nonce,
+					optarg, 16)) {
+
 				fprintf(stderr, "nonce must be 32-byte hex string\n");
 				exit(1);
 			}
-			++flag_nonce;
+			SET_OPT(config.flags, OPT_NONCE);
 
 			break;
 		case 'P':
@@ -253,44 +189,33 @@ int main (int argc, char *argv[])
 				exit(1);
 			} 
 
-			if ( ! key_to_sgx_ec256(&pubkey, service_public_key) ) {
+			if ( ! key_to_sgx_ec256(&config.pubkey, service_public_key) ) {
 				fprintf(stderr, "%s: ", optarg);
 				crypto_perror("key_to_sgx_ec256");
 				exit(1);
 			}
+			SET_OPT(config.flags, OPT_NONCE);
 
-			++flag_pubkey;
-
-			break;
-		case 'R':
-			if ( ! from_hexstring_file((unsigned char *)&ra_ctx, optarg, 
-				sizeof(ra_ctx)) ) {
-				fprintf(stderr, "could not read context\n");
-				exit(1);
-			}
-			++flag_context;
 			break;
 		case 'S':
-			if ( ! from_hexstring_file((unsigned char *) &spid, optarg, 16)) {
+			if ( ! from_hexstring_file((unsigned char *) &config.spid,
+					optarg, 16)) {
+
 				fprintf(stderr, "SPID must be 32-byte hex string\n");
 				exit(1);
 			}
-			++flag_spid;
+			++have_spid;
 
 			break;
-		case 'W':
-			context_file= optarg;
-			++flag_context;
-			break;
 		case 'e':
-			++flag_epid;
+			config.mode= MODE_EPID;
 			break;
 		case 'l':
-			linkable= SGX_LINKABLE_SIGNATURE;
+			SET_OPT(config.flags, OPT_LINK);
 			break;
 #ifdef PSE_SUPPORT
 		case 'm':
-			flag_manifest = 1;
+			SET_OPT(config.flags, OPT_PSE);
 			break;
 #endif
 		case 'n':
@@ -298,31 +223,36 @@ int main (int argc, char *argv[])
 				fprintf(stderr, "nonce must be 32-byte hex string\n");
 				exit(1);
 			}
-			if ( ! from_hexstring((unsigned char *) &nonce, (unsigned char *) optarg, 16) ) {
+			if ( ! from_hexstring((unsigned char *) &config.nonce,
+					(unsigned char *) optarg, 16) ) {
+
 				fprintf(stderr, "nonce must be 32-byte hex string\n");
 				exit(1);
 			}
 
-			++flag_nonce;
+			SET_OPT(config.flags, OPT_NONCE);
 
 			break;
 		case 'p':
-			if ( ! from_hexstring((unsigned char *) keyin, (unsigned char *) optarg, 64)) {
+			if ( ! from_hexstring((unsigned char *) keyin,
+					(unsigned char *) optarg, 64)) {
+
 				fprintf(stderr, "key must be 128-byte hex string\n");
 				exit(1);
 			}
 
 			/* Reverse the byte stream to make a little endien style value */
-			for(i= 0; i< 32; ++i) pubkey.gx[i]= keyin[31-i];
-			for(i= 0; i< 32; ++i) pubkey.gy[i]= keyin[63-i];
-			++flag_pubkey;
+			for(i= 0; i< 32; ++i) config.pubkey.gx[i]= keyin[31-i];
+			for(i= 0; i< 32; ++i) config.pubkey.gy[i]= keyin[63-i];
+
+			SET_OPT(config.flags, OPT_PUBKEY);
 
 			break;
 		case 'r':
 			for(i= 0; i< 2; ++i) {
 				int retry= 10;
 				unsigned char ok= 0;
-				uint64_t *np= (uint64_t *) &nonce;
+				uint64_t *np= (uint64_t *) &config.nonce;
 
 				while ( !ok && retry ) ok= _rdrand64_step(&np[i]);
 				if ( ok == 0 ) {
@@ -330,18 +260,20 @@ int main (int argc, char *argv[])
 					exit(1);
 				}
 			}
-			++flag_nonce;
+			SET_OPT(config.flags, OPT_NONCE);
 			break;
 		case 's':
 			if ( strlen(optarg) < 32 ) {
 				fprintf(stderr, "SPID must be 32-byte hex string\n");
 				exit(1);
 			}
-			if ( ! from_hexstring((unsigned char *) &spid, (unsigned char *) optarg, 16) ) {
+			if ( ! from_hexstring((unsigned char *) &config.spid,
+					(unsigned char *) optarg, 16) ) {
+
 				fprintf(stderr, "SPID must be 32-byte hex string\n");
 				exit(1);
 			}
-			++flag_spid;
+			++have_spid;
 			break;
 		case 'h':
 		case '?':
@@ -350,7 +282,7 @@ int main (int argc, char *argv[])
 		}
 	}
 
-	if ( ! flag_spid && ! flag_epid ) {
+	if ( ! have_spid && ! config.mode == MODE_EPID ) {
 		fprintf(stderr, "SPID required. Use one of --spid or --spid-file \n");
 		return 1;
 	}
@@ -382,14 +314,16 @@ int main (int argc, char *argv[])
 	/* Launch the enclave */
 
 #ifdef _WIN32
-	status = sgx_create_enclave("EnclaveQuote.signed.dll", SGX_DEBUG_FLAG, &token, &updated, &eid, 0);
+	status = sgx_create_enclave("EnclaveQuote.signed.dll", SGX_DEBUG_FLAG,
+		&token, &updated, &eid, 0);
 	if (status != SGX_SUCCESS) {
 		fprintf(stderr, "sgx_create_enclave: EnclaveQuote.signed.dll: %08x\n",
 			status);
 		return 1;
 	}
 #else
-	status = sgx_create_enclave_search("EnclaveQuote.signed.so", SGX_DEBUG_FLAG, &token, &updated, &eid, 0);
+	status = sgx_create_enclave_search("EnclaveQuote.signed.so",
+		SGX_DEBUG_FLAG, &token, &updated, &eid, 0);
 	if ( status != SGX_SUCCESS ) {
 		fprintf(stderr, "sgx_create_enclave: EnclaveQuote.signed.so: %08x\n",
 			status);
@@ -399,9 +333,124 @@ int main (int argc, char *argv[])
 	}
 #endif
 
+	/* Are we attesting, or just spitting out a quote? */
+
+	if ( config.mode == MODE_ATTEST ) {
+		do_attestation(eid, &config);
+	} else if ( config.mode == MODE_EPID || config.mode == MODE_QUOTE ) {
+		do_quote(eid, &config);
+	} else {
+		fprintf(stderr, "Unknown operation mode.\n");
+		return 1;
+	}
+}
+
+int do_attestation (sgx_enclave_id_t eid, config_t *config)
+{
+	sgx_status_t status, sgxrv;
+	sgx_ra_msg1_t msg1;
+	uint32_t flags= config->flags;
+	sgx_ra_context_t ra_ctx= 0xdeadbeef;
+
+	/*
+	 * WARNING! Normally, the public key would be hardcoded into the
+	 * enclave, not passed in as a parameter. Hardcoding prevents
+	 * the enclave using an unauthorized key.
+	 *
+	 * This is diagnostic/test application, however, so we need
+	 * the flexibility of a dynamically assigned key.
+	 */
+
+	/* Executes an ECALL that runs sgx_ra_init() */
+
+	if ( OPT_ISSET(flags, OPT_PUBKEY) ) {
+		status= enclave_ra_init(eid, &sgxrv, config->pubkey, 0, &ra_ctx);
+	} else {
+		status= enclave_ra_init_def(eid, &sgxrv, 0, &ra_ctx);
+	}
+	if ( status != SGX_SUCCESS ) {
+		fprintf(stderr, "enclave_ra_init: %08x\n", status);
+		return 1;
+	}
+	if ( sgxrv != SGX_SUCCESS ) {
+		fprintf(stderr, "sgx_ra_init: %08x\n", sgxrv);
+		return 1;
+	}
+
+	/* Get msg1 */
+
+	status= sgx_ra_get_msg1(ra_ctx, eid, sgx_ra_get_ga, &msg1);
+	if ( status != SGX_SUCCESS ) {
+		fprintf(stderr, "sgx_ra_get_msg1: %08x\n", status);
+		return 1;
+	}
+
+	print_hexstring(stdout, &msg1, sizeof(msg1));
+	printf("\n");
+
+	return 0;
+}
+
+/*----------------------------------------------------------------------
+ * WARNING
+ *----------------------------------------------------------------------
+ *
+ * DO NOT USE THIS SUBROUTINE AS A TEMPLATE FOR IMPLEMENTING REMOTE
+ * ATTESTATION. do_quote() short-circuits the RA process in order 
+ * to generate an enclave quote directly!
+ *
+ * The high-level functions provided for remote attestation take
+ * care of the low-level details of quote generation for you:
+ *
+ *   sgx_ra_init()
+ *   sgx_ra_get_msg1
+ *   sgx_ra_proc_msg2
+ *
+ * End developers should not normally be calling these functions
+ * directly when doing remote attestation: 
+ *
+ *    sgx_get_ps_sec_prop()
+ *    sgx_get_quote()
+ *    sgx_get_quote_size()
+ *    sgx_get_report()
+ *    sgx_init_quote()
+ *
+ *----------------------------------------------------------------------
+ */
+
+int do_quote(sgx_enclave_id_t eid, config_t *config)
+{
+	sgx_status_t status, sgxrv;
+	sgx_quote_t *quote;
+	sgx_report_t report;
+	sgx_report_t qe_report;
+	sgx_target_info_t target_info;
+	sgx_epid_group_id_t epid_gid;
+	uint32_t sz= 0;
+	uint32_t flags= config->flags;
+	sgx_quote_sign_type_t linkable= SGX_UNLINKABLE_SIGNATURE;
+#ifdef PSE_SUPPORT
+	sgx_ps_cap_t ps_cap;
+	char *pse_manifest;
+	size_t pse_manifest_sz;
+#endif
+#ifdef _WIN32
+	LPTSTR b64quote = NULL;
+	DWORD sz_b64quote = 0;
+	LPTSTR b64manifest = NULL;
+	DWORD sz_b64manifest = 0;
+#else
+	unsigned char  *b64quote= NULL;
+# ifdef PSE_SUPPORT
+	unsigned char *b64manifest = NULL;
+# endif
+#endif
+
+ 	if (OPT_ISSET(flags, OPT_LINK)) linkable= SGX_LINKABLE_SIGNATURE;
+
 	/* Platform services info */
 #ifdef PSE_SUPPORT
-	if (flag_manifest) {
+	if (OPT_ISSET(flags, OPT_PSE)) {
 		status = sgx_get_ps_cap(&ps_cap);
 		if (status != SGX_SUCCESS) {
 			fprintf(stderr, "sgx_get_ps_cap: %08x\n", status);
@@ -442,7 +491,7 @@ int main (int argc, char *argv[])
 	}
 
 	/* Did they ask for just the EPID? */
-	if ( flag_epid ) {
+	if ( config->mode == MODE_EPID ) {
 		printf("%08x\n", *(uint32_t *)epid_gid);
 		exit(0);
 	}
@@ -469,63 +518,11 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 
-	if ( flag_msg1 ) {
-		sgx_ra_msg1_t msg1;
-
-		/*
-		 * WARNING! Normally, the public key would be hardcoded into the
-		 * enclave, not passed in as a parameter. Hardcoding prevents
-		 * the enclave using an unauthorized key.
-		 *
-		 * This is diagnostic/test application, however, so we need
-		 * the flexibility of a dynamically assigned key.
-		 */
-
-		/* Executes an ECALL that runs sgx_ra_init() */
-
-		if ( flag_pubkey ) {
-			status= enclave_ra_init(eid, &sgxrv, pubkey, 0, &ra_ctx);
-		} else {
-			status= enclave_ra_init_def(eid, &sgxrv, 0, &ra_ctx);
-		}
-		if ( status != SGX_SUCCESS ) {
-			fprintf(stderr, "enclave_ra_init: %08x\n", status);
-			return 1;
-		}
-		if ( sgxrv != SGX_SUCCESS ) {
-			fprintf(stderr, "sgx_ra_init: %08x\n", sgxrv);
-			return 1;
-		}
-
-		printf("context=%u\n", ra_ctx);
-		if ( flag_context ) {
-			if ( ! to_hexstring_file((unsigned char *) &ra_ctx, context_file,
-				sizeof(sgx_ra_context_t)) ) {
-
-				fprintf(stderr, "%s: couldn't write context\n", context_file);
-				return 1;
-			}
-		}
-
-		/* Get msg1 */
-
-		status= sgx_ra_get_msg1(ra_ctx, eid, sgx_ra_get_ga, &msg1);
-		if ( status != SGX_SUCCESS ) {
-			fprintf(stderr, "sgx_ra_get_msg1: %08x\n", status);
-			return 1;
-		}
-
-		print_hexstring(stdout, &msg1, sizeof(msg1));
-		printf("\n");
-
-		exit(0);
-	}
-
 	memset(quote, 0, sz);
-	status= sgx_get_quote(&report, linkable, &spid,
-		(flag_nonce) ? &nonce : NULL,
+	status= sgx_get_quote(&report, linkable, &config->spid,
+		(OPT_ISSET(flags, OPT_NONCE)) ? &config->nonce : NULL,
 		NULL, 0,
-		(flag_nonce) ? &qe_report : NULL, 
+		(OPT_ISSET(flags, OPT_NONCE)) ? &qe_report : NULL, 
 		quote, sz);
 	if ( status != SGX_SUCCESS ) {
 		fprintf(stderr, "sgx_get_quote: %08x\n", status);
@@ -549,7 +546,7 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 
-	if (flag_manifest) {
+	if (OPT_ISSET(flags, OPT_PSE)) {
 		if (CryptBinaryToString((LPTSTR)pse_manifest, pse_manifest_sz, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL, &sz_b64manifest) == FALSE) {
 			fprintf(stderr, "CryptBinaryToString: could not get Base64 encoded manifest length\n");
 			return 1;
@@ -564,7 +561,7 @@ int main (int argc, char *argv[])
 #else
 	b64quote= base64_encode((unsigned char *) quote, sz);
 #ifdef PSE_SUPPORT
-	if (flag_manifest) {
+	if (OPT_ISSET(flags, OPT_PSE)) {
 		b64manifest= base64_encode((unsigned char *) pse_manifest, pse_manifest_sz);
 	}
 # endif
@@ -572,13 +569,13 @@ int main (int argc, char *argv[])
 
 	printf("{\n");
 	printf("\"isvEnclaveQuote\":\"%s\"", b64quote);
-	if ( flag_nonce ) {
+	if ( OPT_ISSET(flags, OPT_NONCE) ) {
 		printf(",\n\"nonce\":\"");
-		print_hexstring(stdout, &nonce, 16);
+		print_hexstring(stdout, &config->nonce, 16);
 		printf("\"");
 	}
 #ifdef PSE_SUPPORT
-	if (flag_manifest) {
+	if (OPT_ISSET(flags, OPT_PSE)) {
 		printf(",\n\"pseManifest\":\"%s\"", b64manifest);	
 	}
 #endif
@@ -680,3 +677,31 @@ int file_in_searchpath (const char *file, char *search, char *fullpath,
 }
 
 #endif
+
+void usage () 
+{
+	fprintf(stderr, "usage: quote [ options ]\n\n");
+	fprintf(stderr, "Required:\n");
+	fprintf(stderr, "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte\n");
+	fprintf(stderr, "                              ASCII hex string\n");
+	fprintf(stderr, "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string\n");
+	fprintf(stderr, "\nOne of --spid OR --spid-file is required\n\n");
+	fprintf(stderr, "Optional:\n");
+	fprintf(stderr, "  -N, --nonce-file=FILE    Set a nonce from a file containing a 32-byte\n");
+	fprintf(stderr, "                              ASCII hex string\n");
+	fprintf(stderr, "  -e, --epid-gid           Get the EPID Group ID instead of a quote\n");
+	fprintf(stderr, "  -l, --linkable           Specify a linkable quote (default: unlinkable)\n");
+#ifdef PSE_SUPPORT
+	fprintf(stderr, "  -m, --pse-manifest       Include the PSE manifest in the quote\n");
+#endif
+	fprintf(stderr, "  -n, --nonce=HEXSTRING    Set a nonce from a 32-byte ASCII hex string\n");
+	fprintf(stderr, "  -r                       Generate a nonce using RDRAND\n");
+	fprintf(stderr, "\nRemote Attestation options:\n");
+	fprintf(stderr, "  -a, --attest               Perform an attestation via stdout and stdin.\n");
+	fprintf(stderr, "Optional:\n");
+	fprintf(stderr, "  -p, --pubkey=HEXSTRING   Specify the public key of the service provider as an\n");
+	fprintf(stderr, "                              ASCII hex string.\n");
+	fprintf(stderr, "  -P, --pubkey-file=FILE   File containing the public key of the service provider.\n");
+	exit(1);
+}
+

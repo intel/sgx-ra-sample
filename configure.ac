@@ -7,6 +7,7 @@ AC_PROG_CXX
 AC_PROG_CPP
 AC_PROG_INSTALL
 AM_PROG_CC_C_O
+AC_PROG_RANLIB
 
 AC_CONFIG_HEADERS([config.h])
 
@@ -31,7 +32,10 @@ AS_IF([test "$openssl" != ""], [
 	AC_SUBST([OPENSSL_LDFLAGS], [-L$openssl/lib])
 ])
 
-AC_CONFIG_FILES([Makefile EnclaveQuote/Makefile])
+AC_CONFIG_FILES([
+	Makefile
+	EnclaveQuote/Makefile
+])
 
 AC_OUTPUT
 

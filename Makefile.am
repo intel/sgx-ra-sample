@@ -26,7 +26,7 @@ include $(top_srcdir)/build-aux/sgx_app.am
 ##   SGX_UAE_SERVICE_LIB
 ##   SGX_EDGER8R
 
-SUBDIRS = EnclaveQuote
+SUBDIRS = EnclaveQuote 
 
 ## Supply additional flags to edger8r here. 
 ##
