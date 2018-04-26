@@ -353,7 +353,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	uint32_t flags= config->flags;
 	sgx_ra_context_t ra_ctx= 0xdeadbeef;
 	unsigned char *buffer;
-	size_t sz;
+	size_t sz, bread;
 
 	/*
 	 * WARNING! Normally, the public key would be hardcoded into the
@@ -401,17 +401,18 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	/*
 	 * msg2 is variable length b/c it includes the revocation list at
 	 * the end. The sgx_ra_msg2_t type is fixed length, but the last
-     * member is the start of a byte array (uint8_t sig_rl[]).
+     * two members are the sig_rl_size (4 bytes) and the start of 
+	 * the sig_rl array (uint8_t sig_rl[], which is an empty member).
 	 * 
-	 * We can read in a buffer of (sizeof(sgx_ra_msg2_t)-1) bytes
-	 * and use the sig_rl_size member to get the size of the
-	 * revocation list (and read what we need).
+	 * We can read in a buffer of (sizeof(sgx_ra_msg2_t)) bytes and use
+	 * the sig_rl_size member to get the size of the revocation list 
+	 * (and read what we need).
 	 * 
 	 * (Since we're using base16 encoding/hex strings for our messages
 	 * we actually have to double our read count.)
 	 */
 
-	sz= (sizeof(sgx_ra_msg2_t)-1)*2;
+	sz= (sizeof(sgx_ra_msg2_t)-4)*2;
 	buffer= (unsigned char *) malloc(sz);
 	if ( buffer == NULL ) {
 		perror("malloc");
@@ -421,7 +422,9 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	/* This first read will not include the newline in our incoming
      * string. */
 
-	if ( fread(buffer, 1, sz, stdin) != sz ) {
+	bread= fread(buffer, 1, sz, stdin);
+	if ( bread != sz ) {
+		fprintf(stderr, "expected %lu bytes, got %lu\n", sz, bread);
 		if ( feof(stdin) ) {
 			fprintf(stderr, "EOF received on stdin\n");
 			exit(1);

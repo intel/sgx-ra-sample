@@ -31,14 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-static const unsigned char def_service_private_key[32] = {
-	0x90, 0xe7, 0x6c, 0xbb, 0x2d, 0x52, 0xa1, 0xce,
-	0x3b, 0x66, 0xde, 0x11, 0x43, 0x9c, 0x87, 0xec,
-	0x1f, 0x86, 0x6a, 0x3b, 0x65, 0xb6, 0xae, 0xea,
-	0xad, 0x57, 0x34, 0x53, 0xd1, 0x03, 0x8c, 0x01
-};
-
-
 #ifdef _WIN32
 #pragma comment(lib, "crypt32.lib")
 #else
@@ -64,31 +56,25 @@ static const unsigned char def_service_private_key[32] = {
 #include "fileio.h"
 #include "crypto.h"
 #include "byteorder.h"
+#include "lineio.h"
 
-#define MAX_LEN 80
-#define BUFFER_SZ 1024*1024*100
+static const unsigned char def_service_private_key[32] = {
+	0x90, 0xe7, 0x6c, 0xbb, 0x2d, 0x52, 0xa1, 0xce,
+	0x3b, 0x66, 0xde, 0x11, 0x43, 0x9c, 0x87, 0xec,
+	0x1f, 0x86, 0x6a, 0x3b, 0x65, 0xb6, 0xae, 0xea,
+	0xad, 0x57, 0x34, 0x53, 0xd1, 0x03, 0x8c, 0x01
+};
+
+typedef struct config_struct {
+	sgx_spid_t spid;
+	uint16_t quote_type;
+	EVP_PKEY *service_private_key;
+	char verbose;
+} config_t;
 
 void usage();
-
 int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1);
-
-void usage () 
-{
-	fprintf(stderr, "usage: sp [ options ]\n\n");
-	fprintf(stderr, "Required:\n");
-	fprintf(stderr, "  -P, --key-file=FILE      The private key file in PEM format\n");
-	fprintf(stderr, "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte\n");
-	fprintf(stderr, "                              ASCII hex string\n");
-	fprintf(stderr, "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string\n");
-	fprintf(stderr, "  -2, --msg2               Read msg1 from stdin, print msg2\n");
-	fprintf(stderr, "  -4, --msg4               Read msg3 from stdin, print msg4\n");
-	fprintf(stderr, "\nOne of --spid OR --spid-file is required\n\n");
-	fprintf(stderr, "\nOne of --msg2 OR --msg4 is required\n\n");
-	fprintf(stderr, "Optional:\n");
-	fprintf(stderr, "  -l, --linkable           Request a linkable quote (default: unlinkable)\n");
-	fprintf(stderr, "  -r, --sigrl-file=FILE    Read the revocation list from FILE\n");
-	exit(1);
-}
+int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config);
 
 int main (int argc, char *argv[])
 {
@@ -96,12 +82,10 @@ int main (int argc, char *argv[])
 	char flag_spid= 0;
 	char flag_msg= 0;
 	char flag_pubkey= 0;
-	sgx_spid_t spid;
-	EVP_PKEY *service_private_key= NULL;
-	unsigned int linkable= SGX_UNLINKABLE_SIGNATURE;
-	/* Use a fixed buffer which is much larger than we'll need */
-	size_t blen= 0;
-	unsigned char *bp, *buffer;
+	config_t config;
+	sgx_ra_msg2_t msg2;
+
+	memset(&config, 0, sizeof(config));
 
 	static struct option long_opt[] =
 	{
@@ -111,16 +95,11 @@ int main (int argc, char *argv[])
 		{"help",		no_argument, 		0, 'h'},
 		{"spid",		required_argument,	0, 's'},
 		{"linkable",	no_argument,		0, 'l'},
+		{"verbose",		no_argument,		0, 'v'},
 		{ 0, 0, 0, 0 }
 	};
 
 	/* Parse our options */
-
-	buffer= (unsigned char *) malloc(BUFFER_SZ);
-	if ( buffer == NULL ) {
-		perror("malloc");
-		return 1;
-	}
 
 	while (1) {
 		int c;
@@ -132,17 +111,14 @@ int main (int argc, char *argv[])
 		switch(c) {
 		case 0:
 			break;
-		case '2':
-			flag_msg= 1;
-			break;
 		case 'P':
-			if ( ! key_load_file(&service_private_key, optarg, KEY_PRIVATE) ) {
+			if ( ! key_load_file(&config.service_private_key, optarg, KEY_PRIVATE) ) {
 				fprintf(stderr, "%s: could not load EC private key\n", optarg);
 				exit(1);
 			}
 			break;
 		case 'S':
-			if ( ! from_hexstring_file((unsigned char *) &spid, optarg, 16)) {
+			if ( ! from_hexstring_file((unsigned char *) &config.spid, optarg, 16)) {
 				fprintf(stderr, "SPID must be 32-byte hex string\n");
 				exit(1);
 			}
@@ -150,18 +126,21 @@ int main (int argc, char *argv[])
 
 			break;
 		case 'l':
-			linkable= SGX_LINKABLE_SIGNATURE;
+			config.quote_type= SGX_LINKABLE_SIGNATURE;
 			break;
 		case 's':
 			if ( strlen(optarg) < 32 ) {
 				fprintf(stderr, "SPID must be 32-byte hex string\n");
 				exit(1);
 			}
-			if ( ! from_hexstring((unsigned char *) &spid, (unsigned char *) optarg, 16) ) {
+			if ( ! from_hexstring((unsigned char *) &config.spid, (unsigned char *) optarg, 16) ) {
 				fprintf(stderr, "SPID must be 32-byte hex string\n");
 				exit(1);
 			}
 			++flag_spid;
+			break;
+		case 'v':
+			config.verbose= 1;
 			break;
 		case 'h':
 		case '?':
@@ -176,9 +155,9 @@ int main (int argc, char *argv[])
 	 * key since the public half is also hardcoded into the enclave.
 	 */
 
-	if ( service_private_key == NULL ) {
-		service_private_key= key_private_from_bytes(def_service_private_key);
-		if ( service_private_key == NULL ) {
+	if ( config.service_private_key == NULL ) {
+		config.service_private_key= key_private_from_bytes(def_service_private_key);
+		if ( config.service_private_key == NULL ) {
 			crypto_perror("key_private_from_sgx_ec256");
 			exit(1);
 		}
@@ -189,150 +168,177 @@ int main (int argc, char *argv[])
 		exit(1);
 	}
 
-	/* Read the incoming message */
-
-	blen= fread(buffer, 1, BUFFER_SZ, stdin);
-	if ( blen == BUFFER_SZ ) {
-		fprintf(stderr, "read exceeds buffer size of %u bytes\n", BUFFER_SZ);
-		return 1;
-	}
-	if ( ferror(stdin) ) {
-		fprintf(stderr, "error reading from stdin\n");
-		return 1;
-	}
-
-	/* Remove trailing whitespace */
-
-	bp= &buffer[blen-1];
-	while ( *bp == '\n' || *bp == ' ' || *bp == '\t' || *bp == '\r' ) {
-		*bp= 0;
-		--bp;
-		--blen;
-	}
-
 	/* Initialize OpenSSL */
 
 	crypto_init();
 
-	/* Process our message */
+	/* Read message 1 and generate message 2 */
 
-	if ( flag_msg == 1 ) {
-		sgx_ra_msg1_t msg1;
-		sgx_ra_msg2_t msg2;
-		unsigned char kdk[16], smk[16], gb_ga[128];
-		EVP_PKEY *Gb;
-		mode_t fmode;
-
-		if ( blen != 2*sizeof(msg1) ) {
-			fprintf(stderr, "msg1 must be a %lu byte hex string\n",
-				sizeof(sgx_ra_msg1_t)*2);
-			return 1;
-		}
-		if ( ! from_hexstring((unsigned char *) &msg1, buffer,
-			sizeof(sgx_ra_msg1_t)) ) {
-			fprintf(stderr, "msg1 not a valid hex string\n");
-			exit(1);
-		}
-
-		/* Generate our session key */
-
-		Gb= key_generate();
-		if ( Gb == NULL ) {
-			fprintf(stderr, "Could not create a session key\n");
-			exit(1);
-		}
-
-		/* Derive the KDK from the key (Ga) in msg1 and our session key */
-
-		if ( ! derive_kdk(Gb, kdk, &msg1) ) {
-			fprintf(stderr, "Could not derive the KDK\n");
-			exit(1);
-		}
-
-		/*
- 		 * Derive the SMK from the KDK 
-		 * SMK = AES_CMAC(KDK, 0x01 || "SMK" || 0x00 || 0x80 || 0x00) 
-		 * */
-
-		cmac128(kdk, "\x01SMK\x00\x80\x00", 7, smk);
-
-		/*
-		 * Build message 2
-		 *
-		 * A || CMACsmk(A) || SigRL
-		 *
-		 * where:
-		 *
-		 * A      = Gb || SPID || TYPE || KDF-ID || SigSP(Gb, Ga) 
-		 * Ga     = Client enclave's session key
-		 * Gb     = Service Provider's session key
-		 * SPID   = The Service Provider ID, issued by Intel to the vendor
-		 * TYPE   = Quote type (0= linkable, 1= linkable) (2 bytes)
-		 * KDF-ID = (0x0001= CMAC entropy extraction and key derivation) (2 bytes)
-		 * SigSP  = ECDSA signature of (Gb.x || Gb.y || Ga.x || Ga.y) as r || s
-		 *          (signed with the Service Provider's private key)
-		 * 
-		 * || denotes concatenation
-		 *
-		 * Note that all key components (Ga.x, etc.) are in little endian 
-		 * format, meaning the byte streams need to be reversed.
-		 *
-		 */
-
-		key_to_sgx_ec256(&msg2.g_b, Gb);
-		memcpy(&msg2.spid, &spid, sizeof(sgx_spid_t));
-		msg2.quote_type= linkable;
-		msg2.kdf_id= 1;
-
-		/* For now */
-		msg2.sig_rl_size= 0;
-
-		memcpy(gb_ga, &msg2.g_b, 64);
-		memcpy(&gb_ga[64], &msg1.g_a, 64);
-
-		ecdsa_sign(gb_ga, 128, service_private_key, (unsigned char *) &msg2.sign_gb_ga);
-		printf("Ga=");
-		print_hexstring(stdout, &msg1.g_a, 64);
-		printf("\n");
-
-		printf("Gb=");
-		print_hexstring(stdout, &msg2.g_b, 64);
-		printf("\n");
-
-		printf("SPID=");
-		print_hexstring(stdout, &msg2.spid, 16);
-		printf("\n");
-
-		printf("Link type=");
-		print_hexstring(stdout, &msg2.quote_type, 2);
-		printf("\n");
-
-		printf("KDF ID=");
-		print_hexstring(stdout, &msg2.kdf_id, 2);
-		printf("\n");
-
-		printf("A=");
-		print_hexstring(stdout, &msg2, 84);
-		printf("\n");
-
-		printf("message=");
-		print_hexstring(stdout, gb_ga, 128);
-		printf("\n");
-
-		printf("SignSP=");
-		print_hexstring(stdout, &msg2.sign_gb_ga, 64);
-		printf("\n");
-
+	if ( process_msg1(&msg2, &config) == 0 ) {
+		fprintf(stderr, "error processing msg1\n");
+		crypto_destroy();
+		return 1;
 	}
 
-	crypto_destroy();
+	/* Send message 2 */
 
+	print_hexstring(stdout, &msg2, sizeof(msg2));
+	printf("\n");
+
+	crypto_destroy();
 	return 0;
 }
 
-/*
- * Process msg1 and produce msg2.
- */
+int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
+{
+	sgx_ra_msg1_t msg1;
+	size_t blen= 0;
+	size_t sz;
+	char *buffer= NULL;
+	unsigned char kdk[16], smk[16], gb_ga[128];
+	EVP_PKEY *Gb;
+	mode_t fmode;
+
+	memset(msg2, 0, sizeof(sgx_ra_msg2_t));
+
+	/*
+	 * Read our incoming message. We're using base16 encoding/hex strings
+	 * so we should end up with sizeof(msg)*2 bytes.
+	 */
+
+	fprintf(stderr, "Waiting for msg1 on stdin\n");
+
+	sz= sizeof(msg1)*2;
+	blen= read_line(&buffer);
+	if ( blen != sz ) {
+		fprintf(stderr, "expected %lu bytes, read %lu\n", sz, blen);
+		return 0;
+	}
+
+	if ( ! from_hexstring((unsigned char *) &msg1, buffer,
+		sizeof(sgx_ra_msg1_t)) ) {
+		fprintf(stderr, "msg1 not a valid hex string\n");
+		exit(1);
+	}
+
+	fprintf(stderr, "buffer=[%s]\n", buffer);
+	free(buffer);
+
+	/* Generate our session key */
+
+	Gb= key_generate();
+	if ( Gb == NULL ) {
+		fprintf(stderr, "Could not create a session key\n");
+		exit(1);
+	}
+
+	/* Derive the KDK from the key (Ga) in msg1 and our session key */
+
+	if ( ! derive_kdk(Gb, kdk, &msg1) ) {
+		fprintf(stderr, "Could not derive the KDK\n");
+		exit(1);
+	}
+
+	/*
+ 	 * Derive the SMK from the KDK 
+	 * SMK = AES_CMAC(KDK, 0x01 || "SMK" || 0x00 || 0x80 || 0x00) 
+	 */
+
+	cmac128(kdk, "\x01SMK\x00\x80\x00", 7, smk);
+
+	/*
+	 * Build message 2
+	 *
+	 * A || CMACsmk(A) || SigRL
+	 * (148 + 16 + SigRL_length bytes)
+	 *
+	 * where:
+	 *
+	 * A      = Gb || SPID || TYPE || KDF-ID || SigSP(Gb, Ga) 
+	 *          (64 + 16 + 2 + 2 + 64 = 148 bytes)
+	 * Ga     = Client enclave's session key
+	 *          (64 bytes)
+	 * Gb     = Service Provider's session key
+	 *          (64 bytes)
+	 * SPID   = The Service Provider ID, issued by Intel to the vendor
+	 *          (16 bytes)
+	 * TYPE   = Quote type (0= linkable, 1= linkable)
+	 *          (2 bytes)
+	 * KDF-ID = (0x0001= CMAC entropy extraction and key derivation)
+	 *          (2 bytes)
+	 * SigSP  = ECDSA signature of (Gb.x || Gb.y || Ga.x || Ga.y) as r || s
+	 *          (signed with the Service Provider's private key)
+	 *          (64 bytes)
+	 *
+	 * CMACsmk= AES-128-CMAC(A)
+	 *          (16 bytes)
+	 * 
+	 * || denotes concatenation
+	 *
+	 * Note that all key components (Ga.x, etc.) are in little endian 
+	 * format, meaning the byte streams need to be reversed.
+	 *
+	 * For SigRL, send:
+	 *
+	 *  SigRL_size || SigRL_contensts
+	 *
+	 * where sigRL_size is a 32-bit uint (4 bytes). This matches the
+	 * structure definition in sgx_ra_msg2_t
+	 */
+
+	key_to_sgx_ec256(&msg2->g_b, Gb);
+	memcpy(&msg2->spid, &config->spid, sizeof(sgx_spid_t));
+	msg2->quote_type= config->quote_type;
+	msg2->kdf_id= 1;
+
+	/* For now */
+	msg2->sig_rl_size= 0;
+
+	memcpy(gb_ga, &msg2->g_b, 64);
+	memcpy(&gb_ga[64], &msg1.g_a, 64);
+
+	ecdsa_sign(gb_ga, 128, config->service_private_key, 
+		(unsigned char *) &msg2->sign_gb_ga);
+
+	/* The "A" component is conveniently at the start of sgx_ra_msg2_t */
+
+	cmac128(smk, (unsigned char *) msg2, 148, (unsigned char *) &msg2->mac);
+
+	printf("---------\n");
+	printf("Ga=");
+	print_hexstring(stdout, &msg1.g_a, 64);
+	printf("\n");
+
+	printf("Gb=");
+	print_hexstring(stdout, &msg2->g_b, 64);
+	printf("\n");
+
+	printf("SPID=");
+	print_hexstring(stdout, &msg2->spid, 16);
+	printf("\n");
+
+	printf("Link type=");
+	print_hexstring(stdout, &msg2->quote_type, 2);
+	printf("\n");
+
+	printf("KDF ID=");
+	print_hexstring(stdout, &msg2->kdf_id, 2);
+	printf("\n");
+
+	printf("A=");
+	print_hexstring(stdout, msg2, 100);
+	printf("\n");
+
+	printf("Sig text=");
+	print_hexstring(stdout, gb_ga, 128);
+	printf("\n");
+
+	printf("SignSP=");
+	print_hexstring(stdout, &msg2->sign_gb_ga, sizeof(msg2->sign_gb_ga));
+	printf("\n");
+	printf("---------\n");
+
+}
 
 int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1)
 {
@@ -377,3 +383,18 @@ int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1)
 	return 1;
 }
 
+void usage () 
+{
+	fprintf(stderr, "usage: sp [ options ]\n\n");
+	fprintf(stderr, "Required:\n");
+	fprintf(stderr, "  -P, --key-file=FILE      The private key file in PEM format\n");
+	fprintf(stderr, "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte\n");
+	fprintf(stderr, "                              ASCII hex string\n");
+	fprintf(stderr, "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string\n");
+	fprintf(stderr, "\nOne of --spid OR --spid-file is required\n\n");
+	fprintf(stderr, "\nOne of --msg2 OR --msg4 is required\n\n");
+	fprintf(stderr, "Optional:\n");
+	fprintf(stderr, "  -l, --linkable           Request a linkable quote (default: unlinkable)\n");
+	fprintf(stderr, "  -r, --sigrl-file=FILE    Read the revocation list from FILE\n");
+	exit(1);
+}
