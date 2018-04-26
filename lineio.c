@@ -39,7 +39,5 @@ size_t read_line (char **b)
 
 	*b= strdup(bp);
 
-	printf("read %lu bytes\n", blen);
-
 	return blen;
 }

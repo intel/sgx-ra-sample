@@ -152,7 +152,7 @@ EVP_PKEY *key_private_from_bytes (const unsigned char buf[32])
 		goto cleanup;
 	}
 
-	if ( (prv= BN_lebin2bn((unsigned char *) buf, sizeof(buf), NULL)) == NULL) {
+	if ( (prv= BN_lebin2bn((unsigned char *) buf, 32, NULL)) == NULL) {
 		error_type= e_crypto;
 		goto cleanup;
 	}

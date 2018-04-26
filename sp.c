@@ -70,6 +70,7 @@ typedef struct config_struct {
 	uint16_t quote_type;
 	EVP_PKEY *service_private_key;
 	char verbose;
+	unsigned char kdk[16];
 } config_t;
 
 void divider();
@@ -81,10 +82,10 @@ int main (int argc, char *argv[])
 {
 	u_int32_t i;
 	char flag_spid= 0;
-	char flag_msg= 0;
 	char flag_pubkey= 0;
 	config_t config;
 	sgx_ra_msg2_t msg2;
+	uint32_t msg2_sz;
 
 	memset(&config, 0, sizeof(config));
 
@@ -183,11 +184,61 @@ int main (int argc, char *argv[])
 
 	/* Send message 2 */
 
-	print_hexstring(stdout, &msg2, sizeof(msg2));
+	msg2_sz= (sizeof(msg2)-sizeof(msg2.sig_rl_size)+msg2.sig_rl_size)*2;
+	/*
+	 * Don't include the sig_rl_sz member in the message as we
+	 * send the total message size as line 1. 
+	 */
+	print_hexstring(stdout, &msg2_sz, sizeof(msg2_sz));
+	printf("\n");
+	print_hexstring(stdout, &msg2, sizeof(msg2)-sizeof(msg2.sig_rl_size));
+	/* print the whitelist, currently hardcoded as empty list */
 	printf("\n");
 
 	crypto_destroy();
 	return 0;
+}
+
+int process_msg3 (config_t *config)
+{
+	sgx_ra_msg3_t msg3;
+	size_t blen= 0;
+	size_t sz;
+	char *buffer= NULL;
+	unsigned char smk[16], gb_ga[128];
+
+	memset(&msg3, 0, sizeof(sgx_ra_msg3_t));
+
+	/*
+	 * Read our incoming message. We're using base16 encoding/hex strings
+	 * so we should end up with sizeof(msg)*2 bytes.
+	 */
+
+	fprintf(stderr, "Waiting for msg3 on stdin\n");
+
+	sz= sizeof(msg3)*2;
+	blen= read_line(&buffer);
+	if ( blen != sz ) {
+		fprintf(stderr, "expected %lu bytes, read %lu\n", sz, blen);
+		return 0;
+	}
+
+	if ( ! from_hexstring((unsigned char *) &msg3, buffer,
+		sizeof(sgx_ra_msg3_t)) ) {
+		fprintf(stderr, "msg3 not a valid hex string\n");
+		exit(1);
+	}
+	free(buffer);
+
+	/*
+	 * Read message 3
+	 *
+	 * CMACsmk(M) || M
+	 *
+	 * where
+	 *
+	 * M = ga || PS_SECURITY_PROPERTY || QUOTE
+	 */
 }
 
 int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
@@ -196,7 +247,7 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 	size_t blen= 0;
 	size_t sz;
 	char *buffer= NULL;
-	unsigned char kdk[16], smk[16], gb_ga[128];
+	unsigned char smk[16], gb_ga[128];
 	EVP_PKEY *Gb;
 	mode_t fmode;
 
@@ -243,9 +294,13 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 		exit(1);
 	}
 
-	/* Derive the KDK from the key (Ga) in msg1 and our session key */
+	/*
+	 * Derive the KDK from the key (Ga) in msg1 and our session key.
+	 * An application would normally protect the KDK in memory to 
+	 * prevent trivial inspection.
+	 */
 
-	if ( ! derive_kdk(Gb, kdk, &msg1) ) {
+	if ( ! derive_kdk(Gb, config->kdk, &msg1) ) {
 		fprintf(stderr, "Could not derive the KDK\n");
 		exit(1);
 	}
@@ -255,7 +310,7 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 	 * SMK = AES_CMAC(KDK, 0x01 || "SMK" || 0x00 || 0x80 || 0x00) 
 	 */
 
-	cmac128(kdk, "\x01SMK\x00\x80\x00", 7, smk);
+	cmac128(config->kdk, "\x01SMK\x00\x80\x00", 7, smk);
 
 	/*
 	 * Build message 2

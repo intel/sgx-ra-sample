@@ -357,6 +357,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	sgx_status_t status, sgxrv;
 	sgx_ra_msg1_t msg1;
 	sgx_ra_msg2_t msg2;
+	uint32_t msg2_sz;
 	uint32_t flags= config->flags;
 	sgx_ra_context_t ra_ctx= 0xdeadbeef;
 	char *buffer;
@@ -419,29 +420,46 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	/*
 	 * msg2 is variable length b/c it includes the revocation list at
-	 * the end. The sgx_ra_msg2_t type is fixed length, and the last
-     * two members are the sig_rl_size (4 bytes) and the start of 
-	 * the sig_rl array (uint8_t sig_rl[], which is an empty member).
-	 * 
-	 * We can read in a buffer of (sizeof(sgx_ra_msg2_t)) bytes and use
-	 * the sig_rl_size member to get the size of the revocation list 
-	 * (and read what we need).
-	 * 
-	 * (Since we're using base16 encoding/hex strings for our messages
-	 * we actually have to double our read count.)
+	 * the end. msg2 will come in two lines:
+	 *
+	 *   Line 1: size of msg2 (length of line 2, as a little endien 
+	 *           uint32_t, base16-encoded)
+	 *   Line 2: msg2 (base16/hex string encoded)
+	 *
 	 */
 
-	sz= (sizeof(sgx_ra_msg2_t))*2;
+	/* Read the size of msg2 */
+	sz= (sizeof(uint32_t))*2;
 	bread= read_line(&buffer);
-
 	if ( bread != sz ) {
 		fprintf(stderr, "expected %lu bytes, got %lu\n", sz, bread);
 		exit(1);
 	}
 
-	/* Decode the buffer into msg2 */
+	from_hexstring((unsigned char *) &msg2_sz, (unsigned char *) buffer,
+		sizeof(uint32_t));
 
-	from_hexstring((unsigned char *) &msg2, (unsigned char *) buffer, sz/2);
+	free(buffer);
+
+	bread= read_line(&buffer);
+	if ( bread != msg2_sz ) {
+		fprintf(stderr, "expected %lu bytes, got %lu\n", msg2_sz, bread);
+		exit(1);
+	}
+
+	/* Decode the buffer into msg2 */
+	from_hexstring((unsigned char *) &msg2, (unsigned char *) buffer, 
+		msg2_sz/2);
+
+	/*
+	 * Set the sigrl size. This is the size of the incoming base16-encoded
+	 * string / 2, minus the size of the fixed msg2 structure, plus the
+	 * size of the sig_rl (to account for the fact that sig_rl_size was
+	 * sent on line 1, and not resent here).
+	 */
+
+	msg2.sig_rl_size= msg2_sz/2-sizeof(msg2)+sizeof(msg2.sig_rl_size);
+
 	free(buffer);
 
 	if ( verbose ) {
@@ -479,6 +497,8 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		/* Insert code to decode the base64-encoded whitelist */
 
 	}
+
+	/* Send msg3 */
 
 	return 0;
 }
