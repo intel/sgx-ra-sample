@@ -46,6 +46,7 @@ void crypto_perror (const char *prefix)
 	else if ( error_type == e_system ) perror(ep);
 	else if ( error_type == e_crypto ) ERR_print_errors_fp(stderr);
 	else if ( error_type == e_api ) fprintf(stderr, "invalid parameter\n");
+	else fprintf(stderr, "unknown error\n");
 }
 
 /*============================================================================
@@ -134,6 +135,51 @@ cleanup:
 	if ( gx != NULL ) BN_free(gx);
 	if ( ecgroup != NULL ) EC_GROUP_free(ecgroup);
 	return (error_type == e_none);
+}
+
+EVP_PKEY *key_private_from_bytes (const unsigned char buf[32])
+{
+	
+	EC_KEY *key= NULL;
+	EVP_PKEY *pkey= NULL;
+	BIGNUM *prv= NULL;
+
+	error_type= e_none;
+
+	key= EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
+	if ( key == NULL ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	if ( (prv= BN_lebin2bn((unsigned char *) buf, sizeof(buf), NULL)) == NULL) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+
+	if ( ! EC_KEY_set_private_key(key, prv) ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	pkey= EVP_PKEY_new();
+	if ( pkey == NULL ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	if ( ! EVP_PKEY_set1_EC_KEY(pkey, key) ) {
+		error_type= e_crypto;
+		EVP_PKEY_free(pkey);
+		pkey= NULL;
+	}
+
+cleanup:
+	if ( prv != NULL ) BN_free(prv);
+	if ( key != NULL ) EC_KEY_free(key);
+
+	return pkey;
 }
 
 EVP_PKEY *key_from_sgx_ec256 (sgx_ec256_public_t *k)

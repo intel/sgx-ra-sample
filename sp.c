@@ -31,6 +31,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+static const unsigned char def_service_private_key[32] = {
+	0x90, 0xe7, 0x6c, 0xbb, 0x2d, 0x52, 0xa1, 0xce,
+	0x3b, 0x66, 0xde, 0x11, 0x43, 0x9c, 0x87, 0xec,
+	0x1f, 0x86, 0x6a, 0x3b, 0x65, 0xb6, 0xae, 0xea,
+	0xad, 0x57, 0x34, 0x53, 0xd1, 0x03, 0x8c, 0x01
+};
+
+
 #ifdef _WIN32
 #pragma comment(lib, "crypt32.lib")
 #else
@@ -68,7 +76,6 @@ void usage ()
 {
 	fprintf(stderr, "usage: sp [ options ]\n\n");
 	fprintf(stderr, "Required:\n");
-    fprintf(stderr, "  -K, --kdk-file=FILE      Read/write the KDK in FILE\n");
 	fprintf(stderr, "  -P, --key-file=FILE      The private key file in PEM format\n");
 	fprintf(stderr, "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte\n");
 	fprintf(stderr, "                              ASCII hex string\n");
@@ -89,7 +96,6 @@ int main (int argc, char *argv[])
 	char flag_spid= 0;
 	char flag_msg= 0;
 	char flag_pubkey= 0;
-	char *kdkfile= NULL;
 	sgx_spid_t spid;
 	EVP_PKEY *service_private_key= NULL;
 	unsigned int linkable= SGX_UNLINKABLE_SIGNATURE;
@@ -100,7 +106,6 @@ int main (int argc, char *argv[])
 	static struct option long_opt[] =
 	{
 		{"msg2",		no_argument,		0, '2'},
-		{"kdk-file",	required_argument,	0, 'K'},
 		{"key-file",	required_argument,	0, 'P'},
 		{"spid-file",	required_argument,	0, 'S'},
 		{"help",		no_argument, 		0, 'h'},
@@ -121,17 +126,14 @@ int main (int argc, char *argv[])
 		int c;
 		int opt_index= 0;
 
-		c= getopt_long(argc, argv, "1K:P:S:hls:", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "2K:P:S:hls:", long_opt, &opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
 		case 0:
 			break;
-		case '1':
+		case '2':
 			flag_msg= 1;
-			break;
-		case 'K':
-			kdkfile= strdup(optarg);
 			break;
 		case 'P':
 			if ( ! key_load_file(&service_private_key, optarg, KEY_PRIVATE) ) {
@@ -168,14 +170,18 @@ int main (int argc, char *argv[])
 		}
 	}
 
-	if ( service_private_key == NULL ) {
-		fprintf(stderr, "--key-file is required.\n");
-		usage();
-	}
+	/*
+	 * Use the hardcoded default key unless one is provided on the 
+	 * command line. Most real-world services would hardcode the
+	 * key since the public half is also hardcoded into the enclave.
+	 */
 
-	if ( kdkfile == NULL ) {
-		fprintf(stderr, "--kdk-file is required.\n");
-		usage();
+	if ( service_private_key == NULL ) {
+		service_private_key= key_private_from_bytes(def_service_private_key);
+		if ( service_private_key == NULL ) {
+			crypto_perror("key_private_from_sgx_ec256");
+			exit(1);
+		}
 	}
 
 	if ( ! flag_spid ) {
@@ -218,14 +224,13 @@ int main (int argc, char *argv[])
 		mode_t fmode;
 
 		if ( blen != 2*sizeof(msg1) ) {
-			fprintf(stderr, "msg1 must be a %u byte hex string\n",
+			fprintf(stderr, "msg1 must be a %lu byte hex string\n",
 				sizeof(sgx_ra_msg1_t)*2);
 			return 1;
 		}
 		if ( ! from_hexstring((unsigned char *) &msg1, buffer,
 			sizeof(sgx_ra_msg1_t)) ) {
-			fprintf(stderr, "msg1 not a valid hex string\n",
-				sizeof(sgx_ra_msg1_t)*2);
+			fprintf(stderr, "msg1 not a valid hex string\n");
 			exit(1);
 		}
 
@@ -243,20 +248,6 @@ int main (int argc, char *argv[])
 			fprintf(stderr, "Could not derive the KDK\n");
 			exit(1);
 		}
-
-		/*-------------------------------------------------------------------
-         * WARNING! You would not normally save these keys to an unencrypted
-         * file. This is a testing application, not a production one, and it
-         * needs the ability to maintain state between executions. DO NOT 
-         * TRY THIS AT HOME!
-         * ------------------------------------------------------------------ */
-
-		fmode= umask(077); /* At least don't create a world-readable file */
-		if ( ! to_hexstring_file(kdk, kdkfile, 16) ) {
-			fprintf(stderr, "Could not store the KDK\n");
-			exit(1);
-		}
-		umask(fmode);
 
 		/*
  		 * Derive the SMK from the KDK 

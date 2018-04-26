@@ -27,6 +27,7 @@ int cmac128(unsigned char key[16], unsigned char *message, size_t mlen,
 int key_load_file (EVP_PKEY **key, const char *filename, int type);
 
 EVP_PKEY *key_from_sgx_ec256 (sgx_ec256_public_t *k);
+EVP_PKEY *key_private_from_bytes (const unsigned char buf[32]);
 int key_to_sgx_ec256 (sgx_ec256_public_t *k, EVP_PKEY *key);
 
 unsigned char *key_shared_secret (EVP_PKEY *key, EVP_PKEY *peerkey, size_t *slen);

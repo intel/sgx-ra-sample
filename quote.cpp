@@ -349,8 +349,11 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 {
 	sgx_status_t status, sgxrv;
 	sgx_ra_msg1_t msg1;
+	sgx_ra_msg2_t msg2;
 	uint32_t flags= config->flags;
 	sgx_ra_context_t ra_ctx= 0xdeadbeef;
+	unsigned char *buffer;
+	size_t sz;
 
 	/*
 	 * WARNING! Normally, the public key would be hardcoded into the
@@ -385,15 +388,71 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		return 1;
 	}
 
+	/* Send msg1 */
+
 	print_hexstring(stdout, &msg1, sizeof(msg1));
 	printf("\n");
+	fflush(stdout);
+
+	fprintf(stderr, "Waiting for msg2...\n");
+
+	/* Read msg2 */
+
+	/*
+	 * msg2 is variable length b/c it includes the revocation list at
+	 * the end. The sgx_ra_msg2_t type is fixed length, but the last
+     * member is the start of a byte array (uint8_t sig_rl[]).
+	 * 
+	 * We can read in a buffer of (sizeof(sgx_ra_msg2_t)-1) bytes
+	 * and use the sig_rl_size member to get the size of the
+	 * revocation list (and read what we need).
+	 * 
+	 * (Since we're using base16 encoding/hex strings for our messages
+	 * we actually have to double our read count.)
+	 */
+
+	sz= (sizeof(sgx_ra_msg2_t)-1)*2;
+	buffer= (unsigned char *) malloc(sz);
+	if ( buffer == NULL ) {
+		perror("malloc");
+		exit(1);
+	}
+
+	/* This first read will not include the newline in our incoming
+     * string. */
+
+	if ( fread(buffer, 1, sz, stdin) != sz ) {
+		if ( feof(stdin) ) {
+			fprintf(stderr, "EOF received on stdin\n");
+			exit(1);
+		}
+
+		if ( ferror(stdin) ) {
+			fprintf(stderr, "error while reading from stdin\n");
+			exit(1);
+		}
+
+		/* We shouldn't get here but just in case... */
+
+		exit(1);
+	}
+
+	/* Decode the buffer into msg2 */
+
+	from_hexstring((unsigned char *) &msg2, buffer, sz/2);
+	fprintf(stderr, "Receved msg2: ");
+	print_hexstring(stderr, &msg2, sz/2);
+	fprintf(stderr, "\n");
 
 	return 0;
 }
 
 /*----------------------------------------------------------------------
- * WARNING
+ * do_quote()
+ *
+ * Generate a quote from the enclave.
  *----------------------------------------------------------------------
+ * WARNING!
  *
  * DO NOT USE THIS SUBROUTINE AS A TEMPLATE FOR IMPLEMENTING REMOTE
  * ATTESTATION. do_quote() short-circuits the RA process in order 
