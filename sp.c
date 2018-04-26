@@ -72,6 +72,7 @@ typedef struct config_struct {
 	char verbose;
 } config_t;
 
+void divider();
 void usage();
 int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1);
 int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config);
@@ -105,7 +106,7 @@ int main (int argc, char *argv[])
 		int c;
 		int opt_index= 0;
 
-		c= getopt_long(argc, argv, "2K:P:S:hls:", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "2K:P:S:hls:v", long_opt, &opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
@@ -220,9 +221,19 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 		fprintf(stderr, "msg1 not a valid hex string\n");
 		exit(1);
 	}
-
-	fprintf(stderr, "buffer=[%s]\n", buffer);
 	free(buffer);
+
+	if ( config->verbose ) {
+		divider();
+		fprintf(stderr,   "msg1.g_a.gx = ");
+		print_hexstring(stderr, &msg1.g_a.gx, sizeof(msg1.g_a.gx));
+		fprintf(stderr, "\nmsg1.g_a.gy = ");
+		print_hexstring(stderr, &msg1.g_a.gy, sizeof(msg1.g_a.gy));
+		fprintf(stderr, "\nmsg1.gid    = ");
+		print_hexstring(stderr, &msg1.gid, sizeof(msg1.gid));
+		fprintf(stderr, "\n");
+		divider();
+	}
 
 	/* Generate our session key */
 
@@ -304,40 +315,27 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 
 	cmac128(smk, (unsigned char *) msg2, 148, (unsigned char *) &msg2->mac);
 
-	printf("---------\n");
-	printf("Ga=");
-	print_hexstring(stdout, &msg1.g_a, 64);
-	printf("\n");
-
-	printf("Gb=");
-	print_hexstring(stdout, &msg2->g_b, 64);
-	printf("\n");
-
-	printf("SPID=");
-	print_hexstring(stdout, &msg2->spid, 16);
-	printf("\n");
-
-	printf("Link type=");
-	print_hexstring(stdout, &msg2->quote_type, 2);
-	printf("\n");
-
-	printf("KDF ID=");
-	print_hexstring(stdout, &msg2->kdf_id, 2);
-	printf("\n");
-
-	printf("A=");
-	print_hexstring(stdout, msg2, 100);
-	printf("\n");
-
-	printf("Sig text=");
-	print_hexstring(stdout, gb_ga, 128);
-	printf("\n");
-
-	printf("SignSP=");
-	print_hexstring(stdout, &msg2->sign_gb_ga, sizeof(msg2->sign_gb_ga));
-	printf("\n");
-	printf("---------\n");
-
+	if ( config->verbose ) {
+		divider();
+		fprintf(stderr,   "msg2.g_b.gx      = ");
+		print_hexstring(stderr, &msg2->g_b.gx, sizeof(msg2->g_b.gx));
+		fprintf(stderr, "\nmsg2.g_b.gy      = ");
+		print_hexstring(stderr, &msg2->g_b.gy, sizeof(msg2->g_b.gy));
+		fprintf(stderr, "\nmsg2.spid        = ");
+		print_hexstring(stderr, &msg2->spid, sizeof(msg2->spid));
+		fprintf(stderr, "\nmsg2.quote_type  = ");
+		print_hexstring(stderr, &msg2->quote_type, sizeof(msg2->quote_type));
+		fprintf(stderr, "\nmsg2.kdf_id      = ");
+		print_hexstring(stderr, &msg2->kdf_id, sizeof(msg2->kdf_id));
+		fprintf(stderr, "\nmsg2.sign_ga_gb  = ");
+		print_hexstring(stderr, &msg2->sign_gb_ga, sizeof(msg2->sign_gb_ga));
+		fprintf(stderr, "\nmsg2.mac         = ");
+		print_hexstring(stderr, &msg2->mac, sizeof(msg2->mac));
+		fprintf(stderr, "\nmsg2.sig_rl_size = ");
+		print_hexstring(stderr, &msg2->sig_rl_size, sizeof(msg2->sig_rl_size));
+		fprintf(stderr, "\n");
+		divider();
+	}
 }
 
 int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1)
@@ -381,6 +379,11 @@ int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1)
 	cmac128(cmackey, Gab_x, slen, kdk);
 
 	return 1;
+}
+
+void divider ()
+{
+	fprintf(stderr, "----------------------------------------------------------------------\n");
 }
 
 void usage () 

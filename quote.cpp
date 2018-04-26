@@ -67,6 +67,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "fileio.h"
 #include "base64.h"
 #include "crypto.h"
+#include "lineio.h"
 
 #define MAX_LEN 80
 
@@ -101,6 +102,7 @@ sgx_status_t sgx_create_enclave_search (
 );
 
 void usage();
+void divider();
 int do_quote(sgx_enclave_id_t eid, config_t *config);
 int do_attestation(sgx_enclave_id_t eid, config_t *config);
 
@@ -112,6 +114,7 @@ int do_attestation(sgx_enclave_id_t eid, config_t *config);
 #define OPT_NONCE	0x02
 #define OPT_LINK	0x04
 #define OPT_PUBKEY	0x08
+#define OPT_VERBOSE	0x10
 
 /* Macros to set, clear, and get the mode and options */
 
@@ -133,7 +136,7 @@ int main (int argc, char *argv[])
 #endif
 	char have_spid= 0;
 
-	config.flags= 0;
+	memset(&config, 0, sizeof(config));
 	config.mode= MODE_QUOTE;
 
 	static struct option long_opt[] =
@@ -152,6 +155,7 @@ int main (int argc, char *argv[])
 		{"linkable",	no_argument,		0, 'l'},
 		{"pubkey",		optional_argument,	0, 'p'},
 		{"pubkey-file",	optional_argument,	0, 'P'},
+		{"verbose",		no_argument,		0, 'v'},
 		{ 0, 0, 0, 0 }
 	};
 
@@ -163,7 +167,7 @@ int main (int argc, char *argv[])
 		unsigned char *keydata;
 		unsigned char keyin[64];
 
-		c= getopt_long(argc, argv, "N:P:S:aehlmn:p:rs:", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "N:P:S:aehlmn:p:rs:v", long_opt, &opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
@@ -275,6 +279,9 @@ int main (int argc, char *argv[])
 			}
 			++have_spid;
 			break;
+		case 'v':
+			SET_OPT(config.flags, OPT_VERBOSE);
+			break;
 		case 'h':
 		case '?':
 		default:
@@ -352,9 +359,9 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	sgx_ra_msg2_t msg2;
 	uint32_t flags= config->flags;
 	sgx_ra_context_t ra_ctx= 0xdeadbeef;
-	unsigned char *buffer;
+	char *buffer;
 	size_t sz, bread;
-
+	char verbose= OPT_ISSET(flags, OPT_VERBOSE);
 	/*
 	 * WARNING! Normally, the public key would be hardcoded into the
 	 * enclave, not passed in as a parameter. Hardcoding prevents
@@ -380,12 +387,24 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		return 1;
 	}
 
-	/* Get msg1 */
+	/* Generate msg1 */
 
 	status= sgx_ra_get_msg1(ra_ctx, eid, sgx_ra_get_ga, &msg1);
 	if ( status != SGX_SUCCESS ) {
 		fprintf(stderr, "sgx_ra_get_msg1: %08x\n", status);
 		return 1;
+	}
+
+	if ( verbose ) {
+		divider();
+		fprintf(stderr,   "msg1.g_a.gx = ");
+		print_hexstring(stderr, msg1.g_a.gx, 32);
+		fprintf(stderr, "\nmsg1.g_a.gy = ");
+		print_hexstring(stderr, msg1.g_a.gy, 32);
+		fprintf(stderr, "\nmsg1.gid    = ");
+		print_hexstring(stderr, msg1.gid, 4);
+		fprintf(stderr, "\n");
+		divider();
 	}
 
 	/* Send msg1 */
@@ -400,7 +419,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	/*
 	 * msg2 is variable length b/c it includes the revocation list at
-	 * the end. The sgx_ra_msg2_t type is fixed length, but the last
+	 * the end. The sgx_ra_msg2_t type is fixed length, and the last
      * two members are the sig_rl_size (4 bytes) and the start of 
 	 * the sig_rl array (uint8_t sig_rl[], which is an empty member).
 	 * 
@@ -412,40 +431,54 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	 * we actually have to double our read count.)
 	 */
 
-	sz= (sizeof(sgx_ra_msg2_t)-4)*2;
-	buffer= (unsigned char *) malloc(sz);
-	if ( buffer == NULL ) {
-		perror("malloc");
-		exit(1);
-	}
+	sz= (sizeof(sgx_ra_msg2_t))*2;
+	bread= read_line(&buffer);
 
-	/* This first read will not include the newline in our incoming
-     * string. */
-
-	bread= fread(buffer, 1, sz, stdin);
 	if ( bread != sz ) {
 		fprintf(stderr, "expected %lu bytes, got %lu\n", sz, bread);
-		if ( feof(stdin) ) {
-			fprintf(stderr, "EOF received on stdin\n");
-			exit(1);
-		}
-
-		if ( ferror(stdin) ) {
-			fprintf(stderr, "error while reading from stdin\n");
-			exit(1);
-		}
-
-		/* We shouldn't get here but just in case... */
-
 		exit(1);
 	}
 
 	/* Decode the buffer into msg2 */
 
-	from_hexstring((unsigned char *) &msg2, buffer, sz/2);
-	fprintf(stderr, "Receved msg2: ");
-	print_hexstring(stderr, &msg2, sz/2);
-	fprintf(stderr, "\n");
+	from_hexstring((unsigned char *) &msg2, (unsigned char *) buffer, sz/2);
+	free(buffer);
+
+	if ( verbose ) {
+		divider();
+		fprintf(stderr,   "msg2.g_b.gx      = ");
+		print_hexstring(stderr, &msg2.g_b.gx, sizeof(msg2.g_b.gx));
+		fprintf(stderr, "\nmsg2.g_b.gy      = ");
+		print_hexstring(stderr, &msg2.g_b.gy, sizeof(msg2.g_b.gy));
+		fprintf(stderr, "\nmsg2.spid        = ");
+		print_hexstring(stderr, &msg2.spid, sizeof(msg2.spid));
+		fprintf(stderr, "\nmsg2.quote_type  = ");
+		print_hexstring(stderr, &msg2.quote_type, sizeof(msg2.quote_type));
+		fprintf(stderr, "\nmsg2.kdf_id      = ");
+		print_hexstring(stderr, &msg2.kdf_id, sizeof(msg2.kdf_id));
+		fprintf(stderr, "\nmsg2.sign_ga_gb  = ");
+		print_hexstring(stderr, &msg2.sign_gb_ga, sizeof(msg2.sign_gb_ga));
+		fprintf(stderr, "\nmsg2.mac         = ");
+		print_hexstring(stderr, &msg2.mac, sizeof(msg2.mac));
+		fprintf(stderr, "\nmsg2.sig_rl_size = ");
+		print_hexstring(stderr, &msg2.sig_rl_size, sizeof(msg2.sig_rl_size));
+		fprintf(stderr, "\n");
+		divider();
+	}
+
+	/* Determine the whitelist size, and read it if non-zero */
+
+	if ( msg2.sig_rl_size > 0 ) {
+		bread= read_line(&buffer);
+		/* The revocation list is base64-encoded */
+		if ( bread != msg2.sig_rl_size ) {
+			fprintf(stderr, "expected %lu bytes, got %lu\n", sz, bread);
+			exit(1);
+		}
+
+		/* Insert code to decode the base64-encoded whitelist */
+
+	}
 
 	return 0;
 }
@@ -740,6 +773,12 @@ int file_in_searchpath (const char *file, char *search, char *fullpath,
 
 #endif
 
+void divider ()
+{
+	fprintf(stderr, "----------------------------------------------------------------------\n");
+}
+
+
 void usage () 
 {
 	fprintf(stderr, "usage: quote [ options ]\n\n");
@@ -761,9 +800,10 @@ void usage ()
 	fprintf(stderr, "\nRemote Attestation options:\n");
 	fprintf(stderr, "  -a, --attest               Perform an attestation via stdout and stdin.\n");
 	fprintf(stderr, "Optional:\n");
+	fprintf(stderr, "  -P, --pubkey-file=FILE   File containing the public key of the service provider.\n");
 	fprintf(stderr, "  -p, --pubkey=HEXSTRING   Specify the public key of the service provider as an\n");
 	fprintf(stderr, "                              ASCII hex string.\n");
-	fprintf(stderr, "  -P, --pubkey-file=FILE   File containing the public key of the service provider.\n");
+	fprintf(stderr, "  -v, --verbose			Print decoded RA messages to stderr\n");
 	exit(1);
 }
 
