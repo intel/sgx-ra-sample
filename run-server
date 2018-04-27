@@ -1,4 +1,4 @@
 #! /bin/sh
 
-socat TCP4-LISTEN:7777,reuseaddr EXEC:"./sp -S ../ias-ra-data/spid/plse-dev.spid -v",nofork
+socat TCP4-LISTEN:7777,fork,reuseaddr EXEC:"./sp -S ../ias-ra-data/spid/plse-dev.spid -v",nofork
 
