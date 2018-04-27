@@ -60,7 +60,6 @@ int read_msg (void **dest)
 			if ( buffer == NULL ) return -1;
 		}
 	}
-	printf("Read %lu bytes\n", bread);
 
 	if ( bread%2 ) return 0;	/* base16 encoding = even number of bytes */
 
