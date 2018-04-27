@@ -1,0 +1,3 @@
+#! /bin/sh
+
+socat TCP4:localhost:7777 EXEC:"./quote -S ../ias-ra-data/spid/plse-dev.spid -a -v",nofork

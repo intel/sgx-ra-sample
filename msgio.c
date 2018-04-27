@@ -28,7 +28,7 @@ static uint32_t buffer_size= BUFFER_SZ;
  */
 
 
-int read_msg (void **dest)
+int read_msg (void **dest, size_t *sz)
 {
 	size_t bread, bsz;
 	int repeat= 1;
@@ -44,12 +44,21 @@ int read_msg (void **dest)
 	bread= 0;
 	while (repeat) {
 		if ( fgets(&buffer[bread], buffer_size-bread, stdin) == NULL ) {
-			perror("fgets");
-			return -1;
+			if ( ferror(stdin) ) {
+				perror("fgets");
+				return -1;
+			} else {
+				fprintf(stderr, "EOF received\n");
+				return 0;
+			}
 		}
 		/* If the last char is not a newline, we have more reading to do */
 
 		bread= strlen(buffer);
+		if ( bread == 0 ) {
+			fprintf(stderr, "EOF received\n");
+			return 0;
+		}
 
 		if ( buffer[bread-1] == '\n' ) {
 			repeat= 0;
@@ -61,12 +70,23 @@ int read_msg (void **dest)
 		}
 	}
 
-	if ( bread%2 ) return 0;	/* base16 encoding = even number of bytes */
+	/* Make sure we didn't get \r\n */
+	if ( bread && buffer[bread-1] == '\r' ) --bread;
+
+	print_hexstring(stderr, buffer, bread);
+	fprintf(stderr, "\n");
+
+	if ( bread%2 ) {
+		fprintf(stderr, "read odd byte count %lu\n", bread);
+		return 0;	/* base16 encoding = even number of bytes */
+	}
 
 	*dest= malloc(bread/2);
 	if ( *dest == NULL ) return -1;
 
 	from_hexstring(*dest, buffer, bread/2);
+
+	if ( sz != NULL ) *sz= bread;
 
 	return 1;
 }
