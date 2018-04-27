@@ -70,6 +70,8 @@ typedef struct config_struct {
 	uint16_t quote_type;
 	EVP_PKEY *service_private_key;
 	char verbose;
+	uint32_t sig_rl_size;
+	unsigned char *sig_rl;
 	unsigned char kdk[16];
 } config_t;
 
@@ -92,11 +94,12 @@ int main (int argc, char *argv[])
 	static struct option long_opt[] =
 	{
 		{"msg2",		no_argument,		0, '2'},
-		{"key-file",	required_argument,	0, 'P'},
 		{"spid-file",	required_argument,	0, 'S'},
 		{"help",		no_argument, 		0, 'h'},
-		{"spid",		required_argument,	0, 's'},
+		{"key-file",	required_argument,	0, 'k'},
 		{"linkable",	no_argument,		0, 'l'},
+		{"sigrl-file",	required_argument,	0, 'r'},
+		{"spid",		required_argument,	0, 's'},
 		{"verbose",		no_argument,		0, 'v'},
 		{ 0, 0, 0, 0 }
 	};
@@ -106,18 +109,13 @@ int main (int argc, char *argv[])
 	while (1) {
 		int c;
 		int opt_index= 0;
+		off_t fsz;
 
-		c= getopt_long(argc, argv, "2K:P:S:hls:v", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "2S:hk:lrs:v", long_opt, &opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
 		case 0:
-			break;
-		case 'P':
-			if ( ! key_load_file(&config.service_private_key, optarg, KEY_PRIVATE) ) {
-				fprintf(stderr, "%s: could not load EC private key\n", optarg);
-				exit(1);
-			}
 			break;
 		case 'S':
 			if ( ! from_hexstring_file((unsigned char *) &config.spid, optarg, 16)) {
@@ -127,8 +125,29 @@ int main (int argc, char *argv[])
 			++flag_spid;
 
 			break;
+		case 'k':
+			if ( ! key_load_file(&config.service_private_key, optarg, KEY_PRIVATE) ) {
+				fprintf(stderr, "%s: could not load EC private key\n", optarg);
+				exit(1);
+			}
+			break;
 		case 'l':
 			config.quote_type= SGX_LINKABLE_SIGNATURE;
+			break;
+		case 'r':
+			if ( ! from_file(NULL, optarg, &fsz) ) {
+				fprintf(stderr, "can't read sigrl\n");
+				exit(1);
+			}
+
+			config.sig_rl= (unsigned char *) malloc(fsz);
+
+			if ( ! from_file(config.sig_rl, optarg, &fsz) ) {
+				fprintf(stderr, "can't read sigrl\n");
+				exit(1);
+			}
+			config.sig_rl_size= (uint32_t) fsz;
+
 			break;
 		case 's':
 			if ( strlen(optarg) < 32 ) {
@@ -184,9 +203,8 @@ int main (int argc, char *argv[])
 
 	/* Send message 2 */
 
-	print_hexstring(stdout, &msg2, sizeof(msg2));
-	/* print the whitelist, currently hardcoded as empty list */
-	printf("\n");
+	send_msg(&msg2, sizeof(msg2), config.sig_rl, msg2.sig_rl_size,
+		STRUCT_INCLUDES_PSIZE);
 
 	crypto_destroy();
 	return 0;
@@ -197,6 +215,7 @@ int process_msg3 (config_t *config)
 	sgx_ra_msg3_t msg3;
 	size_t blen= 0;
 	size_t sz;
+	uint32_t quote_sz;
 	char *buffer= NULL;
 	unsigned char smk[16], gb_ga[128];
 
@@ -209,9 +228,12 @@ int process_msg3 (config_t *config)
 
 	fprintf(stderr, "Waiting for msg3 on stdin\n");
 
-	/* For some reason, msg3 doesn't include a quote_size parameter :( */
+	/*
+	 * For some reason, msg3 doesn't include a quote_size parameter. :(
+	 */
 
-	read_msg(&msg3, sizeof(msg3), NULL, 0);
+	read_msg(&msg3, sizeof(msg3), (void **) &msg3.quote, &quote_sz,
+		 STRUCT_OMITS_PSIZE);
 
 	/*
 	 * Read message 3
@@ -243,7 +265,7 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 
 	fprintf(stderr, "Waiting for msg1 on stdin\n");
 
-	read_msg(&msg1, sizeof(msg1), NULL, 0);
+	read_msg(&msg1, sizeof(msg1), NULL, 0, STRUCT_INCLUDES_PSIZE);
 
 	if ( config->verbose ) {
 		divider();
@@ -329,7 +351,7 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 	msg2->kdf_id= 1;
 
 	/* For now */
-	msg2->sig_rl_size= 0;
+	msg2->sig_rl_size= config->sig_rl_size;
 
 	memcpy(gb_ga, &msg2->g_b, 64);
 	memcpy(&gb_ga[64], &msg1.g_a, 64);

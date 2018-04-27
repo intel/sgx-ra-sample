@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <sys/stat.h>
 #include "fileio.h"
+#include "hexutil.h"
 
 int from_file (unsigned char *dest, char *file, off_t *len)
 {

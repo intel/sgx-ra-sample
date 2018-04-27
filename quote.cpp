@@ -411,9 +411,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	/* Send msg1 */
 
-	print_hexstring(stdout, &msg1, sizeof(msg1));
-	printf("\n");
-	fflush(stdout);
+	send_msg(&msg1, sizeof(msg1), NULL, 0, STRUCT_INCLUDES_PSIZE);
 
 	fprintf(stderr, "Waiting for msg2...\n");
 
@@ -424,7 +422,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	 */
 
 	rv= read_msg(&msg2, sizeof(msg2), (void **) &msg2.sig_rl, 
-		&msg2.sig_rl_size);
+		&msg2.sig_rl_size, STRUCT_INCLUDES_PSIZE);
 	if ( rv == 0 ) {
 		fprintf(stderr, "protocol error reading msg2\n");
 		exit(1);

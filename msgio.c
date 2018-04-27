@@ -20,7 +20,8 @@
  */
 
 
-int read_msg (void *fixed, size_t f_size, void **payload, uint32_t *p_size)
+int read_msg (void *fixed, size_t f_size, void **payload, uint32_t *p_size,
+	unsigned short flags)
 {
 	size_t bread, sz;
 	char *buffer= NULL;
@@ -35,7 +36,21 @@ int read_msg (void *fixed, size_t f_size, void **payload, uint32_t *p_size)
 		return 0;
 	}
 
-	from_hexstring(fixed, buffer, f_size);
+	if ( flags & STRUCT_OMITS_PSIZE ) {
+		/*
+		 * The fixed data structure doesn't contain the payload size 
+		 * as a member at the end (this is the case for msg3 for some
+		 * reason). As a result, we have to write the size parameter
+		 * separately, we can't just write everything to void *fixed.
+		 */
+
+		size_t sz= f_size-sizeof(uint32_t);
+		
+		from_hexstring(fixed, buffer, sz);
+		from_hexstring((unsigned char *) &p_size, &buffer[sz],
+			sizeof(uint32_t));
+		
+	} else from_hexstring(fixed, buffer, f_size);
 
 	if ( p_size == NULL || *p_size == 0 ) {
 		/* There's no payload. Read the trailing newline. If the last
@@ -71,3 +86,22 @@ int read_msg (void *fixed, size_t f_size, void **payload, uint32_t *p_size)
 
 	return 1;
 }
+
+void send_msg (void *fixed, size_t f_size, void *payload, uint32_t p_size,
+	unsigned short flags)
+{
+	print_hexstring(stdout, fixed, f_size);
+	if ( flags & STRUCT_OMITS_PSIZE ) print_hexstring(stdout, &p_size,
+		sizeof(uint32_t));
+	if ( p_size > 0 ) print_hexstring(stdout, payload, p_size);
+
+	printf("\n");
+
+	/*
+	 * Since we have both stdout and stderr, flush stdout to keep the
+	 * the output stream synchronized.
+	 */
+
+	fflush(stdout);
+}
+
