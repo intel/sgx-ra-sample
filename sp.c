@@ -111,7 +111,7 @@ int main (int argc, char *argv[])
 		int opt_index= 0;
 		off_t fsz;
 
-		c= getopt_long(argc, argv, "2S:hk:lrs:v", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "2S:hk:lr:s:v", long_opt, &opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
@@ -203,8 +203,17 @@ int main (int argc, char *argv[])
 
 	/* Send message 2 */
 
-	send_msg(&msg2, sizeof(msg2), config.sig_rl, msg2.sig_rl_size,
-		STRUCT_INCLUDES_PSIZE);
+	/*
+	 * sgx_ra_msg2_t is a struct with a flexible array member at the
+	 * end (defined as uint8_t sig_rl[]). We could go to all the 
+	 * trouble of building a byte array large enough to hold the
+	 * entire struct and then cast it as (sgx_ra_msg2_t) but that's
+	 * a lot of work for no gain when we can just send the fixed 
+	 * portion and the array portion by hand.
+	 */
+
+	send_msg_partial((void *) &msg2, sizeof(sgx_ra_msg2_t));
+	if ( config.sig_rl_size ) send_msg(config.sig_rl, config.sig_rl_size);
 
 	crypto_destroy();
 	return 0;
@@ -212,14 +221,12 @@ int main (int argc, char *argv[])
 
 int process_msg3 (config_t *config)
 {
-	sgx_ra_msg3_t msg3;
+	sgx_ra_msg3_t *msg3;
 	size_t blen= 0;
 	size_t sz;
 	uint32_t quote_sz;
 	char *buffer= NULL;
 	unsigned char smk[16], gb_ga[128];
-
-	memset(&msg3, 0, sizeof(sgx_ra_msg3_t));
 
 	/*
 	 * Read our incoming message. We're using base16 encoding/hex strings
@@ -232,8 +239,7 @@ int process_msg3 (config_t *config)
 	 * For some reason, msg3 doesn't include a quote_size parameter. :(
 	 */
 
-	read_msg(&msg3, sizeof(msg3), (void **) &msg3.quote, &quote_sz,
-		 STRUCT_OMITS_PSIZE);
+	read_msg((void **) &msg3);
 
 	/*
 	 * Read message 3
@@ -248,13 +254,14 @@ int process_msg3 (config_t *config)
 
 int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 {
-	sgx_ra_msg1_t msg1;
+	sgx_ra_msg1_t *msg1;
 	size_t blen= 0;
 	size_t sz;
 	char *buffer= NULL;
 	unsigned char smk[16], gb_ga[128];
 	EVP_PKEY *Gb;
 	mode_t fmode;
+	int rv;
 
 	memset(msg2, 0, sizeof(sgx_ra_msg2_t));
 
@@ -265,16 +272,23 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 
 	fprintf(stderr, "Waiting for msg1 on stdin\n");
 
-	read_msg(&msg1, sizeof(msg1), NULL, 0, STRUCT_INCLUDES_PSIZE);
+	rv= read_msg((void **) &msg1);
+	if ( rv == -1 ) {
+		fprintf(stderr, "system error reading msg1\n");
+		return 1;
+	} else if ( rv == 0 ) {
+		fprintf(stderr, "protocol error reading msg1\n");
+		return 1;
+	}
 
 	if ( config->verbose ) {
 		divider();
 		fprintf(stderr,   "msg1.g_a.gx = ");
-		print_hexstring(stderr, &msg1.g_a.gx, sizeof(msg1.g_a.gx));
+		print_hexstring(stderr, &msg1->g_a.gx, sizeof(msg1->g_a.gx));
 		fprintf(stderr, "\nmsg1.g_a.gy = ");
-		print_hexstring(stderr, &msg1.g_a.gy, sizeof(msg1.g_a.gy));
+		print_hexstring(stderr, &msg1->g_a.gy, sizeof(msg1->g_a.gy));
 		fprintf(stderr, "\nmsg1.gid    = ");
-		print_hexstring(stderr, &msg1.gid, sizeof(msg1.gid));
+		print_hexstring(stderr, &msg1->gid, sizeof(msg1->gid));
 		fprintf(stderr, "\n");
 		divider();
 	}
@@ -293,7 +307,7 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 	 * prevent trivial inspection.
 	 */
 
-	if ( ! derive_kdk(Gb, config->kdk, &msg1) ) {
+	if ( ! derive_kdk(Gb, config->kdk, msg1) ) {
 		fprintf(stderr, "Could not derive the KDK\n");
 		exit(1);
 	}
@@ -354,7 +368,7 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 	msg2->sig_rl_size= config->sig_rl_size;
 
 	memcpy(gb_ga, &msg2->g_b, 64);
-	memcpy(&gb_ga[64], &msg1.g_a, 64);
+	memcpy(&gb_ga[64], &msg1->g_a, 64);
 
 	ecdsa_sign(gb_ga, 128, config->service_private_key, 
 		(unsigned char *) &msg2->sign_gb_ga);

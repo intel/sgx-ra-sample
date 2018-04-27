@@ -356,11 +356,11 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 {
 	sgx_status_t status, sgxrv;
 	sgx_ra_msg1_t msg1;
-	sgx_ra_msg2_t msg2;
+	sgx_ra_msg2_t *msg2;
 	uint32_t msg2_sz;
 	uint32_t flags= config->flags;
 	sgx_ra_context_t ra_ctx= 0xdeadbeef;
-	char *buffer;
+	char *sigrl;
 	size_t sz;
 	int rv;
 	char verbose= OPT_ISSET(flags, OPT_VERBOSE);
@@ -411,7 +411,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	/* Send msg1 */
 
-	send_msg(&msg1, sizeof(msg1), NULL, 0, STRUCT_INCLUDES_PSIZE);
+	send_msg(&msg1, sizeof(msg1));
 
 	fprintf(stderr, "Waiting for msg2...\n");
 
@@ -421,8 +421,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	 * the end. 
 	 */
 
-	rv= read_msg(&msg2, sizeof(msg2), (void **) &msg2.sig_rl, 
-		&msg2.sig_rl_size, STRUCT_INCLUDES_PSIZE);
+	rv= read_msg((void **) &msg2);
 	if ( rv == 0 ) {
 		fprintf(stderr, "protocol error reading msg2\n");
 		exit(1);
@@ -434,24 +433,26 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	if ( verbose ) {
 		divider();
 		fprintf(stderr,   "msg2.g_b.gx      = ");
-		print_hexstring(stderr, &msg2.g_b.gx, sizeof(msg2.g_b.gx));
+		print_hexstring(stderr, &msg2->g_b.gx, sizeof(msg2->g_b.gx));
 		fprintf(stderr, "\nmsg2.g_b.gy      = ");
-		print_hexstring(stderr, &msg2.g_b.gy, sizeof(msg2.g_b.gy));
+		print_hexstring(stderr, &msg2->g_b.gy, sizeof(msg2->g_b.gy));
 		fprintf(stderr, "\nmsg2.spid        = ");
-		print_hexstring(stderr, &msg2.spid, sizeof(msg2.spid));
+		print_hexstring(stderr, &msg2->spid, sizeof(msg2->spid));
 		fprintf(stderr, "\nmsg2.quote_type  = ");
-		print_hexstring(stderr, &msg2.quote_type, sizeof(msg2.quote_type));
+		print_hexstring(stderr, &msg2->quote_type, sizeof(msg2->quote_type));
 		fprintf(stderr, "\nmsg2.kdf_id      = ");
-		print_hexstring(stderr, &msg2.kdf_id, sizeof(msg2.kdf_id));
+		print_hexstring(stderr, &msg2->kdf_id, sizeof(msg2->kdf_id));
 		fprintf(stderr, "\nmsg2.sign_ga_gb  = ");
-		print_hexstring(stderr, &msg2.sign_gb_ga, sizeof(msg2.sign_gb_ga));
+		print_hexstring(stderr, &msg2->sign_gb_ga, sizeof(msg2->sign_gb_ga));
 		fprintf(stderr, "\nmsg2.mac         = ");
-		print_hexstring(stderr, &msg2.mac, sizeof(msg2.mac));
+		print_hexstring(stderr, &msg2->mac, sizeof(msg2->mac));
 		fprintf(stderr, "\nmsg2.sig_rl_size = ");
-		print_hexstring(stderr, &msg2.sig_rl_size, sizeof(msg2.sig_rl_size));
+		print_hexstring(stderr, &msg2->sig_rl_size, sizeof(msg2->sig_rl_size));
 		fprintf(stderr, "\n");
 		divider();
 	}
+
+	/* Generate msg3 */
 
 	/* Send msg3 */
 

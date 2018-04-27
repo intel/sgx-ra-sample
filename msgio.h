@@ -14,11 +14,10 @@
 extern "C" {
 #endif
 
-int read_msg(void *fixedbuf, size_t f_size, void **payload,
-	 uint32_t *p_size, unsigned short flags);
+int read_msg(void **dest);
 
-void send_msg(void *fixedbuf, size_t f_size, void *payload,
-	 uint32_t p_size, unsigned short flags);
+void send_msg_partial(void *buf, size_t f_size);
+void send_msg(void *buf, size_t f_size);
 
 #ifdef __cplusplus
 };

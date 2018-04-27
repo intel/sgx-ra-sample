@@ -5,96 +5,82 @@
 #include "hexutil.h"
 #include "msgio.h"
 
+#define BUFFER_SZ	1024*1024
+
+static char *buffer= NULL;
+static uint32_t buffer_size= BUFFER_SZ;
+
 /*
- * Read a msg from std in. There's a fixed portion and a variable-length
- * payload. Read the fixed portion. If *p_size is not NULL, it points
- * to a data field in the fixed portion of the message that states the
- * length of the payload. Allocate a buffer to hold the payload, and
- * read the remaining bytes.
+ * Read a msg from stdin. There's a fixed portion and a variable-length
+ * payload. 
+ *
+ * Our destination buffer is the entire message plus the payload, 
+ * returned to the caller. This lets them cast it as an sgx_ra_msgN_t
+ * structure, and take advantage of the flexible array member at the
+ * end (if it has one, as sgx_ra_msg2_t and sgx_ra_msg3_t do).
  *
  * All messages are base16 encoded (ASCII hex strings) for simplicity
  * and readability. We decode the message into the destination.
  *
  * We do not allow any whitespace in the incoming message, save for the
  * terminating newline.
+ *
  */
 
 
-int read_msg (void *fixed, size_t f_size, void **payload, uint32_t *p_size,
-	unsigned short flags)
+int read_msg (void **dest)
 {
-	size_t bread, sz;
-	char *buffer= NULL;
+	size_t bread, bsz;
+	int repeat= 1;
 
-	sz=f_size*2; /* base16 encoding */
-	buffer= malloc(sz);
-	if ( buffer == NULL ) return -1;
-
-	bread= fread(buffer, 1, sz, stdin);
-	if ( bread != sz ) {
-		fprintf(stderr, "expected %lu bytes, read %lu\n", sz, bread);
-		return 0;
+	if ( buffer == NULL ) {
+		buffer= (char *) malloc(buffer_size);
+		if ( buffer == NULL ) {
+			perror("malloc");
+			return -1;
+		}
 	}
 
-	if ( flags & STRUCT_OMITS_PSIZE ) {
-		/*
-		 * The fixed data structure doesn't contain the payload size 
-		 * as a member at the end (this is the case for msg3 for some
-		 * reason). As a result, we have to write the size parameter
-		 * separately, we can't just write everything to void *fixed.
-		 */
+	bread= 0;
+	while (repeat) {
+		if ( fgets(&buffer[bread], buffer_size-bread, stdin) == NULL ) {
+			perror("fgets");
+			return -1;
+		}
+		/* If the last char is not a newline, we have more reading to do */
 
-		size_t sz= f_size-sizeof(uint32_t);
-		
-		from_hexstring(fixed, buffer, sz);
-		from_hexstring((unsigned char *) &p_size, &buffer[sz],
-			sizeof(uint32_t));
-		
-	} else from_hexstring(fixed, buffer, f_size);
+		bread= strlen(buffer);
 
-	if ( p_size == NULL || *p_size == 0 ) {
-		/* There's no payload. Read the trailing newline. If the last
-		 * char isn't a newline then something is wrong. */
-		return (fgetc(stdin) == '\n') ? 1 : 0;
+		if ( buffer[bread-1] == '\n' ) {
+			repeat= 0;
+			--bread;	/* Discard the newline */
+		} else {
+			buffer_size+= BUFFER_SZ;
+			buffer= realloc(buffer, buffer_size);
+			if ( buffer == NULL ) return -1;
+		}
 	}
+	printf("Read %lu bytes\n", bread);
 
-	/* Now read the variable payload length */
+	if ( bread%2 ) return 0;	/* base16 encoding = even number of bytes */
 
-	sz=*p_size*2 + 1; /* base16 encoding +1 for newline */
-	buffer= realloc(buffer, sz);
-	if ( buffer == NULL ) return -1;
+	*dest= malloc(bread/2);
+	if ( *dest == NULL ) return -1;
 
-	bread= fread(buffer, 1, sz, stdin);
-	if ( bread != sz ) {
-		fprintf(stderr, "expected %lu bytes, read %lu\n", sz, bread);
-		return 0;
-	}
-
-	/* If the last byte isn't a newline, something is wrong */
-
-	if ( buffer[sz] != '\n' ) {
-		fprintf(stderr, "expected ending newline, got 0x%02x\n", buffer[sz]);
-		return 0;
-	}
-
-	/* Allocate the payload buffer */
-
-	*payload= malloc(*p_size);
-	if ( *payload == NULL ) return -1;
-
-	from_hexstring(*payload, buffer, *p_size);
+	from_hexstring(*dest, buffer, bread/2);
 
 	return 1;
 }
 
-void send_msg (void *fixed, size_t f_size, void *payload, uint32_t p_size,
-	unsigned short flags)
-{
-	print_hexstring(stdout, fixed, f_size);
-	if ( flags & STRUCT_OMITS_PSIZE ) print_hexstring(stdout, &p_size,
-		sizeof(uint32_t));
-	if ( p_size > 0 ) print_hexstring(stdout, payload, p_size);
+/* Send a partial message (no newline) */
 
+void send_msg_partial (void *src, size_t sz) {
+	if ( sz ) print_hexstring(stdout, src, sz);
+}
+
+void send_msg (void *src, size_t sz)
+{
+	if ( sz ) print_hexstring(stdout, src, sz);
 	printf("\n");
 
 	/*
