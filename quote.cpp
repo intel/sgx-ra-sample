@@ -67,7 +67,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "fileio.h"
 #include "base64.h"
 #include "crypto.h"
-#include "lineio.h"
+#include "msgio.h"
 
 #define MAX_LEN 80
 
@@ -361,7 +361,8 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	uint32_t flags= config->flags;
 	sgx_ra_context_t ra_ctx= 0xdeadbeef;
 	char *buffer;
-	size_t sz, bread;
+	size_t sz;
+	int rv;
 	char verbose= OPT_ISSET(flags, OPT_VERBOSE);
 	/*
 	 * WARNING! Normally, the public key would be hardcoded into the
@@ -416,51 +417,21 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	fprintf(stderr, "Waiting for msg2...\n");
 
-	/* Read msg2 */
-
-	/*
+	/* Read msg2 
+	 *
 	 * msg2 is variable length b/c it includes the revocation list at
-	 * the end. msg2 will come in two lines:
-	 *
-	 *   Line 1: size of msg2 (length of line 2, as a little endien 
-	 *           uint32_t, base16-encoded)
-	 *   Line 2: msg2 (base16/hex string encoded)
-	 *
+	 * the end. 
 	 */
 
-	/* Read the size of msg2 */
-	sz= (sizeof(uint32_t))*2;
-	bread= read_line(&buffer);
-	if ( bread != sz ) {
-		fprintf(stderr, "expected %lu bytes, got %lu\n", sz, bread);
+	rv= read_msg(&msg2, sizeof(msg2), (void **) &msg2.sig_rl, 
+		&msg2.sig_rl_size);
+	if ( rv == 0 ) {
+		fprintf(stderr, "protocol error reading msg2\n");
+		exit(1);
+	} else if ( rv == -1 ) {
+		fprintf(stderr, "system error occurred while reading msg2\n");
 		exit(1);
 	}
-
-	from_hexstring((unsigned char *) &msg2_sz, (unsigned char *) buffer,
-		sizeof(uint32_t));
-
-	free(buffer);
-
-	bread= read_line(&buffer);
-	if ( bread != msg2_sz ) {
-		fprintf(stderr, "expected %lu bytes, got %lu\n", msg2_sz, bread);
-		exit(1);
-	}
-
-	/* Decode the buffer into msg2 */
-	from_hexstring((unsigned char *) &msg2, (unsigned char *) buffer, 
-		msg2_sz/2);
-
-	/*
-	 * Set the sigrl size. This is the size of the incoming base16-encoded
-	 * string / 2, minus the size of the fixed msg2 structure, plus the
-	 * size of the sig_rl (to account for the fact that sig_rl_size was
-	 * sent on line 1, and not resent here).
-	 */
-
-	msg2.sig_rl_size= msg2_sz/2-sizeof(msg2)+sizeof(msg2.sig_rl_size);
-
-	free(buffer);
 
 	if ( verbose ) {
 		divider();
@@ -482,20 +453,6 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		print_hexstring(stderr, &msg2.sig_rl_size, sizeof(msg2.sig_rl_size));
 		fprintf(stderr, "\n");
 		divider();
-	}
-
-	/* Determine the whitelist size, and read it if non-zero */
-
-	if ( msg2.sig_rl_size > 0 ) {
-		bread= read_line(&buffer);
-		/* The revocation list is base64-encoded */
-		if ( bread != msg2.sig_rl_size ) {
-			fprintf(stderr, "expected %lu bytes, got %lu\n", sz, bread);
-			exit(1);
-		}
-
-		/* Insert code to decode the base64-encoded whitelist */
-
 	}
 
 	/* Send msg3 */

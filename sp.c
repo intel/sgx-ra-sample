@@ -56,7 +56,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "fileio.h"
 #include "crypto.h"
 #include "byteorder.h"
-#include "lineio.h"
+#include "msgio.h"
 
 static const unsigned char def_service_private_key[32] = {
 	0x90, 0xe7, 0x6c, 0xbb, 0x2d, 0x52, 0xa1, 0xce,
@@ -184,14 +184,7 @@ int main (int argc, char *argv[])
 
 	/* Send message 2 */
 
-	msg2_sz= (sizeof(msg2)-sizeof(msg2.sig_rl_size)+msg2.sig_rl_size)*2;
-	/*
-	 * Don't include the sig_rl_sz member in the message as we
-	 * send the total message size as line 1. 
-	 */
-	print_hexstring(stdout, &msg2_sz, sizeof(msg2_sz));
-	printf("\n");
-	print_hexstring(stdout, &msg2, sizeof(msg2)-sizeof(msg2.sig_rl_size));
+	print_hexstring(stdout, &msg2, sizeof(msg2));
 	/* print the whitelist, currently hardcoded as empty list */
 	printf("\n");
 
@@ -216,19 +209,9 @@ int process_msg3 (config_t *config)
 
 	fprintf(stderr, "Waiting for msg3 on stdin\n");
 
-	sz= sizeof(msg3)*2;
-	blen= read_line(&buffer);
-	if ( blen != sz ) {
-		fprintf(stderr, "expected %lu bytes, read %lu\n", sz, blen);
-		return 0;
-	}
+	/* For some reason, msg3 doesn't include a quote_size parameter :( */
 
-	if ( ! from_hexstring((unsigned char *) &msg3, buffer,
-		sizeof(sgx_ra_msg3_t)) ) {
-		fprintf(stderr, "msg3 not a valid hex string\n");
-		exit(1);
-	}
-	free(buffer);
+	read_msg(&msg3, sizeof(msg3), NULL, 0);
 
 	/*
 	 * Read message 3
@@ -260,19 +243,7 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 
 	fprintf(stderr, "Waiting for msg1 on stdin\n");
 
-	sz= sizeof(msg1)*2;
-	blen= read_line(&buffer);
-	if ( blen != sz ) {
-		fprintf(stderr, "expected %lu bytes, read %lu\n", sz, blen);
-		return 0;
-	}
-
-	if ( ! from_hexstring((unsigned char *) &msg1, buffer,
-		sizeof(sgx_ra_msg1_t)) ) {
-		fprintf(stderr, "msg1 not a valid hex string\n");
-		exit(1);
-	}
-	free(buffer);
+	read_msg(&msg1, sizeof(msg1), NULL, 0);
 
 	if ( config->verbose ) {
 		divider();
