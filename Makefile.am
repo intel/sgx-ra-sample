@@ -69,14 +69,14 @@ common = byteorder.c crypto.c hexutil.c fileio.c base64.c msgio.c
 
 ## quote 
 
-quote_SOURCES = quote.cpp sgx_detect_linux.c sgx_stub.c $(common)
+quote_SOURCES = quote.cpp common.cpp sgx_detect_linux.c sgx_stub.c $(common)
 nodist_quote_SOURCES = EnclaveQuote_u.c EnclaveQuote_u.h
 EXTRA_quote_DEPENDENCIES = EnclaveQuote.signed.so
 BUILT_SOURCES = EnclaveQuote_u.c EnclaveQuote_u.h
 
 ## sp
 
-sp_SOURCES = sp.c $(common)
+sp_SOURCES = sp.cpp common.cpp $(common)
 
 ## Library flags. At minimum, an Intel SGX application will need:
 ##
@@ -93,5 +93,5 @@ sp_SOURCES = sp.c $(common)
 quote_LDADD=-l$(SGX_URTS_LIB) -lsgx_ukey_exchange -l$(SGX_UAE_SERVICE_LIB) \
 	-l:libcrypto.a -l:libsgx_capable.a -lpthread -ldl
 
-sp_LDADD=-l:libcrypto.a -lpthread -ldl
+sp_LDADD=-l:libcrypto.a -lpthread -ldl 
 

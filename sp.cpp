@@ -31,6 +31,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+using namespace std;
+
 #ifdef _WIN32
 #pragma comment(lib, "crypt32.lib")
 #else
@@ -41,6 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <limits.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <string>
 #include <string.h>
 #include <sys/types.h>
 #ifdef _WIN32
@@ -52,6 +55,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <sgx_key_exchange.h>
 #include <openssl/evp.h>
+#include "common.h"
 #include "hexutil.h"
 #include "fileio.h"
 #include "crypto.h"
@@ -75,7 +79,6 @@ typedef struct config_struct {
 	unsigned char kdk[16];
 } config_t;
 
-void divider();
 void usage();
 int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1);
 int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config);
@@ -212,10 +215,12 @@ int main (int argc, char *argv[])
 	 * portion and the array portion by hand.
 	 */
 
-        divider();
+        dividerWithText("Copy/Paste Msg2 Below to Client");
 
 	send_msg_partial((void *) &msg2, sizeof(sgx_ra_msg2_t));
 	send_msg(config.sig_rl, config.sig_rl_size);
+
+        divider();
 
 	crypto_destroy();
 	return 0;
@@ -284,7 +289,7 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 	}
 
 	if ( config->verbose ) {
-		divider();
+		dividerWithText("Msg1 Details");
 		fprintf(stderr,   "msg1.g_a.gx = ");
 		print_hexstring(stderr, &msg1->g_a.gx, sizeof(msg1->g_a.gx));
 		fprintf(stderr, "\nmsg1.g_a.gy = ");
@@ -319,7 +324,7 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 	 * SMK = AES_CMAC(KDK, 0x01 || "SMK" || 0x00 || 0x80 || 0x00) 
 	 */
 
-	cmac128(config->kdk, "\x01SMK\x00\x80\x00", 7, smk);
+	cmac128(config->kdk, (unsigned char *)("\x01SMK\x00\x80\x00"), 7, smk);
 
 	/*
 	 * Build message 2
@@ -380,7 +385,7 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 	cmac128(smk, (unsigned char *) msg2, 148, (unsigned char *) &msg2->mac);
 
 	if ( config->verbose ) {
-		divider();
+		dividerWithText("Msg2 Details");
 		fprintf(stderr,   "msg2.g_b.gx      = ");
 		print_hexstring(stderr, &msg2->g_b.gx, sizeof(msg2->g_b.gx));
 		fprintf(stderr, "\nmsg2.g_b.gy      = ");
@@ -443,11 +448,6 @@ int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1)
 	cmac128(cmackey, Gab_x, slen, kdk);
 
 	return 1;
-}
-
-void divider ()
-{
-	fprintf(stderr, "----------------------------------------------------------------------\n");
 }
 
 void usage () 

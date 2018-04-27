@@ -32,6 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
+using namespace std;
+
 #ifdef _WIN32
 #pragma comment(lib, "crypt32.lib")
 #else
@@ -62,6 +64,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <sgx_uae_service.h>
 #include <sgx_ukey_exchange.h>
+#include <string>
+#include "common.h"
 #include "sgx_detect.h"
 #include "hexutil.h"
 #include "fileio.h"
@@ -102,7 +106,6 @@ sgx_status_t sgx_create_enclave_search (
 );
 
 void usage();
-void divider();
 int do_quote(sgx_enclave_id_t eid, config_t *config);
 int do_attestation(sgx_enclave_id_t eid, config_t *config);
 
@@ -357,7 +360,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	sgx_status_t status, sgxrv;
 	sgx_ra_msg1_t msg1;
 	sgx_ra_msg2_t *msg2;
-        sgx_ra_msg3_t *p_msg3 = NULL;
+        sgx_ra_msg3_t *msg3 = NULL;
 
 	uint32_t msg2_sz;
 	uint32_t msg3_sz;
@@ -402,7 +405,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	}
 
 	if ( verbose ) {
-		divider();
+		dividerWithText("Msg1 Details");
 		fprintf(stderr,   "msg1.g_a.gx = ");
 		print_hexstring(stderr, msg1.g_a.gx, 32);
 		fprintf(stderr, "\nmsg1.g_a.gy = ");
@@ -415,7 +418,9 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	/* Send msg1 */
 
+        dividerWithText("Copy/Paste Msg1 Below to SP");
 	send_msg(&msg1, sizeof(msg1));
+        divider();
 
 	fprintf(stderr, "Waiting for msg2...\n");
 
@@ -435,7 +440,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	}
 
 	if ( verbose ) {
-		divider();
+		dividerWithText("Msg2 Details");
 		fprintf(stderr,   "msg2.g_b.gx      = ");
 		print_hexstring(stderr, &msg2->g_b.gx, sizeof(msg2->g_b.gx));
 		fprintf(stderr, "\nmsg2.g_b.gy      = ");
@@ -452,51 +457,58 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		print_hexstring(stderr, &msg2->mac, sizeof(msg2->mac));
 		fprintf(stderr, "\nmsg2.sig_rl_size = ");
 		print_hexstring(stderr, &msg2->sig_rl_size, sizeof(msg2->sig_rl_size));
-		fprintf(stderr, "\n");
+                fprintf(stderr, "\n");
 		divider();
 	}
 
         /* Process Msg2, Get Msg3  */
-        /* object p_msg3 alloated by SGX SDK, so remember to delete when finished */
-        p_msg3 = NULL;
+        /* object msg3 alloated by SGX SDK, so remember to delete when finished */
+        msg3 = NULL;
 
         status = sgx_ra_proc_msg2(ra_ctx, eid, 
                                   sgx_ra_proc_msg2_trusted, 
                                   sgx_ra_get_msg3_trusted, 
                                   msg2,
-                                  sizeof(msg2) + msg2->sig_rl_size,
-                                  &p_msg3, &msg3_sz);
+                                  sizeof(sgx_ra_msg2_t) + msg2->sig_rl_size,
+                                  &msg3, &msg3_sz);
 
 
 	if ( status != SGX_SUCCESS ) {
 		fprintf(stderr, "sgx_ra_proc_msg2: %08x\n", status);
-                if ( p_msg3 ) {
-                    delete p_msg3;
-                    p_msg3 = NULL;
+                if ( msg2 ) {
+                    delete msg2;
+                    msg2 = NULL;
+                }
+
+                if ( msg3 ) {
+                    delete msg3;
+                    msg3 = NULL;
                 }
 		return 1;
         } 
                                   
 	if ( verbose ) {
-		divider();
+		dividerWithText("Msg3 Details");
 		fprintf(stderr,   "msg3.mac      = ");
-		print_hexstring(stderr, p_msg3->mac, sizeof(p_msg3->mac));
+		print_hexstring(stderr, msg3->mac, sizeof(msg3->mac));
 		fprintf(stderr,   "msg3.g_a.gx      = ");
-		print_hexstring(stderr, p_msg3->g_a.gx, sizeof(p_msg3->g_a.gx));
+		print_hexstring(stderr, msg3->g_a.gx, sizeof(msg3->g_a.gx));
 		fprintf(stderr, "\nmsg3.g_a.gy      = ");
-		print_hexstring(stderr, p_msg3->g_a.gy, sizeof(p_msg3->g_a.gy));
+		print_hexstring(stderr, msg3->g_a.gy, sizeof(msg3->g_a.gy));
                 fprintf(stderr, "\nmsg3.ps_sec_prop.sgx_ps_sec_prop_desc[] = ");
-		print_hexstring(stderr, p_msg3->ps_sec_prop.sgx_ps_sec_prop_desc, sizeof(p_msg3->ps_sec_prop.sgx_ps_sec_prop_desc));
-                //fprintf(stderr, "\nmsg3.quote[] = ");
-		//print_hexstring(stderr, p_msg3.quote, sizeof(p_msg3.quote[]);
+		print_hexstring(stderr, msg3->ps_sec_prop.sgx_ps_sec_prop_desc, sizeof(msg3->ps_sec_prop.sgx_ps_sec_prop_desc));
 		divider();
         }
                                   
+        /* clean up */
+        if ( msg2 ) {
+            delete msg2;
+            msg2 = NULL;
+        }
 
-
-        if ( p_msg3 ) {
-            delete p_msg3;
-            p_msg3 = NULL;
+        if (msg3 ) {
+            delete msg3;
+            msg3 = NULL;
         }
 
 	return 0;
@@ -791,11 +803,6 @@ int file_in_searchpath (const char *file, char *search, char *fullpath,
 }
 
 #endif
-
-void divider ()
-{
-	fprintf(stderr, "----------------------------------------------------------------------\n");
-}
 
 
 void usage () 
