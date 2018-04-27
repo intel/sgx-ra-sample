@@ -357,7 +357,11 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	sgx_status_t status, sgxrv;
 	sgx_ra_msg1_t msg1;
 	sgx_ra_msg2_t *msg2;
+        sgx_ra_msg3_t *p_msg3 = NULL;
+
 	uint32_t msg2_sz;
+	uint32_t msg3_sz;
+
 	uint32_t flags= config->flags;
 	sgx_ra_context_t ra_ctx= 0xdeadbeef;
 	char *sigrl;
@@ -452,9 +456,48 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		divider();
 	}
 
-	/* Generate msg3 */
+        /* Process Msg2, Get Msg3  */
+        /* object p_msg3 alloated by SGX SDK, so remember to delete when finished */
+        p_msg3 = NULL;
 
-	/* Send msg3 */
+        status = sgx_ra_proc_msg2(ra_ctx, eid, 
+                                  sgx_ra_proc_msg2_trusted, 
+                                  sgx_ra_get_msg3_trusted, 
+                                  msg2,
+                                  sizeof(msg2) + msg2->sig_rl_size,
+                                  &p_msg3, &msg3_sz);
+
+
+	if ( status != SGX_SUCCESS ) {
+		fprintf(stderr, "sgx_ra_proc_msg2: %08x\n", status);
+                if ( p_msg3 ) {
+                    delete p_msg3;
+                    p_msg3 = NULL;
+                }
+		return 1;
+        } 
+                                  
+	if ( verbose ) {
+		divider();
+		fprintf(stderr,   "msg3.mac      = ");
+		print_hexstring(stderr, p_msg3->mac, sizeof(p_msg3->mac));
+		fprintf(stderr,   "msg3.g_a.gx      = ");
+		print_hexstring(stderr, p_msg3->g_a.gx, sizeof(p_msg3->g_a.gx));
+		fprintf(stderr, "\nmsg3.g_a.gy      = ");
+		print_hexstring(stderr, p_msg3->g_a.gy, sizeof(p_msg3->g_a.gy));
+                fprintf(stderr, "\nmsg3.ps_sec_prop.sgx_ps_sec_prop_desc[] = ");
+		print_hexstring(stderr, p_msg3->ps_sec_prop.sgx_ps_sec_prop_desc, sizeof(p_msg3->ps_sec_prop.sgx_ps_sec_prop_desc));
+                //fprintf(stderr, "\nmsg3.quote[] = ");
+		//print_hexstring(stderr, p_msg3.quote, sizeof(p_msg3.quote[]);
+		divider();
+        }
+                                  
+
+
+        if ( p_msg3 ) {
+            delete p_msg3;
+            p_msg3 = NULL;
+        }
 
 	return 0;
 }
