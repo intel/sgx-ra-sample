@@ -425,7 +425,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	 * the end. 
 	 */
 
-	rv= read_msg((void **) &msg2);
+	rv= read_msg((void **) &msg2, NULL);
 	if ( rv == 0 ) {
 		fprintf(stderr, "protocol error reading msg2\n");
 		exit(1);

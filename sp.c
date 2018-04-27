@@ -57,6 +57,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "crypto.h"
 #include "byteorder.h"
 #include "msgio.h"
+#include "protocol.h"
 
 static const unsigned char def_service_private_key[32] = {
 	0x90, 0xe7, 0x6c, 0xbb, 0x2d, 0x52, 0xa1, 0xce,
@@ -79,6 +80,7 @@ void divider();
 void usage();
 int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1);
 int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config);
+int process_msg3 (ra_msg4_t *msg2, config_t *config);
 
 int main (int argc, char *argv[])
 {
@@ -87,13 +89,13 @@ int main (int argc, char *argv[])
 	char flag_pubkey= 0;
 	config_t config;
 	sgx_ra_msg2_t msg2;
+	ra_msg4_t msg4;
 	uint32_t msg2_sz;
 
 	memset(&config, 0, sizeof(config));
 
 	static struct option long_opt[] =
 	{
-		{"msg2",		no_argument,		0, '2'},
 		{"spid-file",	required_argument,	0, 'S'},
 		{"help",		no_argument, 		0, 'h'},
 		{"key-file",	required_argument,	0, 'k'},
@@ -195,7 +197,7 @@ int main (int argc, char *argv[])
 
 	/* Read message 1 and generate message 2 */
 
-	if ( process_msg1(&msg2, &config) == 0 ) {
+	if ( ! process_msg1(&msg2, &config) ) {
 		fprintf(stderr, "error processing msg1\n");
 		crypto_destroy();
 		return 1;
@@ -217,15 +219,20 @@ int main (int argc, char *argv[])
 	send_msg_partial((void *) &msg2, sizeof(sgx_ra_msg2_t));
 	send_msg(config.sig_rl, config.sig_rl_size);
 
+	/* Read message 3 */
+
+	process_msg3(&msg4, &config);
+
 	crypto_destroy();
 	return 0;
 }
 
-int process_msg3 (config_t *config)
+int process_msg3 (ra_msg4_t *msg4, config_t *config)
 {
 	sgx_ra_msg3_t *msg3;
 	size_t blen= 0;
 	size_t sz;
+	int rv;
 	uint32_t quote_sz;
 	char *buffer= NULL;
 	unsigned char smk[16], gb_ga[128];
@@ -241,7 +248,14 @@ int process_msg3 (config_t *config)
 	 * For some reason, msg3 doesn't include a quote_size parameter. :(
 	 */
 
-	read_msg((void **) &msg3);
+	rv= read_msg((void **) &msg3, &sz);
+	if ( rv == -1 ) {
+		fprintf(stderr, "system error reading msg3\n");
+		return 0;
+	} else if ( rv == 0 ) {
+		fprintf(stderr, "protocol error reading msg3\n");
+		return 0;
+	}
 
 	/*
 	 * Read message 3
@@ -252,6 +266,19 @@ int process_msg3 (config_t *config)
 	 *
 	 * M = ga || PS_SECURITY_PROPERTY || QUOTE
 	 */
+
+	if ( config->verbose ) {
+		divider();
+		fprintf(stderr, "msg3.mac         = ");
+		print_hexstring(stderr, &msg3->mac, sizeof(msg3->mac));
+		fprintf(stderr, "\nmsg3.g_a         = ");
+		print_hexstring(stderr, &msg3->g_a, sizeof(msg3->g_a));
+		fprintf(stderr, "\nmsg3.ps_sec_prop = ");
+		print_hexstring(stderr, &msg3->ps_sec_prop, sizeof(msg3->ps_sec_prop));
+		fprintf(stderr, "\nmsg3.quote       = ");
+		print_hexstring(stderr, &msg3->quote, sz-sizeof(sgx_ra_msg3_t));
+		divider();
+	}
 }
 
 int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
@@ -274,13 +301,13 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 
 	fprintf(stderr, "Waiting for msg1 on stdin\n");
 
-	rv= read_msg((void **) &msg1);
+	rv= read_msg((void **) &msg1, NULL);
 	if ( rv == -1 ) {
 		fprintf(stderr, "system error reading msg1\n");
-		return 1;
+		return 0;
 	} else if ( rv == 0 ) {
 		fprintf(stderr, "protocol error reading msg1\n");
-		return 1;
+		return 0;
 	}
 
 	if ( config->verbose ) {
@@ -300,7 +327,7 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 	Gb= key_generate();
 	if ( Gb == NULL ) {
 		fprintf(stderr, "Could not create a session key\n");
-		exit(1);
+		return 0;
 	}
 
 	/*
@@ -311,7 +338,7 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 
 	if ( ! derive_kdk(Gb, config->kdk, msg1) ) {
 		fprintf(stderr, "Could not derive the KDK\n");
-		exit(1);
+		return 0;
 	}
 
 	/*
@@ -400,6 +427,8 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 		fprintf(stderr, "\n");
 		divider();
 	}
+
+	return 1;
 }
 
 int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1)
