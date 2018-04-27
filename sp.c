@@ -213,7 +213,7 @@ int main (int argc, char *argv[])
 	 */
 
 	send_msg_partial((void *) &msg2, sizeof(sgx_ra_msg2_t));
-	if ( config.sig_rl_size ) send_msg(config.sig_rl, config.sig_rl_size);
+	send_msg(config.sig_rl, config.sig_rl_size);
 
 	crypto_destroy();
 	return 0;
