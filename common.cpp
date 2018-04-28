@@ -38,11 +38,11 @@ using namespace std;
 
 void dividerWithText (string str)
 {
-    fprintf(stderr, "%s\n", LINE_HEADER(str));
+    fprintf(stderr, "\n%s\n", LINE_HEADER(str));
 }
 
 void divider ()
 {
-    fprintf(stderr, "%s\n", LINE_COMPLETE);
+    fprintf(stderr, "%s\n\n", LINE_COMPLETE);
 }
 

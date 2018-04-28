@@ -403,8 +403,21 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 	memcpy(gb_ga, &msg2->g_b, 64);
 	memcpy(&gb_ga[64], &msg1->g_a, 64);
 
-	ecdsa_sign(gb_ga, 128, config->service_private_key, 
+        unsigned char digest[32];
+        int ret  = digest_sha256(gb_ga, 128, digest);
+        
+        if ( !ret ) {
+            fprintf(stderr, "process_msg1:  Failed to compute digest_sha256\n");
+            return 0;
+        }
+
+	ret = ecdsa_sign(digest, 32, config->service_private_key, 
 		(unsigned char *) &msg2->sign_gb_ga);
+
+        if ( !ret ) {
+            fprintf(stderr, "process_msg1:  Failed to ecdsa_sign\n");
+            return 0;
+        }
 
 	/* The "A" component is conveniently at the start of sgx_ra_msg2_t */
 

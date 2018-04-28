@@ -38,6 +38,10 @@ EVP_PKEY *key_generate();
 int ecdsa_sign(unsigned char *msg, size_t mlen, EVP_PKEY *key,
 	unsigned char hash[64]);
 
+/* SHA256 Digest */
+
+int digest_sha256(unsigned char *msg, size_t mlen, unsigned char digest[32]);
+
 #ifdef __cplusplus
 };
 #endif

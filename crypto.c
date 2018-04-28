@@ -239,7 +239,6 @@ cleanup:
 	return pkey;
 }
 
-/* Generate a new EC key. */
 
 EVP_PKEY *key_generate()
 {
@@ -438,4 +437,63 @@ cleanup:
 	if ( eckey != NULL ) EC_KEY_free(eckey);
 	return (error_type == e_none);
 }
+
+/*============================================================================
+ * SHA256
+ *============================================================================ */
+
+int digest_sha256(unsigned char *msg, size_t mlen, unsigned char digest[32])
+{
+    error_type = e_none;
+
+    if ( !msg ) {
+        error_type = e_api;
+        goto cleanup;
+    }
+
+    EVP_MD_CTX *ctx = NULL;
+    ctx = EVP_MD_CTX_create();
+
+    if ( !ctx ) {
+        error_type = e_crypto;
+        goto cleanup;
+    }
+
+    if ( !EVP_DigestInit_ex(ctx, EVP_sha256(), NULL) )
+    {
+        error_type = e_crypto;
+        goto cleanup;
+    }
+
+    if ( !EVP_DigestUpdate(ctx, msg, mlen) )
+    {
+        error_type = e_crypto;
+        goto cleanup;
+    }
+
+    int dlen = 0;
+
+    if ( !EVP_DigestFinal_ex(ctx, digest, &dlen) )
+    {
+        error_type = e_crypto;
+        goto cleanup;
+    }
+
+    if ( dlen != 32 )
+    {
+        error_type = e_crypto;
+        goto cleanup;
+    }
+    
+cleanup:
+    if ( ctx ) {
+        EVP_MD_CTX_destroy(ctx);
+        ctx = NULL;
+    }
+
+    return ( error_type == e_none );
+
+}
+
+
 
