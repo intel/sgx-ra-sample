@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define LINE_TYPE '-'
 #define LINE_SHORT_LEN 4
-#define LINE_MAX_LEN   90
+#define LINE_MAX_LEN   76
 #define LINE_TRAILING_LEN(header) ((LINE_MAX_LEN - std::string(header).size()) - LINE_SHORT_LEN -2)
 
 #define LINE_COMPLETE (std::string( LINE_MAX_LEN, LINE_TYPE).c_str())
