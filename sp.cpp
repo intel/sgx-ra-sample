@@ -296,6 +296,9 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 		fprintf(stderr, "protocol error reading msg3\n");
 		return 0;
 	}
+	if ( config->debug ) {
+		fprintf(stderr, "+++ read %lu bytes\n", sz);
+	}
 
 	/*
 	 * Read message 3
@@ -317,6 +320,7 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 		print_hexstring(stderr, &msg3->ps_sec_prop, sizeof(msg3->ps_sec_prop));
 		fprintf(stderr, "\nmsg3.quote       = ");
 		print_hexstring(stderr, &msg3->quote, sz-sizeof(sgx_ra_msg3_t));
+		fprintf(stderr, "\n");
 		divider();
 	}
 }

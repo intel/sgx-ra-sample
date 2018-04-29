@@ -508,13 +508,15 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		print_hexstring(stderr, msg3->g_a.gx, sizeof(msg3->g_a.gx));
 		fprintf(stderr, "\nmsg3.g_a.gy      = ");
 		print_hexstring(stderr, msg3->g_a.gy, sizeof(msg3->g_a.gy));
-        fprintf(stderr, "\nmsg3.ps_sec_prop = ");
+        fprintf(stderr, "\nmsg3.ps_sec_prop.sgx_ps_sec_prop_desc = ");
 		print_hexstring(stderr, msg3->ps_sec_prop.sgx_ps_sec_prop_desc, sizeof(msg3->ps_sec_prop.sgx_ps_sec_prop_desc));
+		fprintf(stderr, "\nmsg3.quote       = ");
+		print_hexstring(stderr, msg3->quote, msg3_sz-sizeof(sgx_ra_msg3_t));
 		fprintf(stderr, "\n");
 		divider();
 	}
 
-	send_msg(msg3, sizeof(msg3));
+	send_msg(msg3, msg3_sz);
                                   
         /* clean up */
         if ( msg2 ) {
