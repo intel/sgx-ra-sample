@@ -251,12 +251,12 @@ int main (int argc, char *argv[])
 	 * portion and the array portion by hand.
 	 */
 
-        dividerWithText("Copy/Paste Msg2 Below to Client");
+	dividerWithText("Copy/Paste Msg2 Below to Client");
 
 	send_msg_partial((void *) &msg2, sizeof(sgx_ra_msg2_t));
 	send_msg(config.sig_rl, config.sig_rl_size);
 
-        divider();
+	divider();
 
 	/* Read message 3 */
 
@@ -301,6 +301,14 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 	}
 
 	/*
+	 * quote size will be the total msg3 size - sizeof(sgx_ra_msg3_t)
+	 * since msg3.quote is a flexible array member.
+	 *
+	 * Total message size is sz/2 since the income message is in base16.
+	 */
+	quote_sz= (sz/2)-sizeof(sgx_ra_msg3_t);
+
+	/*
 	 * Read message 3
 	 *
 	 * CMACsmk(M) || M
@@ -312,14 +320,16 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 
 	if ( config->verbose ) {
 		divider();
-		fprintf(stderr, "msg3.mac         = ");
+		fprintf(stderr,   "msg3.mac         = ");
 		print_hexstring(stderr, &msg3->mac, sizeof(msg3->mac));
-		fprintf(stderr, "\nmsg3.g_a         = ");
-		print_hexstring(stderr, &msg3->g_a, sizeof(msg3->g_a));
+		fprintf(stderr, "\nmsg3.g_a.gx      = ");
+		print_hexstring(stderr, &msg3->g_a.gx, sizeof(msg3->g_a.gx));
+		fprintf(stderr, "\nmsg3.g_a.gy      = ");
+		print_hexstring(stderr, &msg3->g_a.gy, sizeof(msg3->g_a.gy));
 		fprintf(stderr, "\nmsg3.ps_sec_prop = ");
 		print_hexstring(stderr, &msg3->ps_sec_prop, sizeof(msg3->ps_sec_prop));
 		fprintf(stderr, "\nmsg3.quote       = ");
-		print_hexstring(stderr, &msg3->quote, sz-sizeof(sgx_ra_msg3_t));
+		print_hexstring(stderr, &msg3->quote, quote_sz);
 		fprintf(stderr, "\n");
 		divider();
 	}

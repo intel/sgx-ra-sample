@@ -498,7 +498,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	} 
 
 	if ( debug ) {
-		fprintf(stderr, "+++ msg3_size = %lu\n", msg3_sz);
+		fprintf(stderr, "+++ msg3_size = %u\n", msg3_sz);
 	}
 	                          
 	if ( verbose ) {
