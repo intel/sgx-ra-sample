@@ -435,7 +435,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	/* Read msg2 
 	 *
 	 * msg2 is variable length b/c it includes the revocation list at
-	 * the end. 
+	 * the end. msg2 is malloc'd in readZ_msg do free it when done.
 	 */
 
 	rv= read_msg((void **) &msg2, NULL);
@@ -472,12 +472,12 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	}
 
 	if ( debug ) {
-		fprintf(stderr, "+++ msg2_size      = %lu\n",
+		fprintf(stderr, "+++ msg2_size = %lu\n",
 			sizeof(sgx_ra_msg2_t)+msg2->sig_rl_size);
 	}
 
 	/* Process Msg2, Get Msg3  */
-	/* object msg3 alloated by SGX SDK, so remember to delete when finished */
+	/* object msg3 is malloc'd by SGX SDK, so remember to free when finished */
 
 	msg3 = NULL;
 
@@ -486,20 +486,21 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		sizeof(sgx_ra_msg2_t) + msg2->sig_rl_size,
 	    &msg3, &msg3_sz);
 
+	if ( msg2 ) {
+		free(msg2);
+		msg2 = NULL;
+	}
+
 	if ( status != SGX_SUCCESS ) {
 		fprintf(stderr, "sgx_ra_proc_msg2: %08x\n", status);
-		if ( msg2 ) {
-     		delete msg2;
-     		msg2 = NULL;
- 		}
 
- 		if ( msg3 ) {
-     		delete msg3;
-     		msg3 = NULL;
- 		}
 		return 1;
 	} 
-                                  
+
+	if ( debug ) {
+		fprintf(stderr, "+++ msg3_size = %lu\n", msg3_sz);
+	}
+	                          
 	if ( verbose ) {
 		dividerWithText("Msg3 Details");
 		fprintf(stderr,   "msg3.mac         = ");
@@ -508,8 +509,9 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		print_hexstring(stderr, msg3->g_a.gx, sizeof(msg3->g_a.gx));
 		fprintf(stderr, "\nmsg3.g_a.gy      = ");
 		print_hexstring(stderr, msg3->g_a.gy, sizeof(msg3->g_a.gy));
-        fprintf(stderr, "\nmsg3.ps_sec_prop.sgx_ps_sec_prop_desc = ");
-		print_hexstring(stderr, msg3->ps_sec_prop.sgx_ps_sec_prop_desc, sizeof(msg3->ps_sec_prop.sgx_ps_sec_prop_desc));
+		fprintf(stderr, "\nmsg3.ps_sec_prop.sgx_ps_sec_prop_desc = ");
+		print_hexstring(stderr, msg3->ps_sec_prop.sgx_ps_sec_prop_desc,
+			sizeof(msg3->ps_sec_prop.sgx_ps_sec_prop_desc));
 		fprintf(stderr, "\nmsg3.quote       = ");
 		print_hexstring(stderr, msg3->quote, msg3_sz-sizeof(sgx_ra_msg3_t));
 		fprintf(stderr, "\n");
@@ -517,17 +519,11 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	}
 
 	send_msg(msg3, msg3_sz);
-                                  
-        /* clean up */
-        if ( msg2 ) {
-            delete msg2;
-            msg2 = NULL;
-        }
 
-        if (msg3 ) {
-            delete msg3;
-            msg3 = NULL;
-        }
+	if ( msg3 ) {
+		free(msg3);
+		msg3 = NULL;
+	}
 
 	return 0;
 }
