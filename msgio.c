@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sgx_urts.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 #include "hexutil.h"
 #include "msgio.h"
 
@@ -92,12 +95,26 @@ int read_msg (void **dest, size_t *sz)
 
 void send_msg_partial (void *src, size_t sz) {
 	if ( sz ) print_hexstring(stdout, src, sz);
+#ifndef _WIN32
+	/*
+	 * If were aren't writing to a tty, also print the message to stderr
+	 * so you can still see the output.
+	 */
+	if ( !isatty(fileno(stdout)) ) print_hexstring(stderr, src, sz);
+#endif
 }
 
 void send_msg (void *src, size_t sz)
 {
 	if ( sz ) print_hexstring(stdout, src, sz);
 	printf("\n");
+#ifndef _WIN32
+	/* As above */
+	if ( !isatty(fileno(stdout)) ) {
+		print_hexstring(stderr, src, sz);
+		fprintf(stderr, "\n");
+	}
+#endif
 
 	/*
 	 * Since we have both stdout and stderr, flush stdout to keep the
