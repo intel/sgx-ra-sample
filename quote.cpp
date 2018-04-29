@@ -93,7 +93,7 @@ typedef struct config_struct {
 	sgx_quote_nonce_t nonce;
 } config_t;
 
-int file_in_searchpath (const char *file, char *search, char *fullpath,
+int file_in_searchpath (const char *file, const char *search, char *fullpath,
 	size_t len);
 
 sgx_status_t sgx_create_enclave_search (
@@ -118,6 +118,7 @@ int do_attestation(sgx_enclave_id_t eid, config_t *config);
 #define OPT_LINK	0x04
 #define OPT_PUBKEY	0x08
 #define OPT_VERBOSE	0x10
+#define OPT_DEBUG	0x20
 
 /* Macros to set, clear, and get the mode and options */
 
@@ -146,6 +147,7 @@ int main (int argc, char *argv[])
 	{
 		{"help",		no_argument, 		0, 'h'},
 		{"attest",		no_argument,		0, 'a'},
+		{"debug",		no_argument,		0, 'd'},
 		{"epid-gid",	no_argument,		0, 'e'},
 #ifdef PSE_SUPPORT
 		{"pse-manifest",	no_argument,	0, 'm'},
@@ -170,14 +172,11 @@ int main (int argc, char *argv[])
 		unsigned char *keydata;
 		unsigned char keyin[64];
 
-		c= getopt_long(argc, argv, "N:P:S:aehlmn:p:rs:v", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "N:P:S:adehlmn:p:rs:v", long_opt, &opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
 		case 0:
-			break;
-		case 'a':
-			config.mode= MODE_ATTEST;
 			break;
 		case 'N':
 			if ( ! from_hexstring_file((unsigned char *) &config.nonce,
@@ -201,7 +200,7 @@ int main (int argc, char *argv[])
 				crypto_perror("key_to_sgx_ec256");
 				exit(1);
 			}
-			SET_OPT(config.flags, OPT_NONCE);
+			SET_OPT(config.flags, OPT_PUBKEY);
 
 			break;
 		case 'S':
@@ -213,6 +212,12 @@ int main (int argc, char *argv[])
 			}
 			++have_spid;
 
+			break;
+		case 'a':
+			config.mode= MODE_ATTEST;
+			break;
+		case 'd':
+			SET_OPT(config.flags, OPT_DEBUG);
 			break;
 		case 'e':
 			config.mode= MODE_EPID;
@@ -359,8 +364,8 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 {
 	sgx_status_t status, sgxrv;
 	sgx_ra_msg1_t msg1;
-	sgx_ra_msg2_t *msg2;
-        sgx_ra_msg3_t *msg3 = NULL;
+	sgx_ra_msg2_t *msg2 = NULL;
+	sgx_ra_msg3_t *msg3 = NULL;
 
 	uint32_t msg2_sz;
 	uint32_t msg3_sz;
@@ -371,6 +376,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	size_t sz;
 	int rv;
 	char verbose= OPT_ISSET(flags, OPT_VERBOSE);
+	char debug= OPT_ISSET(flags, OPT_DEBUG);
 	/*
 	 * WARNING! Normally, the public key would be hardcoded into the
 	 * enclave, not passed in as a parameter. Hardcoding prevents
@@ -383,8 +389,10 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	/* Executes an ECALL that runs sgx_ra_init() */
 
 	if ( OPT_ISSET(flags, OPT_PUBKEY) ) {
+		fprintf(stderr, "+++ using supplied public key\n");
 		status= enclave_ra_init(eid, &sgxrv, config->pubkey, 0, &ra_ctx);
 	} else {
+		fprintf(stderr, "+++ using default public key\n");
 		status= enclave_ra_init_def(eid, &sgxrv, 0, &ra_ctx);
 	}
 	if ( status != SGX_SUCCESS ) {
@@ -418,9 +426,9 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	/* Send msg1 */
 
-        dividerWithText("Copy/Paste Msg1 Below to SP");
+	dividerWithText("Copy/Paste Msg1 Below to SP");
 	send_msg(&msg1, sizeof(msg1));
-        divider();
+	divider();
 
 	fprintf(stderr, "Waiting for msg2...\n");
 
@@ -457,48 +465,56 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		print_hexstring(stderr, &msg2->mac, sizeof(msg2->mac));
 		fprintf(stderr, "\nmsg2.sig_rl_size = ");
 		print_hexstring(stderr, &msg2->sig_rl_size, sizeof(msg2->sig_rl_size));
-                fprintf(stderr, "\n");
+		fprintf(stderr, "\nmsg2.sig_rl      = ");
+		print_hexstring(stderr, &msg2->sig_rl, msg2->sig_rl_size);
+		fprintf(stderr, "\n");
 		divider();
 	}
 
-        /* Process Msg2, Get Msg3  */
-        /* object msg3 alloated by SGX SDK, so remember to delete when finished */
-        msg3 = NULL;
+	if ( debug ) {
+		fprintf(stderr, "+++ msg2_size      = %lu\n",
+			sizeof(sgx_ra_msg2_t)+msg2->sig_rl_size);
+	}
 
-        status = sgx_ra_proc_msg2(ra_ctx, eid, 
-                                  sgx_ra_proc_msg2_trusted, 
-                                  sgx_ra_get_msg3_trusted, 
-                                  msg2,
-                                  sizeof(sgx_ra_msg2_t) + msg2->sig_rl_size,
-                                  &msg3, &msg3_sz);
+	/* Process Msg2, Get Msg3  */
+	/* object msg3 alloated by SGX SDK, so remember to delete when finished */
 
+	msg3 = NULL;
+
+	status = sgx_ra_proc_msg2(ra_ctx, eid,
+		sgx_ra_proc_msg2_trusted, sgx_ra_get_msg3_trusted, msg2, 
+		sizeof(sgx_ra_msg2_t) + msg2->sig_rl_size,
+	    &msg3, &msg3_sz);
 
 	if ( status != SGX_SUCCESS ) {
 		fprintf(stderr, "sgx_ra_proc_msg2: %08x\n", status);
-                if ( msg2 ) {
-                    delete msg2;
-                    msg2 = NULL;
-                }
+		if ( msg2 ) {
+     		delete msg2;
+     		msg2 = NULL;
+ 		}
 
-                if ( msg3 ) {
-                    delete msg3;
-                    msg3 = NULL;
-                }
+ 		if ( msg3 ) {
+     		delete msg3;
+     		msg3 = NULL;
+ 		}
 		return 1;
-        } 
+	} 
                                   
 	if ( verbose ) {
 		dividerWithText("Msg3 Details");
-		fprintf(stderr,   "msg3.mac      = ");
+		fprintf(stderr,   "msg3.mac         = ");
 		print_hexstring(stderr, msg3->mac, sizeof(msg3->mac));
-		fprintf(stderr,   "msg3.g_a.gx      = ");
+		fprintf(stderr, "\nmsg3.g_a.gx      = ");
 		print_hexstring(stderr, msg3->g_a.gx, sizeof(msg3->g_a.gx));
 		fprintf(stderr, "\nmsg3.g_a.gy      = ");
 		print_hexstring(stderr, msg3->g_a.gy, sizeof(msg3->g_a.gy));
-                fprintf(stderr, "\nmsg3.ps_sec_prop.sgx_ps_sec_prop_desc[] = ");
+        fprintf(stderr, "\nmsg3.ps_sec_prop = ");
 		print_hexstring(stderr, msg3->ps_sec_prop.sgx_ps_sec_prop_desc, sizeof(msg3->ps_sec_prop.sgx_ps_sec_prop_desc));
+		fprintf(stderr, "\n");
 		divider();
-        }
+	}
+
+	send_msg(msg3, sizeof(msg3));
                                   
         /* clean up */
         if ( msg2 ) {
@@ -761,7 +777,7 @@ sgx_status_t sgx_create_enclave_search (const char *filename, const int debug,
 	return sgx_create_enclave(filename, debug, token, updated, eid, attr);
 }
 
-int file_in_searchpath (const char *file, char *search, char *fullpath, 
+int file_in_searchpath (const char *file, const char *search, char *fullpath, 
 	size_t len)
 {
 	char *p, *str;
@@ -816,6 +832,7 @@ void usage ()
 	fprintf(stderr, "Optional:\n");
 	fprintf(stderr, "  -N, --nonce-file=FILE    Set a nonce from a file containing a 32-byte\n");
 	fprintf(stderr, "                              ASCII hex string\n");
+	fprintf(stderr, "  -d, --debug              Show debugging information\n");
 	fprintf(stderr, "  -e, --epid-gid           Get the EPID Group ID instead of a quote\n");
 	fprintf(stderr, "  -l, --linkable           Specify a linkable quote (default: unlinkable)\n");
 #ifdef PSE_SUPPORT

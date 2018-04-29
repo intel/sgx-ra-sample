@@ -1,4 +1,10 @@
 #! /bin/sh
 
-socat TCP4-LISTEN:7777,fork,reuseaddr EXEC:"./sp -S ../ias-ra-data/spid/plse-dev.spid -v",nofork
+SPID="-S ../ias-ra-data/spid/plse-dev.spid"
+
+CMD="./sp -d -v $SPID"
+
+echo "Running: $CMD"
+
+socat TCP4-LISTEN:7777,fork,reuseaddr EXEC:"$CMD $SPID",nofork
 

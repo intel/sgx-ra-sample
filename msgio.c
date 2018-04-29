@@ -73,9 +73,6 @@ int read_msg (void **dest, size_t *sz)
 	/* Make sure we didn't get \r\n */
 	if ( bread && buffer[bread-1] == '\r' ) --bread;
 
-	print_hexstring(stderr, buffer, bread);
-	fprintf(stderr, "\n");
-
 	if ( bread%2 ) {
 		fprintf(stderr, "read odd byte count %lu\n", bread);
 		return 0;	/* base16 encoding = even number of bytes */

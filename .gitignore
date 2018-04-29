@@ -2,6 +2,9 @@ testing
 configure
 *.o
 *.so
+autom4te.cache
+Makefile.in
+*/Makefile.in
 EnclaveQuote_u.h
 EnclaveQuote_u.c
 EnclaveQuote/EnclaveQuote_t.h

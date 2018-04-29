@@ -25,6 +25,7 @@ int cmac128(unsigned char key[16], unsigned char *message, size_t mlen,
 /* EC key operations */
 
 int key_load_file (EVP_PKEY **key, const char *filename, int type);
+int key_load (EVP_PKEY **key, const char *hexstring, int type);
 
 EVP_PKEY *key_from_sgx_ec256 (sgx_ec256_public_t *k);
 EVP_PKEY *key_private_from_bytes (const unsigned char buf[32]);
@@ -36,7 +37,7 @@ EVP_PKEY *key_generate();
 /* ECDSA signature */
 
 int ecdsa_sign(unsigned char *msg, size_t mlen, EVP_PKEY *key,
-	unsigned char hash[64]);
+	unsigned char r[32], unsigned char s[32], unsigned char digest[32]);
 
 #ifdef __cplusplus
 };

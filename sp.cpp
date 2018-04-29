@@ -55,6 +55,7 @@ using namespace std;
 #endif
 #include <sgx_key_exchange.h>
 #include <openssl/evp.h>
+#include <openssl/pem.h>
 #include "common.h"
 #include "hexutil.h"
 #include "fileio.h"
@@ -74,14 +75,17 @@ typedef struct config_struct {
 	sgx_spid_t spid;
 	uint16_t quote_type;
 	EVP_PKEY *service_private_key;
+	EVP_PKEY *session_private_key;
 	char verbose;
+	char debug;
 	uint32_t sig_rl_size;
 	unsigned char *sig_rl;
 	unsigned char kdk[16];
 } config_t;
 
 void usage();
-int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1);
+int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
+	config_t *config);
 int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config);
 int process_msg3 (ra_msg4_t *msg2, config_t *config);
 
@@ -99,9 +103,12 @@ int main (int argc, char *argv[])
 
 	static struct option long_opt[] =
 	{
+		{"key-file",	required_argument,	0, 'K'},
 		{"spid-file",	required_argument,	0, 'S'},
+		{"debug",		required_argument,	0, 'd'},
+		{"session-key",	required_argument,	0, 'e'},
 		{"help",		no_argument, 		0, 'h'},
-		{"key-file",	required_argument,	0, 'k'},
+		{"key",			required_argument,	0, 'k'},
 		{"linkable",	no_argument,		0, 'l'},
 		{"sigrl-file",	required_argument,	0, 'r'},
 		{"spid",		required_argument,	0, 's'},
@@ -116,7 +123,7 @@ int main (int argc, char *argv[])
 		int opt_index= 0;
 		off_t fsz;
 
-		c= getopt_long(argc, argv, "2S:hk:lr:s:v", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "S:de:hk:lr:s:v", long_opt, &opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
@@ -130,8 +137,26 @@ int main (int argc, char *argv[])
 			++flag_spid;
 
 			break;
-		case 'k':
+		case 'K':
 			if ( ! key_load_file(&config.service_private_key, optarg, KEY_PRIVATE) ) {
+				crypto_perror("key_load_file");
+				fprintf(stderr, "%s: could not load EC private key\n", optarg);
+				exit(1);
+			}
+			break;
+		case 'd':
+			config.debug= 1;
+			break;
+		case 'e':
+			if ( ! key_load(&config.session_private_key, optarg, KEY_PRIVATE) ) {
+				crypto_perror("key_load");
+				fprintf(stderr, "%s: could not load session key\n", optarg);
+				exit(1);
+			}
+			break;
+		case 'k':
+			if ( ! key_load(&config.service_private_key, optarg, KEY_PRIVATE) ) {
+				crypto_perror("key_load");
 				fprintf(stderr, "%s: could not load EC private key\n", optarg);
 				exit(1);
 			}
@@ -182,11 +207,20 @@ int main (int argc, char *argv[])
 	 */
 
 	if ( config.service_private_key == NULL ) {
+		if ( config.debug ) {
+			fprintf(stderr, "Using default private key\n");
+		}
 		config.service_private_key= key_private_from_bytes(def_service_private_key);
 		if ( config.service_private_key == NULL ) {
-			crypto_perror("key_private_from_sgx_ec256");
+			crypto_perror("key_private_from_bytes");
 			exit(1);
 		}
+
+	}
+	if ( config.debug ) {
+		fprintf(stderr, "+++ using private key:\n");
+		PEM_write_PrivateKey(stderr, config.service_private_key, NULL,
+			NULL, 0, 0, NULL);
 	}
 
 	if ( ! flag_spid ) {
@@ -225,9 +259,11 @@ int main (int argc, char *argv[])
         divider();
 
 	/* Read message 3 */
+
 	process_msg3(&msg4, &config);
 
 	crypto_destroy();
+
 	return 0;
 }
 
@@ -292,6 +328,7 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 	size_t sz;
 	char *buffer= NULL;
 	unsigned char smk[16], gb_ga[128];
+	unsigned char digest[32], r[32], s[32];
 	EVP_PKEY *Gb;
 	mode_t fmode;
 	int rv;
@@ -326,12 +363,20 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 		divider();
 	}
 
-	/* Generate our session key */
+	if ( config->session_private_key == NULL ) {
+		/* Generate our session key */
 
-	Gb= key_generate();
-	if ( Gb == NULL ) {
-		fprintf(stderr, "Could not create a session key\n");
-		return 0;
+		if ( config->debug ) fprintf(stderr, "+++ generating session key Gb\n");
+		Gb= key_generate();
+		if ( Gb == NULL ) {
+			fprintf(stderr, "Could not create a session key\n");
+			return 0;
+		}
+	} else {
+		/* Use a fixed session key for testing purposes */
+		Gb= config->session_private_key;
+
+		if ( config->debug ) fprintf(stderr, "+++ using stated session key Gb\n");
 	}
 
 	/*
@@ -340,9 +385,16 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 	 * prevent trivial inspection.
 	 */
 
-	if ( ! derive_kdk(Gb, config->kdk, msg1) ) {
+	fprintf(stderr, "+++ deriving KDK\n");
+	if ( ! derive_kdk(Gb, config->kdk, msg1, config) ) {
 		fprintf(stderr, "Could not derive the KDK\n");
 		return 0;
+	}
+
+	if ( config->debug ) {
+		fprintf(stderr, "+++ KDK = ");
+		print_hexstring(stderr, config->kdk, 16);
+		fprintf(stderr, "\n");
 	}
 
 	/*
@@ -350,13 +402,20 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 	 * SMK = AES_CMAC(KDK, 0x01 || "SMK" || 0x00 || 0x80 || 0x00) 
 	 */
 
+	fprintf(stderr, "+++ deriving SMK\n");
 	cmac128(config->kdk, (unsigned char *)("\x01SMK\x00\x80\x00"), 7, smk);
+
+	if ( config->debug ) {
+		fprintf(stderr, "+++ SMK = ");
+		print_hexstring(stderr, smk, 16);
+		fprintf(stderr, "\n");
+	}
 
 	/*
 	 * Build message 2
 	 *
 	 * A || CMACsmk(A) || SigRL
-	 * (148 + 16 + SigRL_length bytes)
+	 * (148 + 16 + SigRL_length bytes = 164 + SigRL_length bytes)
 	 *
 	 * where:
 	 *
@@ -403,8 +462,27 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 	memcpy(gb_ga, &msg2->g_b, 64);
 	memcpy(&gb_ga[64], &msg1->g_a, 64);
 
-	ecdsa_sign(gb_ga, 128, config->service_private_key, 
-		(unsigned char *) &msg2->sign_gb_ga);
+	if ( config->debug ) {
+		fprintf(stderr, "+++ GbGa = ");
+		print_hexstring(stderr, gb_ga, 128);
+		fprintf(stderr, "\n");
+	}
+
+	ecdsa_sign(gb_ga, 128, config->service_private_key, r, s, digest);
+	reverse_bytes(&msg2->sign_gb_ga.x, r, 32);
+	reverse_bytes(&msg2->sign_gb_ga.y, s, 32);
+
+	if ( config->debug ) {
+		fprintf(stderr, "+++ sha256(GbGa) = ");
+		print_hexstring(stderr, digest, 32);
+		fprintf(stderr, "\n");
+		fprintf(stderr, "+++ r = ");
+		print_hexstring(stderr, r, 32);
+		fprintf(stderr, "\n");
+		fprintf(stderr, "+++ s = ");
+		print_hexstring(stderr, s, 32);
+		fprintf(stderr, "\n");
+	}
 
 	/* The "A" component is conveniently at the start of sgx_ra_msg2_t */
 
@@ -435,7 +513,8 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 	return 1;
 }
 
-int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1)
+int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
+	config_t *config)
 {
 	unsigned char *Gab_x;
 	size_t slen;
@@ -445,9 +524,9 @@ int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1)
 	memset(cmackey, 0, 16);
 
 	/*
-     * Compute the shared secret using the peer's public key and a generated
-     * public/private key.
-     */
+	 * Compute the shared secret using the peer's public key and a generated
+	 * public/private key.
+	 */
 
 	Ga= key_from_sgx_ec256(&msg1->g_a);
 	if ( Ga == NULL ) {
@@ -465,7 +544,19 @@ int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1)
 	/* We need it in little endian order, so reverse the bytes. */
 	/* We'll do this in-place. */
 
+	if ( config->debug ) {
+		fprintf(stderr, "+++ shared secret= ");
+		print_hexstring(stderr, Gab_x, slen);
+		fprintf(stderr, "\n");
+	}
+
 	reverse_bytes(Gab_x, Gab_x, slen);
+
+	if ( config->debug ) {
+		fprintf(stderr, "+++ reversed     = ");
+		print_hexstring(stderr, Gab_x, slen);
+		fprintf(stderr, "\n");
+	}
 
 	/* Now hash that to get our KDK (Key Definition Key) */
 
@@ -482,13 +573,17 @@ void usage ()
 {
 	fprintf(stderr, "usage: sp [ options ]\n\n");
 	fprintf(stderr, "Required:\n");
-	fprintf(stderr, "  -P, --key-file=FILE      The private key file in PEM format\n");
 	fprintf(stderr, "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte\n");
 	fprintf(stderr, "                              ASCII hex string\n");
 	fprintf(stderr, "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string\n");
 	fprintf(stderr, "\nOne of --spid OR --spid-file is required\n\n");
 	fprintf(stderr, "\nOne of --msg2 OR --msg4 is required\n\n");
 	fprintf(stderr, "Optional:\n");
+	fprintf(stderr, "  -K, --key-file=FILE      The private key file in PEM format\n");
+	fprintf(stderr, "  -d, --debug              Print debug information\n");
+	fprintf(stderr, "  -e, --session-key=HEXSTRING\n");
+	fprintf(stderr, "                           Use HEXSTRING for the server's private sesion key\n");
+	fprintf(stderr, "  -k, --key=HEXSTRING      The private key as a hex string\n");
 	fprintf(stderr, "  -l, --linkable           Request a linkable quote (default: unlinkable)\n");
 	fprintf(stderr, "  -r, --sigrl-file=FILE    Read the revocation list from FILE\n");
 	exit(1);
