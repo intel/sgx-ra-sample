@@ -518,7 +518,9 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		divider();
 	}
 
+	dividerWithText("Copy/Paste Msg3 Below to SP");
 	send_msg(msg3, msg3_sz);
+	divider();
 
 	if ( msg3 ) {
 		free(msg3);
