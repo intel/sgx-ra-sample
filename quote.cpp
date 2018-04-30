@@ -366,6 +366,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	sgx_ra_msg1_t msg1;
 	sgx_ra_msg2_t *msg2 = NULL;
 	sgx_ra_msg3_t *msg3 = NULL;
+        uint32_t msg0_extended_epid_group_id = 0;
 
 	uint32_t msg2_sz;
 	uint32_t msg3_sz;
@@ -403,6 +404,29 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		fprintf(stderr, "sgx_ra_init: %08x\n", sgxrv);
 		return 1;
 	}
+
+        /* Generate msg0 */
+        status = sgx_get_extended_epid_group_id(&msg0_extended_epid_group_id);
+	if ( status != SGX_SUCCESS ) {
+		fprintf(stderr, "sgx_get_extended_epid_group_id: %08x\n", status);
+		return 1;
+	}
+        if ( verbose ) {
+                dividerWithText("Msg0 Details");
+                fprintf(stderr,   "Extended Epid Group ID: ");
+                print_hexstring(stderr, &msg0_extended_epid_group_id, sizeof(uint32_t) );
+                fprintf(stderr, "\n");
+                divider();
+        }
+ 
+	/* Send msg0 */
+
+	dividerWithText("Copy/Paste Msg0 Below to SP");
+	send_msg(&msg0_extended_epid_group_id, sizeof(msg0_extended_epid_group_id));
+	divider();
+
+        /* sleep a few seconds for user to first grab msg0, before shoing msg1 */
+        sleep(5); 
 
 	/* Generate msg1 */
 

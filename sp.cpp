@@ -86,6 +86,7 @@ typedef struct config_struct {
 void usage();
 int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
 	config_t *config);
+int process_msg0 ();
 int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config);
 int process_msg3 (ra_msg4_t *msg2, config_t *config);
 
@@ -232,6 +233,14 @@ int main (int argc, char *argv[])
 
 	crypto_init();
 
+        /* Read and process msg0 */
+
+	if ( ! process_msg0() ) {
+		fprintf(stderr, "error processing msg0\n");
+		crypto_destroy();
+		return 1;
+        }
+
 	/* Read message 1 and generate message 2 */
 
 	if ( ! process_msg1(&msg2, &config) ) {
@@ -334,6 +343,47 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 		divider();
 	}
 }
+
+int process_msg0 ()
+{
+	int rv;
+        int ret = 0;
+        uint32_t * msg0_extended_epid_group_id = NULL;
+
+	/*
+	 * Read our incoming message. We're using base16 encoding/hex strings
+	 * so we should end up with sizeof(msg)*2 bytes.
+	 */
+
+	fprintf(stderr, "Waiting for msg0 on stdin\n");
+
+	rv= read_msg((void **) &msg0_extended_epid_group_id, NULL);
+	if ( rv == -1 ) {
+		fprintf(stderr, "system error reading msg0\n");
+		return 0;
+	} 
+
+        /* According to the Intel SGX Developer Reference
+         * "Currently, the only valid extended Intel(R) EPID group ID is zero. The
+         * server should verify this value is zero. If the Intel(R) EPID group ID is not
+         * zero, the server aborts remote attestation"
+         */
+
+        if ( *msg0_extended_epid_group_id != 0 ) {
+            fprintf(stderr, "msg0 Extended Epid Group ID is not zero.  Exiting.\n");
+            ret = 0;
+        }
+        else ret = 1;
+
+        /* cleanup allocations from read_msg */
+        if ( msg0_extended_epid_group_id ) {
+            free(msg0_extended_epid_group_id);
+            msg0_extended_epid_group_id = NULL;
+        }
+
+        return ret;
+}
+
 
 int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 {
