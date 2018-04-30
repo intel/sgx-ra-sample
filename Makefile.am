@@ -60,23 +60,23 @@ CLEANFILES = EnclaveQuote_u.c EnclaveQuote_u.h EnclaveQuote.edl EnclaveQuote.sig
 
 ## The build target
 
-bin_PROGRAMS = quote sp
+bin_PROGRAMS = quote sp 
 
 ## You can't use $(wildcard ...) with automake so all source files 
 ## have to be explicitly listed.
 
-common = byteorder.c crypto.c hexutil.c fileio.c base64.c msgio.c
+common = byteorder.c common.cpp crypto.c hexutil.c fileio.c base64.c msgio.c
 
 ## quote 
 
-quote_SOURCES = quote.cpp common.cpp sgx_detect_linux.c sgx_stub.c $(common)
+quote_SOURCES = quote.cpp sgx_detect_linux.c sgx_stub.c $(common)
 nodist_quote_SOURCES = EnclaveQuote_u.c EnclaveQuote_u.h
 EXTRA_quote_DEPENDENCIES = EnclaveQuote.signed.so
 BUILT_SOURCES = EnclaveQuote_u.c EnclaveQuote_u.h
 
 ## sp
 
-sp_SOURCES = sp.cpp common.cpp $(common)
+sp_SOURCES = sp.cpp $(common)
 
 ## Library flags. At minimum, an Intel SGX application will need:
 ##

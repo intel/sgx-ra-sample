@@ -103,6 +103,7 @@ int main (int argc, char *argv[])
 
 	static struct option long_opt[] =
 	{
+		{"cert-file",	required_argument,	0, 'C'},
 		{"key-file",	required_argument,	0, 'K'},
 		{"spid-file",	required_argument,	0, 'S'},
 		{"debug",		required_argument,	0, 'd'},
@@ -123,7 +124,7 @@ int main (int argc, char *argv[])
 		int opt_index= 0;
 		off_t fsz;
 
-		c= getopt_long(argc, argv, "S:de:hk:lr:s:v", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "C:K:S:de:hk:lr:s:v", long_opt, &opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
@@ -587,6 +588,7 @@ void usage ()
 {
 	fprintf(stderr, "usage: sp [ options ]\n\n");
 	fprintf(stderr, "Required:\n");
+	fprintf(stderr, "  -C  --cert-file=FILE     Specify the certificate to use when contacting IAS\n");
 	fprintf(stderr, "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte\n");
 	fprintf(stderr, "                              ASCII hex string\n");
 	fprintf(stderr, "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string\n");
