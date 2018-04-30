@@ -375,7 +375,6 @@ cleanup:
 	return pkey;
 }
 
-/* Generate a new EC key. */
 
 EVP_PKEY *key_generate()
 {
