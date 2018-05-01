@@ -86,8 +86,7 @@ typedef struct config_struct {
 void usage();
 int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
 	config_t *config);
-int process_msg0 ();
-int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config);
+int process_msg01 (sgx_ra_msg2_t *msg2, config_t *config);
 int process_msg3 (ra_msg4_t *msg2, config_t *config);
 
 int main (int argc, char *argv[])
@@ -234,17 +233,9 @@ int main (int argc, char *argv[])
 
 	crypto_init();
 
-        /* Read and process msg0 */
+	/* Read message 0 and 1, then generate message 2 */
 
-	if ( ! process_msg0() ) {
-		fprintf(stderr, "error processing msg0\n");
-		crypto_destroy();
-		return 1;
-        }
-
-	/* Read message 1 and generate message 2 */
-
-	if ( ! process_msg1(&msg2, &config) ) {
+	if ( ! process_msg01(&msg2, &config) ) {
 		fprintf(stderr, "error processing msg1\n");
 		crypto_destroy();
 		return 1;
@@ -345,49 +336,17 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 	}
 }
 
-int process_msg0 ()
+/*
+ * Read and process message 0 and message 1. These messages are sent by
+ * the client concatenated together for efficiency (msg0||msg1).
+ */
+
+int process_msg01 (sgx_ra_msg2_t *msg2, config_t *config)
 {
-	int rv;
-        int ret = 0;
-        uint32_t * msg0_extended_epid_group_id = NULL;
-
-	/*
-	 * Read our incoming message. We're using base16 encoding/hex strings
-	 * so we should end up with sizeof(msg)*2 bytes.
-	 */
-
-	fprintf(stderr, "Waiting for msg0 on stdin\n");
-
-	rv= read_msg((void **) &msg0_extended_epid_group_id, NULL);
-	if ( rv == -1 ) {
-		fprintf(stderr, "system error reading msg0\n");
-		return 0;
-	} 
-
-        /* According to the Intel SGX Developer Reference
-         * "Currently, the only valid extended Intel(R) EPID group ID is zero. The
-         * server should verify this value is zero. If the Intel(R) EPID group ID is not
-         * zero, the server aborts remote attestation"
-         */
-
-        if ( *msg0_extended_epid_group_id != 0 ) {
-            fprintf(stderr, "msg0 Extended Epid Group ID is not zero.  Exiting.\n");
-            ret = 0;
-        }
-        else ret = 1;
-
-        /* cleanup allocations from read_msg */
-        if ( msg0_extended_epid_group_id ) {
-            free(msg0_extended_epid_group_id);
-            msg0_extended_epid_group_id = NULL;
-        }
-
-        return ret;
-}
-
-
-int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
-{
+	struct msg01_struct {
+		uint32_t msg0_extended_epid_group_id;
+		sgx_ra_msg1_t msg1;
+	} *msg01;
 	sgx_ra_msg1_t *msg1;
 	size_t blen= 0;
 	size_t sz;
@@ -405,16 +364,37 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 	 * so we should end up with sizeof(msg)*2 bytes.
 	 */
 
-	fprintf(stderr, "Waiting for msg1 on stdin\n");
+	fprintf(stderr, "Waiting for msg0||msg1 on stdin\n");
 
-	rv= read_msg((void **) &msg1, NULL);
+	rv= read_msg((void **) &msg01, NULL);
 	if ( rv == -1 ) {
-		fprintf(stderr, "system error reading msg1\n");
+		fprintf(stderr, "system error reading msg0||msg1\n");
 		return 0;
 	} else if ( rv == 0 ) {
-		fprintf(stderr, "protocol error reading msg1\n");
+		fprintf(stderr, "protocol error reading msg0||msg1\n");
 		return 0;
 	}
+
+	if ( config->verbose ) {
+		dividerWithText("Msg0 Details");
+		fprintf(stderr, "msg0.extended_epid_group_id = ");
+		fprintf(stderr, "%u\n", msg01->msg0_extended_epid_group_id);
+		divider();
+	}
+
+	/* According to the Intel SGX Developer Reference
+	 * "Currently, the only valid extended Intel(R) EPID group ID is zero. The
+	 * server should verify this value is zero. If the Intel(R) EPID group ID 
+	 * is not zero, the server aborts remote attestation"
+	 */
+
+	if ( msg01->msg0_extended_epid_group_id != 0 ) {
+		fprintf(stderr, "msg0 Extended Epid Group ID is not zero.  Exiting.\n");
+		free(msg01);
+		return 0;
+	}
+
+	msg1= &msg01->msg1;	
 
 	if ( config->verbose ) {
 		dividerWithText("Msg1 Details");
@@ -435,6 +415,7 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 		Gb= key_generate();
 		if ( Gb == NULL ) {
 			fprintf(stderr, "Could not create a session key\n");
+			free(msg01);
 			return 0;
 		}
 	} else {
@@ -453,6 +434,7 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 	fprintf(stderr, "+++ deriving KDK\n");
 	if ( ! derive_kdk(Gb, config->kdk, msg1, config) ) {
 		fprintf(stderr, "Could not derive the KDK\n");
+		free(msg01);
 		return 0;
 	}
 
@@ -574,6 +556,8 @@ int process_msg1 (sgx_ra_msg2_t *msg2, config_t *config)
 		fprintf(stderr, "\n");
 		divider();
 	}
+
+	free(msg01);
 
 	return 1;
 }
