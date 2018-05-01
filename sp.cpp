@@ -322,7 +322,7 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 	/* Encode the report body as base64 */
 
 	b64quote= base64_encode((unsigned char *) &msg3->quote, quote_sz);
-	free(quote);
+	free(b64quote);
 
 	if ( config->verbose ) {
 		divider();
