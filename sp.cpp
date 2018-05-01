@@ -311,7 +311,6 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 	}
 
 	/*
-	 * For some reason, msg3 doesn't include a quote_size parameter. :(
 	 * The quote size will be the total msg3 size - sizeof(sgx_ra_msg3_t)
 	 * since msg3.quote is a flexible array member.
 	 *
@@ -324,18 +323,39 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 	b64quote= base64_encode((unsigned char *) &msg3->quote, quote_sz);
 
 	if ( config->verbose ) {
+		sgx_quote_t *q= (sgx_quote_t *) msg3->quote;
+
 		dividerWithText("Msg3 Details");
-		fprintf(stderr,   "msg3.mac         = ");
+		fprintf(stderr,   "msg3.mac                 = ");
 		print_hexstring(stderr, &msg3->mac, sizeof(msg3->mac));
-		fprintf(stderr, "\nmsg3.g_a.gx      = ");
+		fprintf(stderr, "\nmsg3.g_a.gx              = ");
 		print_hexstring(stderr, &msg3->g_a.gx, sizeof(msg3->g_a.gx));
-		fprintf(stderr, "\nmsg3.g_a.gy      = ");
+		fprintf(stderr, "\nmsg3.g_a.gy              = ");
 		print_hexstring(stderr, &msg3->g_a.gy, sizeof(msg3->g_a.gy));
-		fprintf(stderr, "\nmsg3.ps_sec_prop = ");
+		fprintf(stderr, "\nmsg3.ps_sec_prop         = ");
 		print_hexstring(stderr, &msg3->ps_sec_prop, sizeof(msg3->ps_sec_prop));
-		fprintf(stderr, "\nmsg3.quote       = ");
-		print_hexstring(stderr, &msg3->quote, quote_sz);
+		fprintf(stderr, "\nmsg3.quote.version       = ");
+		print_hexstring(stderr, &q->version, sizeof(uint16_t));
+		fprintf(stderr, "\nmsg3.quote.sign_type     = ");
+		print_hexstring(stderr, &q->sign_type, sizeof(uint16_t));
+		fprintf(stderr, "\nmsg3.quote.epd_group_id  = ");
+		print_hexstring(stderr, &q->epid_group_id, sizeof(sgx_epid_group_id_t));
+		fprintf(stderr, "\nmsg3.quote.qe_svn        = ");
+		print_hexstring(stderr, &q->qe_svn, sizeof(sgx_isv_svn_t));
+		fprintf(stderr, "\nmsg3.quote.pce_svn       = ");
+		print_hexstring(stderr, &q->pce_svn, sizeof(sgx_isv_svn_t));
+		fprintf(stderr, "\nmsg3.quote.xeid          = ");
+		print_hexstring(stderr, &q->xeid, sizeof(uint32_t));
+		fprintf(stderr, "\nmsg3.quote.basename      = ");
+		print_hexstring(stderr, &q->basename, sizeof(sgx_basename_t));
+		fprintf(stderr, "\nmsg3.quote.report_body   = ");
+		print_hexstring(stderr, &q->report_body, sizeof(sgx_report_body_t));
+		fprintf(stderr, "\nmsg3.quote.signature_len = ");
+		print_hexstring(stderr, &q->signature_len, sizeof(uint32_t));
+		fprintf(stderr, "\nmsg3.quote.signature     = ");
+		print_hexstring(stderr, &q->signature, q->signature_len);
 		fprintf(stderr, "\n");
+
 		dividerWithText("Enclave Quote (base64)");
 		fputs((char *)b64quote, stderr);
 		fprintf(stderr, "\n");
