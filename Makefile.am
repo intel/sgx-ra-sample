@@ -76,7 +76,7 @@ BUILT_SOURCES = EnclaveQuote_u.c EnclaveQuote_u.h
 
 ## sp
 
-sp_SOURCES = sp.cpp $(common)
+sp_SOURCES = sp.cpp iasrequest.c $(common)
 
 ## Library flags. At minimum, an Intel SGX application will need:
 ##
