@@ -366,11 +366,9 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	sgx_ra_msg1_t msg1;
 	sgx_ra_msg2_t *msg2 = NULL;
 	sgx_ra_msg3_t *msg3 = NULL;
-        uint32_t msg0_extended_epid_group_id = 0;
-
+	uint32_t msg0_extended_epid_group_id = 0;
 	uint32_t msg2_sz;
 	uint32_t msg3_sz;
-
 	uint32_t flags= config->flags;
 	sgx_ra_context_t ra_ctx= 0xdeadbeef;
 	char *sigrl;
@@ -378,6 +376,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	int rv;
 	char verbose= OPT_ISSET(flags, OPT_VERBOSE);
 	char debug= OPT_ISSET(flags, OPT_DEBUG);
+
 	/*
 	 * WARNING! Normally, the public key would be hardcoded into the
 	 * enclave, not passed in as a parameter. Hardcoding prevents
@@ -405,29 +404,22 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		return 1;
 	}
 
-        /* Generate msg0 */
-        status = sgx_get_extended_epid_group_id(&msg0_extended_epid_group_id);
+	/* Generate msg0 */
+
+	status = sgx_get_extended_epid_group_id(&msg0_extended_epid_group_id);
 	if ( status != SGX_SUCCESS ) {
 		fprintf(stderr, "sgx_get_extended_epid_group_id: %08x\n", status);
 		return 1;
 	}
-        if ( verbose ) {
-                dividerWithText("Msg0 Details");
-                fprintf(stderr,   "Extended Epid Group ID: ");
-                print_hexstring(stderr, &msg0_extended_epid_group_id, sizeof(uint32_t) );
-                fprintf(stderr, "\n");
-                divider();
-        }
+	if ( verbose ) {
+		dividerWithText("Msg0 Details");
+		fprintf(stderr,   "Extended Epid Group ID: ");
+		print_hexstring(stderr, &msg0_extended_epid_group_id,
+			 sizeof(uint32_t));
+		fprintf(stderr, "\n");
+		divider();
+	}
  
-	/* Send msg0 */
-
-	dividerWithText("Copy/Paste Msg0 Below to SP");
-	send_msg(&msg0_extended_epid_group_id, sizeof(msg0_extended_epid_group_id));
-	divider();
-
-        /* sleep a few seconds for user to first grab msg0, before shoing msg1 */
-        sleep(5); 
-
 	/* Generate msg1 */
 
 	status= sgx_ra_get_msg1(ra_ctx, eid, sgx_ra_get_ga, &msg1);
@@ -448,9 +440,21 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		divider();
 	}
 
-	/* Send msg1 */
+	/*
+	 * Send msg0 and msg1 concatenated together (msg0||msg1). We do
+	 * this for efficiency, to eliminate an additional round-trip
+	 * between client and server. The assumption here is that most
+	 * clients have the correct extended_epid_group_id so it's
+	 * a waste to send msg0 separately when the probability of a
+	 * rejection is astronomically small.
+	 *
+	 * If it /is/ rejected, then the client has only wasted a tiny
+	 * amount of time generating keys that won't be used.
+	 */
 
-	dividerWithText("Copy/Paste Msg1 Below to SP");
+	dividerWithText("Copy/Paste Msg0||Msg1 Below to SP");
+	send_msg_partial(&msg0_extended_epid_group_id,
+		sizeof(msg0_extended_epid_group_id));
 	send_msg(&msg1, sizeof(msg1));
 	divider();
 
