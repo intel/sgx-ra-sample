@@ -322,10 +322,9 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 	/* Encode the report body as base64 */
 
 	b64quote= base64_encode((unsigned char *) &msg3->quote, quote_sz);
-	free(b64quote);
 
 	if ( config->verbose ) {
-		divider();
+		dividerWithText("Msg3 Details");
 		fprintf(stderr,   "msg3.mac         = ");
 		print_hexstring(stderr, &msg3->mac, sizeof(msg3->mac));
 		fprintf(stderr, "\nmsg3.g_a.gx      = ");
@@ -334,9 +333,18 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 		print_hexstring(stderr, &msg3->g_a.gy, sizeof(msg3->g_a.gy));
 		fprintf(stderr, "\nmsg3.ps_sec_prop = ");
 		print_hexstring(stderr, &msg3->ps_sec_prop, sizeof(msg3->ps_sec_prop));
-		fprintf(stderr, "\nmsg3.quote       = %s\n", b64quote);
+		fprintf(stderr, "\nmsg3.quote       = ");
+		print_hexstring(stderr, &msg3->quote, quote_sz);
+		fprintf(stderr, "\n");
+		dividerWithText("Enclave Quote (base64)");
+		fputs((char *)b64quote, stderr);
+		fprintf(stderr, "\n");
 		divider();
 	}
+
+	free(b64quote);
+
+	return 1;
 }
 
 /*
