@@ -63,6 +63,7 @@ using namespace std;
 #include "byteorder.h"
 #include "msgio.h"
 #include "protocol.h"
+#include "base64.h"
 
 static const unsigned char def_service_private_key[32] = {
 	0x90, 0xe7, 0x6c, 0xbb, 0x2d, 0x52, 0xa1, 0xce,
@@ -277,6 +278,7 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 	uint32_t quote_sz;
 	char *buffer= NULL;
 	unsigned char smk[16], gb_ga[128];
+	unsigned char *b64quote;
 
 	/*
 	 * Read our incoming message. We're using base16 encoding/hex strings
@@ -286,7 +288,14 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 	fprintf(stderr, "Waiting for msg3 on stdin\n");
 
 	/*
-	 * For some reason, msg3 doesn't include a quote_size parameter. :(
+	 * Read message 3
+	 *
+	 * CMACsmk(M) || M
+	 *
+	 * where
+	 *
+	 * M = ga || PS_SECURITY_PROPERTY || QUOTE
+	 *
 	 */
 
 	rv= read_msg((void **) &msg3, &sz);
@@ -302,22 +311,18 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 	}
 
 	/*
-	 * quote size will be the total msg3 size - sizeof(sgx_ra_msg3_t)
+	 * For some reason, msg3 doesn't include a quote_size parameter. :(
+	 * The quote size will be the total msg3 size - sizeof(sgx_ra_msg3_t)
 	 * since msg3.quote is a flexible array member.
 	 *
 	 * Total message size is sz/2 since the income message is in base16.
 	 */
 	quote_sz= (sz/2)-sizeof(sgx_ra_msg3_t);
 
-	/*
-	 * Read message 3
-	 *
-	 * CMACsmk(M) || M
-	 *
-	 * where
-	 *
-	 * M = ga || PS_SECURITY_PROPERTY || QUOTE
-	 */
+	/* Encode the report body as base64 */
+
+	b64quote= base64_encode((unsigned char *) &msg3->quote, quote_sz);
+	free(quote);
 
 	if ( config->verbose ) {
 		divider();
@@ -329,9 +334,7 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 		print_hexstring(stderr, &msg3->g_a.gy, sizeof(msg3->g_a.gy));
 		fprintf(stderr, "\nmsg3.ps_sec_prop = ");
 		print_hexstring(stderr, &msg3->ps_sec_prop, sizeof(msg3->ps_sec_prop));
-		fprintf(stderr, "\nmsg3.quote       = ");
-		print_hexstring(stderr, &msg3->quote, quote_sz);
-		fprintf(stderr, "\n");
+		fprintf(stderr, "\nmsg3.quote       = %s\n", b64quote);
 		divider();
 	}
 }
