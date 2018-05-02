@@ -76,7 +76,7 @@ BUILT_SOURCES = EnclaveQuote_u.c EnclaveQuote_u.h
 
 ## sp
 
-sp_SOURCES = sp.cpp iasrequest.c $(common)
+sp_SOURCES = sp.cpp agent_wget.cpp iasrequest.cpp $(common)
 
 ## Library flags. At minimum, an Intel SGX application will need:
 ##
@@ -93,5 +93,5 @@ sp_SOURCES = sp.cpp iasrequest.c $(common)
 quote_LDADD=-l$(SGX_URTS_LIB) -lsgx_ukey_exchange -l$(SGX_UAE_SERVICE_LIB) \
 	-l:libcrypto.a -l:libsgx_capable.a -lpthread -ldl
 
-sp_LDADD=-l:libcrypto.a -lpthread -ldl 
+sp_LDADD=-lcurl -l:libcrypto.a -lpthread -ldl 
 

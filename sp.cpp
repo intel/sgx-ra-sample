@@ -31,7 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-using namespace std;
 
 #ifdef _WIN32
 #pragma comment(lib, "crypt32.lib")
@@ -43,7 +42,6 @@ using namespace std;
 #include <limits.h>
 #include <stdio.h>
 #include <sys/stat.h>
-#include <string>
 #include <string.h>
 #include <sys/types.h>
 #ifdef _WIN32
@@ -64,6 +62,12 @@ using namespace std;
 #include "msgio.h"
 #include "protocol.h"
 #include "base64.h"
+#include "iasrequest.h"
+
+using namespace std;
+
+#include <map>
+#include <string>
 
 static const unsigned char def_service_private_key[32] = {
 	0x90, 0xe7, 0x6c, 0xbb, 0x2d, 0x52, 0xa1, 0xce,
@@ -79,26 +83,33 @@ typedef struct config_struct {
 	EVP_PKEY *session_private_key;
 	char verbose;
 	char debug;
-	uint32_t sig_rl_size;
-	unsigned char *sig_rl;
 	unsigned char kdk[16];
+	char *cert_file;
+	IAS_Connection *ias;
 } config_t;
 
 void usage();
 int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
 	config_t *config);
-int process_msg01 (sgx_ra_msg2_t *msg2, config_t *config);
+int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config);
 int process_msg3 (ra_msg4_t *msg2, config_t *config);
+int get_sigrl (config_t *config, sgx_epid_group_id_t gid, char **sigrl,
+	uint32_t *msg2);
+int get_attestation_report(config_t *config, const char *b64quote,
+	sgx_ps_sec_prop_desc_t sec_prop);
 
 int main (int argc, char *argv[])
 {
 	u_int32_t i;
 	char flag_spid= 0;
 	char flag_pubkey= 0;
+	char flag_cert= 0;
+	char *sigrl= NULL;
 	config_t config;
 	sgx_ra_msg2_t msg2;
 	ra_msg4_t msg4;
 	uint32_t msg2_sz;
+	int oops;
 
 	memset(&config, 0, sizeof(config));
 
@@ -112,7 +123,6 @@ int main (int argc, char *argv[])
 		{"help",		no_argument, 		0, 'h'},
 		{"key",			required_argument,	0, 'k'},
 		{"linkable",	no_argument,		0, 'l'},
-		{"sigrl-file",	required_argument,	0, 'r'},
 		{"spid",		required_argument,	0, 's'},
 		{"verbose",		no_argument,		0, 'v'},
 		{ 0, 0, 0, 0 }
@@ -130,6 +140,15 @@ int main (int argc, char *argv[])
 
 		switch(c) {
 		case 0:
+			break;
+		case 'C':
+			config.cert_file= strdup(optarg);
+			if ( config.cert_file == NULL ) {
+				perror("strdup");
+				exit(1);
+			}
+			++flag_cert;
+
 			break;
 		case 'S':
 			if ( ! from_hexstring_file((unsigned char *) &config.spid, optarg, 16)) {
@@ -165,21 +184,6 @@ int main (int argc, char *argv[])
 			break;
 		case 'l':
 			config.quote_type= SGX_LINKABLE_SIGNATURE;
-			break;
-		case 'r':
-			if ( ! from_file(NULL, optarg, &fsz) ) {
-				fprintf(stderr, "can't read sigrl\n");
-				exit(1);
-			}
-
-			config.sig_rl= (unsigned char *) malloc(fsz);
-
-			if ( ! from_file(config.sig_rl, optarg, &fsz) ) {
-				fprintf(stderr, "can't read sigrl\n");
-				exit(1);
-			}
-			config.sig_rl_size= (uint32_t) fsz;
-
 			break;
 		case 's':
 			if ( strlen(optarg) < 32 ) {
@@ -219,6 +223,7 @@ int main (int argc, char *argv[])
 		}
 
 	}
+
 	if ( config.debug ) {
 		fprintf(stderr, "+++ using private key:\n");
 		PEM_write_PrivateKey(stderr, config.service_private_key, NULL,
@@ -230,13 +235,33 @@ int main (int argc, char *argv[])
 		exit(1);
 	}
 
-	/* Initialize OpenSSL */
+	if ( ! flag_cert ) {
+		fprintf(stderr, "--cert-file is required\n");
+		exit(1);
+	}
+
+	fprintf(stderr, "Using cert file %s\n", config.cert_file);
+
+	/* Initialize out support libraries */
 
 	crypto_init();
 
+	/* Initialize our IAS request object */
+
+	try {
+		oops= 0;
+		config.ias= new IAS_Connection(IAS_SERVER_DEVELOPMENT, 0);
+		config.ias->client_cert(config.cert_file, "PEM");
+	}
+	catch (int e) {
+		oops= 1;
+		fprintf(stderr, "exception while creating IAS request object\n");
+	}
+	if ( oops ) exit(1);
+
 	/* Read message 0 and 1, then generate message 2 */
 
-	if ( ! process_msg01(&msg2, &config) ) {
+	if ( ! process_msg01(&msg2, &sigrl, &config) ) {
 		fprintf(stderr, "error processing msg1\n");
 		crypto_destroy();
 		return 1;
@@ -256,7 +281,7 @@ int main (int argc, char *argv[])
 	dividerWithText("Copy/Paste Msg2 Below to Client");
 
 	send_msg_partial((void *) &msg2, sizeof(sgx_ra_msg2_t));
-	send_msg(config.sig_rl, config.sig_rl_size);
+	send_msg(msg2.sig_rl, msg2.sig_rl_size);
 
 	divider();
 
@@ -278,7 +303,7 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 	uint32_t quote_sz;
 	char *buffer= NULL;
 	unsigned char smk[16], gb_ga[128];
-	unsigned char *b64quote;
+	char *b64quote;
 
 	/*
 	 * Read our incoming message. We're using base16 encoding/hex strings
@@ -320,7 +345,7 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 
 	/* Encode the report body as base64 */
 
-	b64quote= base64_encode((unsigned char *) &msg3->quote, quote_sz);
+	b64quote= base64_encode((char *) &msg3->quote, quote_sz);
 
 	if ( config->verbose ) {
 		sgx_quote_t *q= (sgx_quote_t *) msg3->quote;
@@ -357,10 +382,12 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 		fprintf(stderr, "\n");
 
 		dividerWithText("Enclave Quote (base64)");
-		fputs((char *)b64quote, stderr);
+		fputs(b64quote, stderr);
 		fprintf(stderr, "\n");
 		divider();
 	}
+
+	get_attestation_report(config, b64quote, msg3->ps_sec_prop);
 
 	free(b64quote);
 
@@ -372,7 +399,7 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
  * the client concatenated together for efficiency (msg0||msg1).
  */
 
-int process_msg01 (sgx_ra_msg2_t *msg2, config_t *config)
+int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 {
 	struct msg01_struct {
 		uint32_t msg0_extended_epid_group_id;
@@ -534,8 +561,11 @@ int process_msg01 (sgx_ra_msg2_t *msg2, config_t *config)
 	msg2->quote_type= config->quote_type;
 	msg2->kdf_id= 1;
 
-	/* For now */
-	msg2->sig_rl_size= config->sig_rl_size;
+	/* Get the sigrl */
+
+	if ( ! get_sigrl(config, msg1->gid, sigrl, &msg2->sig_rl_size) ) {
+		fprintf(stderr, "could not retrieve the sigrl\n");
+	}
 
 	memcpy(gb_ga, &msg2->g_b, 64);
 	memcpy(&gb_ga[64], &msg1->g_a, 64);
@@ -649,6 +679,59 @@ int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
 	return 1;
 }
 
+int get_sigrl (config_t *config, sgx_epid_group_id_t gid, char **sig_rl,
+	uint32_t *sig_rl_size)
+{
+	IAS_Connection *conn= config->ias;
+	IAS_Request *req;
+	int oops;
+	string sigrlstr;
+
+	try {
+		oops= 0;
+		req= new IAS_Request(conn);
+	}
+	catch (int e) {
+		fprintf(stderr, "Exception while creating IAS request object\n");
+		oops= 1;
+	}
+	if ( oops ) return 0;
+
+	if ( ! req->sigrl(*(uint32_t *) gid, sigrlstr) ) {
+		return 0;
+	}
+
+	*sig_rl= strdup(sigrlstr.c_str());
+	if ( *sig_rl == NULL ) return 0;
+
+	*sig_rl_size= (uint32_t ) sigrlstr.length();
+
+	return 1;
+}
+
+int get_attestation_report(config_t *config, const char *b64quote,
+	sgx_ps_sec_prop_desc_t secprop) 
+{
+	IAS_Connection *conn= config->ias;
+	IAS_Request *req;
+	int oops;
+	map<string,string> payload;
+
+	try {
+		oops= 0;
+		req= new IAS_Request(conn);
+	}
+	catch (int e) {
+		fprintf(stderr, "Exception while creating IAS request object\n");
+		oops= 1;
+	}
+	if ( oops ) return 0;
+
+	payload.insert(make_pair("isvEnclaveQuote", b64quote));
+	
+	req->report(payload);
+}
+
 void usage () 
 {
 	fprintf(stderr, "usage: sp [ options ]\n\n");
@@ -666,6 +749,6 @@ void usage ()
 	fprintf(stderr, "                           Use HEXSTRING for the server's private sesion key\n");
 	fprintf(stderr, "  -k, --key=HEXSTRING      The private key as a hex string\n");
 	fprintf(stderr, "  -l, --linkable           Request a linkable quote (default: unlinkable)\n");
-	fprintf(stderr, "  -r, --sigrl-file=FILE    Read the revocation list from FILE\n");
 	exit(1);
 }
+
