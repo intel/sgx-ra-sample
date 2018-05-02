@@ -850,13 +850,13 @@ void usage ()
 {
 	fprintf(stderr, "usage: quote [ options ]\n\n");
 	fprintf(stderr, "Required:\n");
-	fprintf(stderr, "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte\n");
-	fprintf(stderr, "                              ASCII hex string\n");
-	fprintf(stderr, "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string\n");
-	fprintf(stderr, "\nOne of --spid OR --spid-file is required\n\n");
-	fprintf(stderr, "Optional:\n");
 	fprintf(stderr, "  -N, --nonce-file=FILE    Set a nonce from a file containing a 32-byte\n");
-	fprintf(stderr, "                              ASCII hex string\n");
+	fprintf(stderr, "                             ASCII hex string\n");
+	fprintf(stderr, "  -P, --pubkey-file=FILE   File containing the public key of the service provider.\n");
+	fprintf(stderr, "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte\n");
+	fprintf(stderr, "                             ASCII hex string\n");
+	fprintf(stderr, "  -a, --attest             Perform an attestation via stdout and stdin.\n");
+	fprintf(stderr, "                             Requires a SPID.\n");
 	fprintf(stderr, "  -d, --debug              Show debugging information\n");
 	fprintf(stderr, "  -e, --epid-gid           Get the EPID Group ID instead of a quote\n");
 	fprintf(stderr, "  -l, --linkable           Specify a linkable quote (default: unlinkable)\n");
@@ -864,14 +864,12 @@ void usage ()
 	fprintf(stderr, "  -m, --pse-manifest       Include the PSE manifest in the quote\n");
 #endif
 	fprintf(stderr, "  -n, --nonce=HEXSTRING    Set a nonce from a 32-byte ASCII hex string\n");
-	fprintf(stderr, "  -r                       Generate a nonce using RDRAND\n");
-	fprintf(stderr, "\nRemote Attestation options:\n");
-	fprintf(stderr, "  -a, --attest               Perform an attestation via stdout and stdin.\n");
-	fprintf(stderr, "Optional:\n");
-	fprintf(stderr, "  -P, --pubkey-file=FILE   File containing the public key of the service provider.\n");
 	fprintf(stderr, "  -p, --pubkey=HEXSTRING   Specify the public key of the service provider as an\n");
-	fprintf(stderr, "                              ASCII hex string.\n");
+	fprintf(stderr, "                              ASCII hex string instead of using the default.\n");
+	fprintf(stderr, "  -r                       Generate a nonce using RDRAND\n");
+	fprintf(stderr, "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string\n");
 	fprintf(stderr, "  -v, --verbose			Print decoded RA messages to stderr\n");
+	fprintf(stderr, "\nOne of --spid OR --spid-file is required for generating a quote or doing\nremote attestation.\n");
 	exit(1);
 }
 
