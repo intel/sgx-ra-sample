@@ -139,11 +139,12 @@ IAS_Request::~IAS_Request()
 {
 }
 
-int IAS_Request::sigrl(uint32_t gid)
+int IAS_Request::sigrl(uint32_t gid, string &sigrl)
 {
 	Response response;
 	char sgid[9];
 	string url= r_conn->base_url();
+	int rv;
 
 	snprintf(sgid, 9, "%08x", gid);
 
@@ -151,13 +152,22 @@ int IAS_Request::sigrl(uint32_t gid)
 	url+= "/sigrl/";
 	url+= sgid;
 
-	fprintf(stderr, "+++ GET %s\n", url.c_str());
+	fprintf(stderr, "+++ HTTP GET %s\n", url.c_str());
 
 	if ( http_request(this, response, url, "") ) {
 		dividerWithText("HTTP Response");
 		fputs(response.inspect().c_str(), stderr);
 		divider();
+
+		if ( response.statusCode == 200 ) {
+			rv= 1;
+			sigrl= response.content_string();
+		} else {
+			rv= 0;
+		}
 	}
+
+	return rv;
 }
 
 int IAS_Request::report(map<string,string> &payload)
@@ -182,7 +192,7 @@ int IAS_Request::report(map<string,string> &payload)
 
 	url+= to_string(r_api_version);
 	url+= "/report";
-	fprintf(stderr, "+++ POST %s\n", url.c_str());
+	fprintf(stderr, "+++ HTTP POST %s\n", url.c_str());
 
 	if ( http_request(this, response, url, body) ) {
 		dividerWithText("HTTP Response");

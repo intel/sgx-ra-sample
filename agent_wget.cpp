@@ -212,8 +212,6 @@ retry_wait:
 		}
 	}
 
-	fprintf(stderr, "+++ rv= %d\n", rv);
-
 	unlink(tmpfile);
 	if ( ! rv ) return 0;
 

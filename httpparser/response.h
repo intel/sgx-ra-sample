@@ -3,6 +3,8 @@
  * License: MIT
  */
 
+// Changes [JM] by John Mechalas <john.p.mechalas@intel.com>
+
 #ifndef HTTPPARSER_RESPONSE_H
 #define HTTPPARSER_RESPONSE_H
 
@@ -46,9 +48,21 @@ struct Response {
         }
 
         std::string data(content.begin(), content.end());
-        stream << data << "\n";
+		// Added "\n" so it prints like its received. - JM
+        stream << "\n" << data << "\n";
         return stream.str();
     }
+
+	// content_string() by JM
+	std::string content_string() const
+	{
+        std::stringstream stream;
+
+        std::string data(content.begin(), content.end());
+        stream << data;
+
+		return stream.str();
+	}
 };
 
 } // namespace httpparser

@@ -83,8 +83,6 @@ typedef struct config_struct {
 	EVP_PKEY *session_private_key;
 	char verbose;
 	char debug;
-	uint32_t sig_rl_size;
-	unsigned char *sig_rl;
 	unsigned char kdk[16];
 	char *cert_file;
 	IAS_Connection *ias;
@@ -93,9 +91,10 @@ typedef struct config_struct {
 void usage();
 int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
 	config_t *config);
-int process_msg01 (sgx_ra_msg2_t *msg2, config_t *config);
+int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config);
 int process_msg3 (ra_msg4_t *msg2, config_t *config);
-int get_sigrl (config_t *config, sgx_epid_group_id_t gid, sgx_ra_msg2_t *msg2);
+int get_sigrl (config_t *config, sgx_epid_group_id_t gid, char **sigrl,
+	uint32_t *msg2);
 int get_attestation_report(config_t *config, const char *b64quote,
 	sgx_ps_sec_prop_desc_t sec_prop);
 
@@ -105,6 +104,7 @@ int main (int argc, char *argv[])
 	char flag_spid= 0;
 	char flag_pubkey= 0;
 	char flag_cert= 0;
+	char *sigrl= NULL;
 	config_t config;
 	sgx_ra_msg2_t msg2;
 	ra_msg4_t msg4;
@@ -261,7 +261,7 @@ int main (int argc, char *argv[])
 
 	/* Read message 0 and 1, then generate message 2 */
 
-	if ( ! process_msg01(&msg2, &config) ) {
+	if ( ! process_msg01(&msg2, &sigrl, &config) ) {
 		fprintf(stderr, "error processing msg1\n");
 		crypto_destroy();
 		return 1;
@@ -281,7 +281,7 @@ int main (int argc, char *argv[])
 	dividerWithText("Copy/Paste Msg2 Below to Client");
 
 	send_msg_partial((void *) &msg2, sizeof(sgx_ra_msg2_t));
-	send_msg(config.sig_rl, config.sig_rl_size);
+	send_msg(msg2.sig_rl, msg2.sig_rl_size);
 
 	divider();
 
@@ -399,7 +399,7 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
  * the client concatenated together for efficiency (msg0||msg1).
  */
 
-int process_msg01 (sgx_ra_msg2_t *msg2, config_t *config)
+int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 {
 	struct msg01_struct {
 		uint32_t msg0_extended_epid_group_id;
@@ -563,7 +563,7 @@ int process_msg01 (sgx_ra_msg2_t *msg2, config_t *config)
 
 	/* Get the sigrl */
 
-	if ( ! get_sigrl(config, msg1->gid, msg2) ) {
+	if ( ! get_sigrl(config, msg1->gid, sigrl, &msg2->sig_rl_size) ) {
 		fprintf(stderr, "could not retrieve the sigrl\n");
 	}
 
@@ -679,11 +679,13 @@ int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
 	return 1;
 }
 
-int get_sigrl (config_t *config, sgx_epid_group_id_t gid, sgx_ra_msg2_t *msg2)
+int get_sigrl (config_t *config, sgx_epid_group_id_t gid, char **sig_rl,
+	uint32_t *sig_rl_size)
 {
 	IAS_Connection *conn= config->ias;
 	IAS_Request *req;
 	int oops;
+	string sigrlstr;
 
 	try {
 		oops= 0;
@@ -695,9 +697,14 @@ int get_sigrl (config_t *config, sgx_epid_group_id_t gid, sgx_ra_msg2_t *msg2)
 	}
 	if ( oops ) return 0;
 
-	if ( ! req->sigrl(*(uint32_t *) gid) ) {
+	if ( ! req->sigrl(*(uint32_t *) gid, sigrlstr) ) {
 		return 0;
 	}
+
+	*sig_rl= strdup(sigrlstr.c_str());
+	if ( *sig_rl == NULL ) return 0;
+
+	*sig_rl_size= (uint32_t ) sigrlstr.length();
 
 	return 1;
 }

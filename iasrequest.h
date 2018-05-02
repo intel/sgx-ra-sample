@@ -78,7 +78,7 @@ public:
 
 	IAS_Connection *conn() { return r_conn; }
 
-	int sigrl(uint32_t gid);
+	int sigrl(uint32_t gid, string &sigrl);
 	int report(map<string,string> &payload);
 };
 
