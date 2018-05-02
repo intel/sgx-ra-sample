@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* Help keep our console messages clean and organzied */
 
+#include <string>
 
 #define LINE_TYPE '-'
 #define LINE_SHORT_LEN 4
@@ -49,11 +50,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define WARNING_INDENT(level) (std::string(level, '*'))
 
 
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-void dividerWithText(string str);
+void dividerWithText(std::string str);
 void divider();
 
 #if defined(__cplusplus)
