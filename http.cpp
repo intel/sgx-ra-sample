@@ -31,10 +31,42 @@ int http_request (IAS_Request *req, string url, string const &post)
 	char buffer[CHUNK_SZ];
 	size_t bread;
 	int repeat;
-	int rv;
+	int rv= 1;
+	char tmpfile[]= "/tmp/wgetpostXXXXXX";
+	int postdata= 0;
 
 	if ( post.length() > 0 ) {
+		int fd= mkstemp(tmpfile);
+		size_t bwritten, rem;
+		const char *bp= post.c_str();
+
+		fprintf(stderr, "+++ POST data written to %s\n", tmpfile);
+
+		postdata= 1;
+
+		if ( fd == -1 ) {
+			perror("mkstemp");
+			return 0;
+		}
 		
+		rem= post.length();
+		while ( rem ) {
+retry_write:
+			bwritten= write(fd, bp, rem);
+			if ( bwritten == -1 ) {
+				if (errno == EINTR) goto retry_write;
+				else {
+					perror("write");
+					close(fd);
+					unlink(tmpfile);
+					return 0;
+				}
+			}
+			rem-= bwritten;
+			bp+= bwritten;
+		}
+
+		close(fd);
 	}
 
 	// Only need to initialize these once
@@ -47,7 +79,7 @@ int http_request (IAS_Request *req, string url, string const &post)
 		wget_args.push_back("--output-document=-");
 		wget_args.push_back("--save-headers");
 		wget_args.push_back("--content-on-error");
-		wget_args.push_back("--no-keep-alive");
+		wget_args.push_back("--no-http-keep-alive");
 
 		arg= "--certificate=";
 		arg+= conn->client_cert_file();
@@ -101,6 +133,14 @@ int http_request (IAS_Request *req, string url, string const &post)
 		char **argv;
 		size_t sz, i;
 
+		// Add instance-specific options
+
+		if ( postdata ) {
+			arg= "--post-file=";
+			arg+= tmpfile;
+			wget_args.push_back(arg);
+		}
+
 		// Add the url
 
 		wget_args.push_back(url.c_str());
@@ -153,7 +193,6 @@ retry_dup:
 			}
 		} else if ( bread == 0 ) {
 			repeat= 0;
-			rv= 0;
 		} else {
 			sresponse.append(buffer, bread);
 		}
@@ -163,9 +202,16 @@ retry_dup:
 retry_wait:
 	if ( waitpid(pid, &status, 0) == -1 ) {
 		if ( errno == EINTR) goto retry_wait;
-		perror("waitpid");
-		return 0;
+		else {
+			perror("waitpid");
+			rv= 0;
+		}
 	}
+
+	fprintf(stderr, "+++ rv= %d\n", rv);
+
+	unlink(tmpfile);
+	if ( ! rv ) return 0;
 
 	if ( WIFEXITED(status) ) {
 		int exitcode= WEXITSTATUS(status);
@@ -173,7 +219,7 @@ retry_wait:
 		dividerWithText("HTTP Response");
 		fprintf(stderr, "%s\n", sresponse.c_str());
 		divider();
-	}
+	} else rv= 0;
 
 	return rv;
 }

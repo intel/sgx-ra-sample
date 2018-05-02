@@ -120,7 +120,7 @@ string IAS_Connection::base_url()
 		url+= to_string(c_server_port);
 	}
 
-	url+= "/attestation/v";
+	url+= "/attestation/sgx/v";
 
 	return url;
 }
@@ -150,3 +150,29 @@ int IAS_Request::sigrl(uint32_t gid)
 	fprintf(stderr, ">>>%s\n", url.c_str());
 	http_request(this, url, "");
 }
+
+int IAS_Request::report(map<string,string> &payload)
+{
+	map<string,string>::iterator imap;
+	string url= r_conn->base_url();
+
+	string body= "{\n";
+	
+	for (imap= payload.begin(); imap!= payload.end(); ++imap) {
+		if ( imap != payload.begin() ) {
+			body.append(",\n");
+		}
+		body.append("\"");
+		body.append(imap->first);
+		body.append("\":\"");
+		body.append(imap->second);
+		body.append("\"");
+	}
+	body.append("\n}");
+
+	url+= to_string(r_api_version);
+	url+= "/report";
+	fprintf(stderr, ">>>%s\n", url.c_str());
+	http_request(this, url, body);
+}
+

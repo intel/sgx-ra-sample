@@ -31,7 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-using namespace std;
 
 #ifdef _WIN32
 #pragma comment(lib, "crypt32.lib")
@@ -65,8 +64,10 @@ using namespace std;
 #include "base64.h"
 #include "iasrequest.h"
 
-#include <string>
+using namespace std;
+
 #include <map>
+#include <string>
 
 static const unsigned char def_service_private_key[32] = {
 	0x90, 0xe7, 0x6c, 0xbb, 0x2d, 0x52, 0xa1, 0xce,
@@ -701,7 +702,8 @@ int get_sigrl (config_t *config, sgx_epid_group_id_t gid, sgx_ra_msg2_t *msg2)
 	return 1;
 }
 
-int get_attestation_report(config_t *config, const char *b64quote, sgx_ps_sec_prop_desc_t secprop) 
+int get_attestation_report(config_t *config, const char *b64quote,
+	sgx_ps_sec_prop_desc_t secprop) 
 {
 	IAS_Connection *conn= config->ias;
 	IAS_Request *req;
@@ -718,7 +720,9 @@ int get_attestation_report(config_t *config, const char *b64quote, sgx_ps_sec_pr
 	}
 	if ( oops ) return 0;
 
-	payload.insert(string("isvEnclaveQuote"), string(b64quote));
+	payload.insert(make_pair("isvEnclaveQuote", b64quote));
+	
+	req->report(payload);
 }
 
 void usage () 

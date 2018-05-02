@@ -1,8 +1,11 @@
 #! /bin/sh
 
-SPID="-S ../ias-ra-data/spid/plse-dev.spid"
+export LD_LIBRARY_PATH=/usr/local/lib
 
-CMD="./sp -d -v $SPID"
+SPID="-S ../ias-ra-data/spid/plse-dev.spid"
+CERT="-C ./dev.pem"
+
+CMD="./sp -d -v $SPID $CERT"
 
 echo "Running: $CMD"
 
