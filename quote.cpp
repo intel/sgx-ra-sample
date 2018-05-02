@@ -495,7 +495,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	}
 
 	if ( debug ) {
-		fprintf(stderr, "+++ msg2_size = %lu\n",
+		fprintf(stderr, "+++ msg2_size = %zu\n",
 			sizeof(sgx_ra_msg2_t)+msg2->sig_rl_size);
 	}
 
@@ -596,7 +596,7 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 	sgx_quote_sign_type_t linkable= SGX_UNLINKABLE_SIGNATURE;
 #ifdef PSE_SUPPORT
 	sgx_ps_cap_t ps_cap;
-	char *pse_manifest;
+	char *pse_manifest = NULL;
 	size_t pse_manifest_sz;
 #endif
 #ifdef _WIN32
@@ -710,19 +710,22 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 		fprintf(stderr, "CryptBinaryToString: could not get Base64 encoded quote length\n");
 		return 1;
 	}
+#ifdef PSE_SUPPORT
 
 	if (OPT_ISSET(flags, OPT_PSE)) {
-		if (CryptBinaryToString((BYTE *)pse_manifest, pse_manifest_sz, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL, &sz_b64manifest) == FALSE) {
+		if (CryptBinaryToString((BYTE *)pse_manifest, (uint32_t)(pse_manifest_sz), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL, &sz_b64manifest) == FALSE) {
 			fprintf(stderr, "CryptBinaryToString: could not get Base64 encoded manifest length\n");
 			return 1;
 		}
 
 		b64manifest = (LPTSTR)(malloc(sz_b64manifest));
-		if (CryptBinaryToString((BYTE *)pse_manifest, pse_manifest_sz, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, b64manifest, &sz_b64manifest) == FALSE) {
+		if (CryptBinaryToString((BYTE *)pse_manifest, (uint32_t)(pse_manifest_sz), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, b64manifest, &sz_b64manifest) == FALSE) {
 			fprintf(stderr, "CryptBinaryToString: could not get Base64 encoded manifest length\n");
 			return 1;
 		}
 	}
+#endif //PSE_SUPPORT
+
 #else
 	b64quote= base64_encode((unsigned char *) quote, sz);
 #ifdef PSE_SUPPORT
