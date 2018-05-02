@@ -610,9 +610,9 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 	LPTSTR b64manifest = NULL;
 	DWORD sz_b64manifest = 0;
 #else
-	unsigned char  *b64quote= NULL;
+	char  *b64quote= NULL;
 # ifdef PSE_SUPPORT
-	unsigned char *b64manifest = NULL;
+	char *b64manifest = NULL;
 # endif
 #endif
 
@@ -729,10 +729,10 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 		}
 	}
 #else
-	b64quote= base64_encode((unsigned char *) quote, sz);
+	b64quote= base64_encode((char *) quote, sz);
 #ifdef PSE_SUPPORT
 	if (OPT_ISSET(flags, OPT_PSE)) {
-		b64manifest= base64_encode((unsigned char *) pse_manifest, pse_manifest_sz);
+		b64manifest= base64_encode((char *) pse_manifest, pse_manifest_sz);
 	}
 # endif
 #endif
