@@ -33,7 +33,7 @@ static uint32_t buffer_size= BUFFER_SZ;
 
 int read_msg (void **dest, size_t *sz)
 {
-	size_t bread, bsz;
+	size_t bread;
 	int repeat= 1;
 
 	if ( buffer == NULL ) {

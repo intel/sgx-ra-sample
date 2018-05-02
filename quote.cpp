@@ -130,14 +130,13 @@ int main (int argc, char *argv[])
 {
 	config_t config;
 	sgx_launch_token_t token= { 0 };
-	sgx_status_t status, sgxrv;
+	sgx_status_t status;
 	sgx_enclave_id_t eid= 0;
 	int updated= 0;
 	int sgx_support;
 	uint32_t i;
-#ifndef _WIN32
+
 	EVP_PKEY *service_public_key= NULL;
-#endif
 	char have_spid= 0;
 
 	memset(&config, 0, sizeof(config));
@@ -169,7 +168,6 @@ int main (int argc, char *argv[])
 	while (1) {
 		int c;
 		int opt_index= 0;
-		unsigned char *keydata;
 		unsigned char keyin[64];
 
 		c= getopt_long(argc, argv, "N:P:S:adehlmn:p:rs:v", long_opt, &opt_index);
@@ -367,12 +365,9 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	sgx_ra_msg2_t *msg2 = NULL;
 	sgx_ra_msg3_t *msg3 = NULL;
 	uint32_t msg0_extended_epid_group_id = 0;
-	uint32_t msg2_sz;
 	uint32_t msg3_sz;
 	uint32_t flags= config->flags;
 	sgx_ra_context_t ra_ctx= 0xdeadbeef;
-	char *sigrl;
-	size_t sz;
 	int rv;
 	char verbose= OPT_ISSET(flags, OPT_VERBOSE);
 	char debug= OPT_ISSET(flags, OPT_DEBUG);
@@ -705,25 +700,25 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 	// We could also just do ((4 * sz / 3) + 3) & ~3
 	// but it's cleaner to use the API.
 
-	if (CryptBinaryToString((LPTSTR) quote, sz, CRYPT_STRING_BASE64|CRYPT_STRING_NOCRLF, NULL, &sz_b64quote) == FALSE) {
+	if (CryptBinaryToString((BYTE *) quote, sz, CRYPT_STRING_BASE64|CRYPT_STRING_NOCRLF, NULL, &sz_b64quote) == FALSE) {
 		fprintf(stderr, "CryptBinaryToString: could not get Base64 encoded quote length\n");
 		return 1;
 	}
 
-	b64quote = malloc(sz_b64quote);
-	if (CryptBinaryToString((LPTSTR) quote, sz, CRYPT_STRING_BASE64|CRYPT_STRING_NOCRLF, b64quote, &sz_b64quote) == FALSE) {
+	b64quote = (LPTSTR)(malloc(sz_b64quote));
+	if (CryptBinaryToString((BYTE *) quote, sz, CRYPT_STRING_BASE64|CRYPT_STRING_NOCRLF, b64quote, &sz_b64quote) == FALSE) {
 		fprintf(stderr, "CryptBinaryToString: could not get Base64 encoded quote length\n");
 		return 1;
 	}
 
 	if (OPT_ISSET(flags, OPT_PSE)) {
-		if (CryptBinaryToString((LPTSTR)pse_manifest, pse_manifest_sz, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL, &sz_b64manifest) == FALSE) {
+		if (CryptBinaryToString((BYTE *)pse_manifest, pse_manifest_sz, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL, &sz_b64manifest) == FALSE) {
 			fprintf(stderr, "CryptBinaryToString: could not get Base64 encoded manifest length\n");
 			return 1;
 		}
 
-		b64manifest = malloc(sz_b64manifest);
-		if (CryptBinaryToString((LPTSTR)pse_manifest, pse_manifest_sz, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, b64manifest, &sz_b64manifest) == FALSE) {
+		b64manifest = (LPTSTR)(malloc(sz_b64manifest));
+		if (CryptBinaryToString((BYTE *)pse_manifest, pse_manifest_sz, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, b64manifest, &sz_b64manifest) == FALSE) {
 			fprintf(stderr, "CryptBinaryToString: could not get Base64 encoded manifest length\n");
 			return 1;
 		}
@@ -754,6 +749,8 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 #ifdef SGX_HW_SIM
 	fprintf(stderr, "WARNING! Built in h/w simulation mode. This quote will not be verifiable.\n");
 #endif
+
+	return 0;
 
 }
 

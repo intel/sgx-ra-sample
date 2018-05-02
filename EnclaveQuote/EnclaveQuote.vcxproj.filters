@@ -21,7 +21,7 @@
     <ClCompile Include="EnclaveQuote_t.c">
       <Filter>Generated Files</Filter>
     </ClCompile>
-    <ClCompile Include="EnclaveQuote.c">
+    <ClCompile Include="EnclaveQuote.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
