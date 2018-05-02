@@ -200,11 +200,20 @@ int key_load_file (EVP_PKEY **key, const char *filename, int keytype)
 
 	*key= EVP_PKEY_new();
 
+#ifdef _WIN32
+	if ((fopen_s(&fp, filename, "r")) != 0) {
+		error_type = e_system;
+		ep = filename;
+		return 0;
+	}
+#else
 	if ( (fp= fopen(filename, "r")) == NULL ) {
 		error_type= e_system;
 		ep= filename;
 		return 0;
 	}
+#endif
+
 	if ( keytype == KEY_PRIVATE ) PEM_read_PrivateKey(fp, key, NULL, NULL);
 	else if ( keytype == KEY_PUBLIC ) PEM_read_PUBKEY(fp, key, NULL, NULL);
 	else {
@@ -570,8 +579,8 @@ cleanup:
 int ecdsa_sign(unsigned char *msg, size_t mlen, EVP_PKEY *key,
 	unsigned char r[32], unsigned char s[32], unsigned char digest[32])
 {
-	ECDSA_SIG *sig;
-	EC_KEY *eckey;
+	ECDSA_SIG *sig = NULL;
+	EC_KEY *eckey = NULL;
 	const BIGNUM *bnr= NULL;
 	const BIGNUM *bns= NULL;
 
