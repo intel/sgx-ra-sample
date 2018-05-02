@@ -7,8 +7,8 @@
 extern "C" {
 #endif
 
-unsigned char *base64_encode(const unsigned char *msg, size_t sz);
-unsigned char *base64_decode(const unsigned char *msg, size_t *sz);
+char *base64_encode(const char *msg, size_t sz);
+char *base64_decode(const char *msg, size_t *sz);
 
 #ifdef __cplusplus
 };

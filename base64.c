@@ -3,10 +3,10 @@
 #include <openssl/evp.h>
 #include <string.h>
 
-unsigned char *base64_encode(const unsigned char *msg, size_t sz)
+char *base64_encode(const char *msg, size_t sz)
 {
 	BIO *b64, *bmem;
-	unsigned char *bstr, *dup;
+	char *bstr, *dup;
 	int len;
 
 	b64= BIO_new(BIO_f_base64());
@@ -22,7 +22,7 @@ unsigned char *base64_encode(const unsigned char *msg, size_t sz)
 	BIO_flush(b64);
 
 	len= BIO_get_mem_data(bmem, &bstr);
-	dup= (unsigned char *) malloc(len+1);
+	dup= (char *) malloc(len+1);
 	memcpy(dup, bstr, len);
 	dup[len]= 0;
 
@@ -33,13 +33,13 @@ unsigned char *base64_encode(const unsigned char *msg, size_t sz)
 }
 
 
-unsigned char *base64_decode(const unsigned char *msg, size_t *sz)
+char *base64_decode(const char *msg, size_t *sz)
 {
 	BIO *b64, *bmem;
-	unsigned char *buf;
+	char *buf;
 	size_t len= strlen(msg);
 
-	buf= (unsigned char *) malloc(len+1);
+	buf= (char *) malloc(len+1);
 	memset(buf, 0, len+1);
 
 	b64= BIO_new(BIO_f_base64());
