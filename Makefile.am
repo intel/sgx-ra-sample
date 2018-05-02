@@ -65,7 +65,7 @@ bin_PROGRAMS = quote sp
 ## You can't use $(wildcard ...) with automake so all source files 
 ## have to be explicitly listed.
 
-common = byteorder.c common.cpp crypto.c hexutil.c fileio.c base64.c msgio.c
+common = byteorder.c common.cpp crypto.c hexutil.c fileio.c base64.c msgio.c logfile.c
 
 ## quote 
 

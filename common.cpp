@@ -37,13 +37,13 @@ using namespace std;
 #include <string>
 #include "common.h"
 
-void dividerWithText (string str)
+void dividerWithText (FILE *fd, string str)
 {
-    fprintf(stderr, "\n%s\n", LINE_HEADER(str));
+    fprintf(fd, "\n%s\n", LINE_HEADER(str));
 }
 
-void divider ()
+void divider (FILE * fd)
 {
-    fprintf(stderr, "%s\n\n", LINE_COMPLETE);
+    fprintf(fd, "%s\n\n", LINE_COMPLETE);
 }
 

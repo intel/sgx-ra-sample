@@ -72,6 +72,7 @@ using namespace std;
 #include "base64.h"
 #include "crypto.h"
 #include "msgio.h"
+#include "logfile.h"
 
 #define MAX_LEN 80
 
@@ -135,6 +136,10 @@ int main (int argc, char *argv[])
 	int updated= 0;
 	int sgx_support;
 	uint32_t i;
+
+        /* Create a logfile to capture debug output and actual msg data */
+        spLog = NULL;
+        clientLog = create_logfile("client.log");
 
 	EVP_PKEY *service_public_key= NULL;
 	char have_spid= 0;
@@ -300,6 +305,8 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 
+
+
 	/* Can we run SGX? */
 
 #ifndef SGX_HW_SIM
@@ -356,6 +363,9 @@ int main (int argc, char *argv[])
 		fprintf(stderr, "Unknown operation mode.\n");
 		return 1;
 	}
+
+     
+        close_logfile(clientLog);
 }
 
 int do_attestation (sgx_enclave_id_t eid, config_t *config)
@@ -407,12 +417,18 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		return 1;
 	}
 	if ( verbose ) {
-		dividerWithText("Msg0 Details");
+		dividerWithText(stderr, "Msg0 Details");
+		dividerWithText(clientLog, "Msg0 Details");
 		fprintf(stderr,   "Extended Epid Group ID: ");
+		fprintf(clientLog,   "Extended Epid Group ID: ");
 		print_hexstring(stderr, &msg0_extended_epid_group_id,
 			 sizeof(uint32_t));
+		print_hexstring(clientLog, &msg0_extended_epid_group_id,
+			 sizeof(uint32_t));
 		fprintf(stderr, "\n");
-		divider();
+		fprintf(clientLog, "\n");
+		divider(stderr);
+		divider(clientLog);
 	}
  
 	/* Generate msg1 */
@@ -424,7 +440,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	}
 
 	if ( verbose ) {
-		dividerWithText("Msg1 Details");
+		dividerWithText(stderr,"Msg1 Details");
 		fprintf(stderr,   "msg1.g_a.gx = ");
 		print_hexstring(stderr, msg1.g_a.gx, 32);
 		fprintf(stderr, "\nmsg1.g_a.gy = ");
@@ -432,7 +448,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		fprintf(stderr, "\nmsg1.gid    = ");
 		print_hexstring(stderr, msg1.gid, 4);
 		fprintf(stderr, "\n");
-		divider();
+		divider(stderr);
 	}
 
 	/*
@@ -447,11 +463,11 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	 * amount of time generating keys that won't be used.
 	 */
 
-	dividerWithText("Copy/Paste Msg0||Msg1 Below to SP");
+	dividerWithText(stderr, "Copy/Paste Msg0||Msg1 Below to SP");
 	send_msg_partial(&msg0_extended_epid_group_id,
 		sizeof(msg0_extended_epid_group_id));
 	send_msg(&msg1, sizeof(msg1));
-	divider();
+	divider(stderr);
 
 	fprintf(stderr, "Waiting for msg2...\n");
 
@@ -471,7 +487,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	}
 
 	if ( verbose ) {
-		dividerWithText("Msg2 Details");
+		dividerWithText(stderr, "Msg2 Details");
 		fprintf(stderr,   "msg2.g_b.gx      = ");
 		print_hexstring(stderr, &msg2->g_b.gx, sizeof(msg2->g_b.gx));
 		fprintf(stderr, "\nmsg2.g_b.gy      = ");
@@ -491,7 +507,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		fprintf(stderr, "\nmsg2.sig_rl      = ");
 		print_hexstring(stderr, &msg2->sig_rl, msg2->sig_rl_size);
 		fprintf(stderr, "\n");
-		divider();
+		divider(stderr);
 	}
 
 	if ( debug ) {
@@ -525,7 +541,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	}
 	                          
 	if ( verbose ) {
-		dividerWithText("Msg3 Details");
+		dividerWithText(stderr, "Msg3 Details");
 		fprintf(stderr,   "msg3.mac         = ");
 		print_hexstring(stderr, msg3->mac, sizeof(msg3->mac));
 		fprintf(stderr, "\nmsg3.g_a.gx      = ");
@@ -538,12 +554,12 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		fprintf(stderr, "\nmsg3.quote       = ");
 		print_hexstring(stderr, msg3->quote, msg3_sz-sizeof(sgx_ra_msg3_t));
 		fprintf(stderr, "\n");
-		divider();
+		divider(stderr);
 	}
 
-	dividerWithText("Copy/Paste Msg3 Below to SP");
+	dividerWithText(stderr, "Copy/Paste Msg3 Below to SP");
 	send_msg(msg3, msg3_sz);
-	divider();
+	divider(stderr);
 
 	if ( msg3 ) {
 		free(msg3);
