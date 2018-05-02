@@ -3,11 +3,14 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include "http.h"
+#include "httpparser/response.h"
+#include "httpparser/httpresponseparser.h"
+#include "agent_wget.h"
 #include "common.h"
 #include "iasrequest.h"
 
 using namespace std;
+using namespace httpparser;
 
 #include <string>
 #include <vector>
@@ -19,9 +22,10 @@ static vector<string> wget_args;
 #define WGET_NO_ERROR		0
 #define WGET_SERVER_ERROR	8
 
-int http_request (IAS_Request *req, string url, string const &post)
+int http_request (IAS_Request *req, Response &response, string url,
+	string const &post)
 {
-	
+	HttpResponseParser parser;
 	IAS_Connection *conn= req->conn();
 	int pipefd[2];
 	pid_t pid;
@@ -215,10 +219,14 @@ retry_wait:
 
 	if ( WIFEXITED(status) ) {
 		int exitcode= WEXITSTATUS(status);
-		fprintf(stderr, "+++ wget exited with code %08x\n", exitcode);
-		dividerWithText("HTTP Response");
-		fprintf(stderr, "%s\n", sresponse.c_str());
-		divider();
+
+		if ( exitcode == WGET_NO_ERROR || exitcode == WGET_SERVER_ERROR ) {
+			HttpResponseParser::ParseResult result;
+
+			result= parser.parse(response, sresponse.c_str(),
+				sresponse.c_str()+sresponse.length());
+			rv= ( result == HttpResponseParser::ParsingCompleted );
+		}
 	} else rv= 0;
 
 	return rv;

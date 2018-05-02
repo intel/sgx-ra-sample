@@ -1,9 +1,12 @@
 #include <string.h>
 #include <stdio.h>
-#include "http.h"
+#include "common.h"
+#include "agent_wget.h"
 #include "iasrequest.h"
+#include "httpparser/response.h"
 
 using namespace std;
+using namespace httpparser;
 
 #include <string>
 
@@ -138,6 +141,7 @@ IAS_Request::~IAS_Request()
 
 int IAS_Request::sigrl(uint32_t gid)
 {
+	Response response;
 	char sgid[9];
 	string url= r_conn->base_url();
 
@@ -147,12 +151,18 @@ int IAS_Request::sigrl(uint32_t gid)
 	url+= "/sigrl/";
 	url+= sgid;
 
-	fprintf(stderr, ">>>%s\n", url.c_str());
-	http_request(this, url, "");
+	fprintf(stderr, "+++ GET %s\n", url.c_str());
+
+	if ( http_request(this, response, url, "") ) {
+		dividerWithText("HTTP Response");
+		fputs(response.inspect().c_str(), stderr);
+		divider();
+	}
 }
 
 int IAS_Request::report(map<string,string> &payload)
 {
+	Response response;
 	map<string,string>::iterator imap;
 	string url= r_conn->base_url();
 
@@ -172,7 +182,12 @@ int IAS_Request::report(map<string,string> &payload)
 
 	url+= to_string(r_api_version);
 	url+= "/report";
-	fprintf(stderr, ">>>%s\n", url.c_str());
-	http_request(this, url, body);
+	fprintf(stderr, "+++ POST %s\n", url.c_str());
+
+	if ( http_request(this, response, url, body) ) {
+		dividerWithText("HTTP Response");
+		fputs(response.inspect().c_str(), stderr);
+		divider();
+	}
 }
 

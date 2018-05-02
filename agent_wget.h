@@ -1,7 +1,10 @@
 #ifndef __HTTP_H
 #define __HTTP_H
 
+#include "httpparser/response.h"
 #include "iasrequest.h"
+
+using namespace httpparser;
 
 #ifdef __cplusplus
 extern "C" {
@@ -11,7 +14,8 @@ using namespace std;
 
 #include <string>
 
-int http_request(IAS_Request *req, string url, string const &post);
+int http_request(IAS_Request *req, Response &response, string url,
+	string const &post);
 
 #ifdef __cplusplus
 };
