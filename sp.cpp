@@ -63,6 +63,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "protocol.h"
 #include "base64.h"
 #include "iasrequest.h"
+#include "logfile.h"
 
 using namespace std;
 
@@ -110,6 +111,21 @@ int main (int argc, char *argv[])
 	ra_msg4_t msg4;
 	uint32_t msg2_sz;
 	int oops;
+
+        /* Create a logfile to capture debug output and actual msg data */
+        clientLog = NULL;
+        spLog= create_logfile("sp.log");
+        dividerWithText(spLog,"Service Provider Log Timestamp");
+        time_t timeT = time(NULL);
+        struct tm lt = *localtime(&timeT);
+        fprintf(spLog, "%4d-%02d-%02d %02d:%02d:%02d\n",
+                           lt.tm_year + 1900,
+                           lt.tm_mon + 1,
+                           lt.tm_mday,
+                           lt.tm_hour,
+                           lt.tm_min,
+                           lt.tm_sec);
+        divider(spLog);
 
 	memset(&config, 0, sizeof(config));
 
@@ -215,6 +231,7 @@ int main (int argc, char *argv[])
 	if ( config.service_private_key == NULL ) {
 		if ( config.debug ) {
 			fprintf(stderr, "Using default private key\n");
+			fprintf(spLog, "Using default private key\n");
 		}
 		config.service_private_key= key_private_from_bytes(def_service_private_key);
 		if ( config.service_private_key == NULL ) {
@@ -226,7 +243,10 @@ int main (int argc, char *argv[])
 
 	if ( config.debug ) {
 		fprintf(stderr, "+++ using private key:\n");
+		fprintf(spLog, "+++ using private key:\n");
 		PEM_write_PrivateKey(stderr, config.service_private_key, NULL,
+			NULL, 0, 0, NULL);
+		PEM_write_PrivateKey(spLog, config.service_private_key, NULL,
 			NULL, 0, 0, NULL);
 	}
 
@@ -240,7 +260,10 @@ int main (int argc, char *argv[])
 		exit(1);
 	}
 
-	fprintf(stderr, "Using cert file %s\n", config.cert_file);
+        if ( config.verbose ) {
+	    fprintf(stderr, "Using cert file %s\n", config.cert_file);
+	    fprintf(spLog, "Using cert file %s\n", config.cert_file);
+        }
 
 	/* Initialize out support libraries */
 
@@ -256,6 +279,7 @@ int main (int argc, char *argv[])
 	catch (int e) {
 		oops= 1;
 		fprintf(stderr, "exception while creating IAS request object\n");
+		fprintf(spLog, "exception while creating IAS request object\n");
 	}
 	if ( oops ) exit(1);
 
@@ -263,6 +287,7 @@ int main (int argc, char *argv[])
 
 	if ( ! process_msg01(&msg2, &sigrl, &config) ) {
 		fprintf(stderr, "error processing msg1\n");
+		fprintf(spLog, "error processing msg1\n");
 		crypto_destroy();
 		return 1;
 	}
@@ -279,11 +304,16 @@ int main (int argc, char *argv[])
 	 */
 
 	dividerWithText(stderr, "Copy/Paste Msg2 Below to Client");
+	dividerWithText(spLog, "Msg2 ==> Client");
 
 	send_msg_partial((void *) &msg2, sizeof(sgx_ra_msg2_t));
+	send_msg_partial_to_log(spLog, (void *) &msg2, sizeof(sgx_ra_msg2_t));
+
 	send_msg(msg2.sig_rl, msg2.sig_rl_size);
+	send_msg_to_log(spLog, msg2.sig_rl, msg2.sig_rl_size);
 
 	divider(stderr);
+	divider(spLog);
 
 	/* Read message 3 */
 
@@ -326,13 +356,16 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 	rv= read_msg((void **) &msg3, &sz);
 	if ( rv == -1 ) {
 		fprintf(stderr, "system error reading msg3\n");
+		fprintf(spLog, "system error reading msg3\n");
 		return 0;
 	} else if ( rv == 0 ) {
 		fprintf(stderr, "protocol error reading msg3\n");
+		fprintf(spLog, "protocol error reading msg3\n");
 		return 0;
 	}
 	if ( config->debug ) {
 		fprintf(stderr, "+++ read %lu bytes\n", sz);
+		fprintf(spLog, "+++ read %lu bytes\n", sz);
 	}
 
 	/*
@@ -351,40 +384,76 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 		sgx_quote_t *q= (sgx_quote_t *) msg3->quote;
 
 		dividerWithText(stderr, "Msg3 Details");
+		dividerWithText(spLog, "Msg3 Details from Client");
 		fprintf(stderr,   "msg3.mac                 = ");
+		fprintf(spLog,   "msg3.mac                 = ");
 		print_hexstring(stderr, &msg3->mac, sizeof(msg3->mac));
+		print_hexstring(spLog, &msg3->mac, sizeof(msg3->mac));
 		fprintf(stderr, "\nmsg3.g_a.gx              = ");
+		fprintf(spLog, "\nmsg3.g_a.gx              = ");
 		print_hexstring(stderr, &msg3->g_a.gx, sizeof(msg3->g_a.gx));
+		print_hexstring(spLog, &msg3->g_a.gx, sizeof(msg3->g_a.gx));
 		fprintf(stderr, "\nmsg3.g_a.gy              = ");
+		fprintf(spLog, "\nmsg3.g_a.gy              = ");
 		print_hexstring(stderr, &msg3->g_a.gy, sizeof(msg3->g_a.gy));
+		print_hexstring(spLog, &msg3->g_a.gy, sizeof(msg3->g_a.gy));
 		fprintf(stderr, "\nmsg3.ps_sec_prop         = ");
+		fprintf(spLog, "\nmsg3.ps_sec_prop         = ");
 		print_hexstring(stderr, &msg3->ps_sec_prop, sizeof(msg3->ps_sec_prop));
+		print_hexstring(spLog, &msg3->ps_sec_prop, sizeof(msg3->ps_sec_prop));
 		fprintf(stderr, "\nmsg3.quote.version       = ");
+		fprintf(spLog, "\nmsg3.quote.version       = ");
 		print_hexstring(stderr, &q->version, sizeof(uint16_t));
+		print_hexstring(spLog, &q->version, sizeof(uint16_t));
 		fprintf(stderr, "\nmsg3.quote.sign_type     = ");
+		fprintf(spLog, "\nmsg3.quote.sign_type     = ");
 		print_hexstring(stderr, &q->sign_type, sizeof(uint16_t));
+		print_hexstring(spLog, &q->sign_type, sizeof(uint16_t));
 		fprintf(stderr, "\nmsg3.quote.epd_group_id  = ");
+		fprintf(spLog, "\nmsg3.quote.epd_group_id  = ");
 		print_hexstring(stderr, &q->epid_group_id, sizeof(sgx_epid_group_id_t));
+		print_hexstring(spLog, &q->epid_group_id, sizeof(sgx_epid_group_id_t));
 		fprintf(stderr, "\nmsg3.quote.qe_svn        = ");
+		fprintf(spLog, "\nmsg3.quote.qe_svn        = ");
 		print_hexstring(stderr, &q->qe_svn, sizeof(sgx_isv_svn_t));
+		print_hexstring(spLog, &q->qe_svn, sizeof(sgx_isv_svn_t));
 		fprintf(stderr, "\nmsg3.quote.pce_svn       = ");
+		fprintf(spLog, "\nmsg3.quote.pce_svn       = ");
 		print_hexstring(stderr, &q->pce_svn, sizeof(sgx_isv_svn_t));
+		print_hexstring(spLog, &q->pce_svn, sizeof(sgx_isv_svn_t));
 		fprintf(stderr, "\nmsg3.quote.xeid          = ");
+		fprintf(spLog, "\nmsg3.quote.xeid          = ");
 		print_hexstring(stderr, &q->xeid, sizeof(uint32_t));
+		print_hexstring(spLog, &q->xeid, sizeof(uint32_t));
 		fprintf(stderr, "\nmsg3.quote.basename      = ");
+		fprintf(spLog, "\nmsg3.quote.basename      = ");
 		print_hexstring(stderr, &q->basename, sizeof(sgx_basename_t));
+		print_hexstring(spLog, &q->basename, sizeof(sgx_basename_t));
 		fprintf(stderr, "\nmsg3.quote.report_body   = ");
+		fprintf(spLog, "\nmsg3.quote.report_body   = ");
 		print_hexstring(stderr, &q->report_body, sizeof(sgx_report_body_t));
+		print_hexstring(spLog, &q->report_body, sizeof(sgx_report_body_t));
 		fprintf(stderr, "\nmsg3.quote.signature_len = ");
+		fprintf(spLog, "\nmsg3.quote.signature_len = ");
 		print_hexstring(stderr, &q->signature_len, sizeof(uint32_t));
+		print_hexstring(spLog, &q->signature_len, sizeof(uint32_t));
 		fprintf(stderr, "\nmsg3.quote.signature     = ");
+		fprintf(spLog, "\nmsg3.quote.signature     = ");
 		print_hexstring(stderr, &q->signature, q->signature_len);
+		print_hexstring(spLog, &q->signature, q->signature_len);
 		fprintf(stderr, "\n");
+		fprintf(spLog, "\n");
 
 		dividerWithText(stderr, "Enclave Quote (base64)");
+		dividerWithText(spLog, "Enclave Quote (base64) ==> IAS");
+
 		fputs(b64quote, stderr);
+		fputs(b64quote, spLog);
+
 		fprintf(stderr, "\n");
+		fprintf(spLog, "\n");
 		divider(stderr);
+		divider(spLog);
 	}
 
 	get_attestation_report(config, b64quote, msg3->ps_sec_prop);
@@ -435,9 +504,13 @@ int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 
 	if ( config->verbose ) {
 		dividerWithText(stderr, "Msg0 Details");
+		dividerWithText(spLog, "Msg0 Details from Client");
 		fprintf(stderr, "msg0.extended_epid_group_id = ");
+		fprintf(spLog, "msg0.extended_epid_group_id = ");
 		fprintf(stderr, "%u\n", msg01->msg0_extended_epid_group_id);
+		fprintf(spLog, "%u\n", msg01->msg0_extended_epid_group_id);
 		divider(stderr);
+		divider(spLog);
 	}
 
 	/* According to the Intel SGX Developer Reference
@@ -448,6 +521,7 @@ int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 
 	if ( msg01->msg0_extended_epid_group_id != 0 ) {
 		fprintf(stderr, "msg0 Extended Epid Group ID is not zero.  Exiting.\n");
+		fprintf(spLog, "msg0 Extended Epid Group ID is not zero.  Exiting.\n");
 		free(msg01);
 		return 0;
 	}
@@ -456,23 +530,37 @@ int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 
 	if ( config->verbose ) {
 		dividerWithText(stderr, "Msg1 Details");
+		dividerWithText(spLog, "Msg1 Details from Client");
 		fprintf(stderr,   "msg1.g_a.gx = ");
+		fprintf(spLog,   "msg1.g_a.gx = ");
 		print_hexstring(stderr, &msg1->g_a.gx, sizeof(msg1->g_a.gx));
+		print_hexstring(spLog, &msg1->g_a.gx, sizeof(msg1->g_a.gx));
 		fprintf(stderr, "\nmsg1.g_a.gy = ");
+		fprintf(spLog, "\nmsg1.g_a.gy = ");
 		print_hexstring(stderr, &msg1->g_a.gy, sizeof(msg1->g_a.gy));
+		print_hexstring(spLog, &msg1->g_a.gy, sizeof(msg1->g_a.gy));
 		fprintf(stderr, "\nmsg1.gid    = ");
+		fprintf(spLog, "\nmsg1.gid    = ");
 		print_hexstring(stderr, &msg1->gid, sizeof(msg1->gid));
+		print_hexstring(spLog, &msg1->gid, sizeof(msg1->gid));
 		fprintf(stderr, "\n");
+		fprintf(spLog, "\n");
 		divider(stderr);
+		divider(spLog);
 	}
 
 	if ( config->session_private_key == NULL ) {
 		/* Generate our session key */
 
-		if ( config->debug ) fprintf(stderr, "+++ generating session key Gb\n");
+		if ( config->debug ) {
+                    fprintf(stderr, "+++ generating session key Gb\n");
+                    fprintf(spLog, "+++ generating session key Gb\n");
+                }  
+
 		Gb= key_generate();
 		if ( Gb == NULL ) {
 			fprintf(stderr, "Could not create a session key\n");
+			fprintf(spLog, "Could not create a session key\n");
 			free(msg01);
 			return 0;
 		}
@@ -480,7 +568,10 @@ int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 		/* Use a fixed session key for testing purposes */
 		Gb= config->session_private_key;
 
-		if ( config->debug ) fprintf(stderr, "+++ using stated session key Gb\n");
+		if ( config->debug ) {
+                    fprintf(stderr, "+++ using stated session key Gb\n");
+                    fprintf(spLog, "+++ using stated session key Gb\n");
+                }
 	}
 
 	/*
@@ -489,17 +580,25 @@ int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 	 * prevent trivial inspection.
 	 */
 
-	fprintf(stderr, "+++ deriving KDK\n");
+	if ( config->debug ) {
+	    fprintf(stderr, "+++ deriving KDK\n");
+	    fprintf(spLog, "+++ deriving KDK\n");
+        }
+
 	if ( ! derive_kdk(Gb, config->kdk, msg1, config) ) {
 		fprintf(stderr, "Could not derive the KDK\n");
+		fprintf(spLog, "Could not derive the KDK\n");
 		free(msg01);
 		return 0;
 	}
 
 	if ( config->debug ) {
 		fprintf(stderr, "+++ KDK = ");
+		fprintf(spLog, "+++ KDK = ");
 		print_hexstring(stderr, config->kdk, 16);
+		print_hexstring(spLog, config->kdk, 16);
 		fprintf(stderr, "\n");
+		fprintf(spLog, "\n");
 	}
 
 	/*
@@ -507,13 +606,20 @@ int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 	 * SMK = AES_CMAC(KDK, 0x01 || "SMK" || 0x00 || 0x80 || 0x00) 
 	 */
 
-	fprintf(stderr, "+++ deriving SMK\n");
+	if ( config->debug ) {
+	    fprintf(stderr, "+++ deriving SMK\n");
+	    fprintf(spLog, "+++ deriving SMK\n");
+        }
+
 	cmac128(config->kdk, (unsigned char *)("\x01SMK\x00\x80\x00"), 7, smk);
 
 	if ( config->debug ) {
 		fprintf(stderr, "+++ SMK = ");
+		fprintf(spLog, "+++ SMK = ");
 		print_hexstring(stderr, smk, 16);
+		print_hexstring(spLog, smk, 16);
 		fprintf(stderr, "\n");
+		fprintf(spLog, "\n");
 	}
 
 	/*
@@ -565,6 +671,7 @@ int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 
 	if ( ! get_sigrl(config, msg1->gid, sigrl, &msg2->sig_rl_size) ) {
 		fprintf(stderr, "could not retrieve the sigrl\n");
+		fprintf(spLog, "could not retrieve the sigrl\n");
 	}
 
 	memcpy(gb_ga, &msg2->g_b, 64);
@@ -572,8 +679,11 @@ int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 
 	if ( config->debug ) {
 		fprintf(stderr, "+++ GbGa = ");
+		fprintf(spLog, "+++ GbGa = ");
 		print_hexstring(stderr, gb_ga, 128);
+		print_hexstring(spLog, gb_ga, 128);
 		fprintf(stderr, "\n");
+		fprintf(spLog, "\n");
 	}
 
 	ecdsa_sign(gb_ga, 128, config->service_private_key, r, s, digest);
@@ -582,14 +692,23 @@ int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 
 	if ( config->debug ) {
 		fprintf(stderr, "+++ sha256(GbGa) = ");
+		fprintf(spLog, "+++ sha256(GbGa) = ");
 		print_hexstring(stderr, digest, 32);
+		print_hexstring(spLog, digest, 32);
 		fprintf(stderr, "\n");
+		fprintf(spLog, "\n");
 		fprintf(stderr, "+++ r = ");
+		fprintf(spLog, "+++ r = ");
 		print_hexstring(stderr, r, 32);
+		print_hexstring(spLog, r, 32);
 		fprintf(stderr, "\n");
+		fprintf(spLog, "\n");
 		fprintf(stderr, "+++ s = ");
+		fprintf(spLog, "+++ s = ");
 		print_hexstring(stderr, s, 32);
+		print_hexstring(spLog, s, 32);
 		fprintf(stderr, "\n");
+		fprintf(spLog, "\n");
 	}
 
 	/* The "A" component is conveniently at the start of sgx_ra_msg2_t */
@@ -598,24 +717,43 @@ int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 
 	if ( config->verbose ) {
 		dividerWithText(stderr, "Msg2 Details");
+		dividerWithText(spLog, "Msg2 Details");
 		fprintf(stderr,   "msg2.g_b.gx      = ");
+		fprintf(spLog,   "msg2.g_b.gx      = ");
 		print_hexstring(stderr, &msg2->g_b.gx, sizeof(msg2->g_b.gx));
+		print_hexstring(spLog, &msg2->g_b.gx, sizeof(msg2->g_b.gx));
 		fprintf(stderr, "\nmsg2.g_b.gy      = ");
+		fprintf(spLog, "\nmsg2.g_b.gy      = ");
 		print_hexstring(stderr, &msg2->g_b.gy, sizeof(msg2->g_b.gy));
+		print_hexstring(spLog, &msg2->g_b.gy, sizeof(msg2->g_b.gy));
 		fprintf(stderr, "\nmsg2.spid        = ");
+		fprintf(spLog, "\nmsg2.spid        = ");
 		print_hexstring(stderr, &msg2->spid, sizeof(msg2->spid));
+		print_hexstring(spLog, &msg2->spid, sizeof(msg2->spid));
 		fprintf(stderr, "\nmsg2.quote_type  = ");
+		fprintf(spLog, "\nmsg2.quote_type  = ");
 		print_hexstring(stderr, &msg2->quote_type, sizeof(msg2->quote_type));
+		print_hexstring(spLog, &msg2->quote_type, sizeof(msg2->quote_type));
 		fprintf(stderr, "\nmsg2.kdf_id      = ");
+		fprintf(spLog, "\nmsg2.kdf_id      = ");
 		print_hexstring(stderr, &msg2->kdf_id, sizeof(msg2->kdf_id));
+		print_hexstring(spLog, &msg2->kdf_id, sizeof(msg2->kdf_id));
 		fprintf(stderr, "\nmsg2.sign_ga_gb  = ");
+		fprintf(spLog, "\nmsg2.sign_ga_gb  = ");
 		print_hexstring(stderr, &msg2->sign_gb_ga, sizeof(msg2->sign_gb_ga));
+		print_hexstring(spLog, &msg2->sign_gb_ga, sizeof(msg2->sign_gb_ga));
 		fprintf(stderr, "\nmsg2.mac         = ");
+		fprintf(spLog, "\nmsg2.mac         = ");
 		print_hexstring(stderr, &msg2->mac, sizeof(msg2->mac));
+		print_hexstring(spLog, &msg2->mac, sizeof(msg2->mac));
 		fprintf(stderr, "\nmsg2.sig_rl_size = ");
+		fprintf(spLog, "\nmsg2.sig_rl_size = ");
 		print_hexstring(stderr, &msg2->sig_rl_size, sizeof(msg2->sig_rl_size));
+		print_hexstring(spLog, &msg2->sig_rl_size, sizeof(msg2->sig_rl_size));
 		fprintf(stderr, "\n");
+		fprintf(spLog, "\n");
 		divider(stderr);
+		divider(spLog);
 	}
 
 	free(msg01);
@@ -656,16 +794,22 @@ int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
 
 	if ( config->debug ) {
 		fprintf(stderr, "+++ shared secret= ");
+		fprintf(spLog, "+++ shared secret= ");
 		print_hexstring(stderr, Gab_x, slen);
+		print_hexstring(spLog, Gab_x, slen);
 		fprintf(stderr, "\n");
+		fprintf(spLog, "\n");
 	}
 
 	reverse_bytes(Gab_x, Gab_x, slen);
 
 	if ( config->debug ) {
 		fprintf(stderr, "+++ reversed     = ");
+		fprintf(spLog, "+++ reversed     = ");
 		print_hexstring(stderr, Gab_x, slen);
+		print_hexstring(spLog, Gab_x, slen);
 		fprintf(stderr, "\n");
+		fprintf(spLog, "\n");
 	}
 
 	/* Now hash that to get our KDK (Key Definition Key) */
@@ -693,6 +837,7 @@ int get_sigrl (config_t *config, sgx_epid_group_id_t gid, char **sig_rl,
 	}
 	catch (int e) {
 		fprintf(stderr, "Exception while creating IAS request object\n");
+		fprintf(spLog, "Exception while creating IAS request object\n");
 		oops= 1;
 	}
 	if ( oops ) return 0;
@@ -723,6 +868,7 @@ int get_attestation_report(config_t *config, const char *b64quote,
 	}
 	catch (int e) {
 		fprintf(stderr, "Exception while creating IAS request object\n");
+		fprintf(spLog, "Exception while creating IAS request object\n");
 		oops= 1;
 	}
 	if ( oops ) return 0;

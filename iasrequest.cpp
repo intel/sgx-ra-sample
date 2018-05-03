@@ -3,6 +3,7 @@
 #include "common.h"
 #include "agent_wget.h"
 #include "iasrequest.h"
+#include "logfile.h"
 #include "httpparser/response.h"
 
 using namespace std;
@@ -152,12 +153,20 @@ int IAS_Request::sigrl(uint32_t gid, string &sigrl)
 	url+= "/sigrl/";
 	url+= sgid;
 
-	fprintf(stderr, "+++ HTTP GET %s\n", url.c_str());
+	dividerWithText(stderr, "IAS sigrl HTTP Request");
+	dividerWithText(spLog, "IAS sigrl Request");
+	fprintf(stderr, "HTTP GET %s\n", url.c_str());
+	fprintf(spLog, "HTTP GET %s\n", url.c_str());
+	divider(stderr);
+	divider(spLog);
 
 	if ( http_request(this, response, url, "") ) {
-		dividerWithText(stderr, "HTTP Response");
+		dividerWithText(stderr, "IAS sigrl HTTP Response");
+		dividerWithText(spLog, "IAS sigrl HTTP Response");
 		fputs(response.inspect().c_str(), stderr);
+		fputs(response.inspect().c_str(), spLog);
 		divider(stderr);
+		divider(spLog);
 
 		if ( response.statusCode == 200 ) {
 			rv= 1;
@@ -192,12 +201,21 @@ int IAS_Request::report(map<string,string> &payload)
 
 	url+= to_string(r_api_version);
 	url+= "/report";
-	fprintf(stderr, "+++ HTTP POST %s\n", url.c_str());
+
+	dividerWithText(stderr, "IAS report HTTP Request");
+	dividerWithText(spLog, "IAS report HTTP Request");
+	fprintf(stderr, "HTTP POST %s\n", url.c_str());
+	fprintf(spLog, "HTTP POST %s\n", url.c_str());
+	divider(stderr);
+	divider(spLog);
 
 	if ( http_request(this, response, url, body) ) {
-		dividerWithText(stderr, "HTTP Response");
+	        dividerWithText(stderr, "IAS report HTTP Response");
+	        dividerWithText(spLog, "IAS report HTTP Response");
 		fputs(response.inspect().c_str(), stderr);
+		fputs(response.inspect().c_str(), spLog);
 		divider(stderr);
+		divider(spLog);
 	}
 }
 
