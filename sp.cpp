@@ -69,6 +69,7 @@ using namespace std;
 
 #include <map>
 #include <string>
+#include <iostream>
 
 static const unsigned char def_service_private_key[32] = {
 	0x90, 0xe7, 0x6c, 0xbb, 0x2d, 0x52, 0xa1, 0xce,
@@ -86,6 +87,7 @@ typedef struct config_struct {
 	char debug;
 	unsigned char kdk[16];
 	char *cert_file;
+	char *signing_ca_file;
 	IAS_Connection *ias;
 } config_t;
 
@@ -105,6 +107,8 @@ int main (int argc, char *argv[])
 	char flag_spid= 0;
 	char flag_pubkey= 0;
 	char flag_cert= 0;
+	char flag_ca= 0;
+	char flag_usage= 0;
 	char *sigrl= NULL;
 	config_t config;
 	sgx_ra_msg2_t msg2;
@@ -131,16 +135,18 @@ int main (int argc, char *argv[])
 
 	static struct option long_opt[] =
 	{
-		{"cert-file",	required_argument,	0, 'C'},
-		{"key-file",	required_argument,	0, 'K'},
-		{"spid-file",	required_argument,	0, 'S'},
-		{"debug",		required_argument,	0, 'd'},
-		{"session-key",	required_argument,	0, 'e'},
-		{"help",		no_argument, 		0, 'h'},
-		{"key",			required_argument,	0, 'k'},
-		{"linkable",	no_argument,		0, 'l'},
-		{"spid",		required_argument,	0, 's'},
-		{"verbose",		no_argument,		0, 'v'},
+		{"ias-signing-cafile",
+							required_argument,	0, 'A'},
+		{"ias-cert-file",	required_argument,	0, 'C'},
+		{"key-file",		required_argument,	0, 'K'},
+		{"spid-file",		required_argument,	0, 'S'},
+		{"debug",			required_argument,	0, 'd'},
+		{"session-key",		required_argument,	0, 'e'},
+		{"help",			no_argument, 		0, 'h'},
+		{"key",				required_argument,	0, 'k'},
+		{"linkable",		no_argument,		0, 'l'},
+		{"spid",			required_argument,	0, 's'},
+		{"verbose",			no_argument,		0, 'v'},
 		{ 0, 0, 0, 0 }
 	};
 
@@ -151,11 +157,20 @@ int main (int argc, char *argv[])
 		int opt_index= 0;
 		off_t fsz;
 
-		c= getopt_long(argc, argv, "C:K:S:de:hk:lr:s:v", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "A:C:K:S:de:hk:lr:s:v", long_opt, &opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
 		case 0:
+			break;
+		case 'A':
+			config.signing_ca_file= strdup(optarg);
+			if ( config.signing_ca_file == NULL ) {
+				perror("strdup");
+				exit(1);
+			}
+			++flag_ca;
+
 			break;
 		case 'C':
 			config.cert_file= strdup(optarg);
@@ -251,14 +266,21 @@ int main (int argc, char *argv[])
 	}
 
 	if ( ! flag_spid ) {
-		fprintf(stderr, "One of --spid or --spid-file is required.\n");
-		exit(1);
+		fprintf(stderr, "--spid or --spid-file is required\n");
+		flag_usage= 1;
 	}
 
 	if ( ! flag_cert ) {
-		fprintf(stderr, "--cert-file is required\n");
-		exit(1);
+		fprintf(stderr, "--ias-cert-file is required\n");
+		flag_usage= 1;
 	}
+
+	if ( ! flag_ca ) {
+		fprintf(stderr, "--ias-signing-cafile is required\n");
+		flag_usage= 1;
+	}
+
+	if ( flag_usage ) usage();
 
         if ( config.verbose ) {
 	    fprintf(stderr, "Using cert file %s\n", config.cert_file);
@@ -878,23 +900,36 @@ int get_attestation_report(config_t *config, const char *b64quote,
 	req->report(payload);
 }
 
+#define NNL <<endl<<endl<<
+#define NL <<endl<<
+
 void usage () 
 {
-	fprintf(stderr, "usage: sp [ options ]\n\n");
-	fprintf(stderr, "Required:\n");
-	fprintf(stderr, "  -C  --cert-file=FILE     Specify the certificate to use when contacting IAS\n");
-	fprintf(stderr, "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte\n");
-	fprintf(stderr, "                              ASCII hex string\n");
-	fprintf(stderr, "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string\n");
-	fprintf(stderr, "\nOne of --spid OR --spid-file is required\n\n");
-	fprintf(stderr, "\nOne of --msg2 OR --msg4 is required\n\n");
-	fprintf(stderr, "Optional:\n");
-	fprintf(stderr, "  -K, --key-file=FILE      The private key file in PEM format\n");
-	fprintf(stderr, "  -d, --debug              Print debug information\n");
-	fprintf(stderr, "  -e, --session-key=HEXSTRING\n");
-	fprintf(stderr, "                           Use HEXSTRING for the server's private sesion key\n");
-	fprintf(stderr, "  -k, --key=HEXSTRING      The private key as a hex string\n");
-	fprintf(stderr, "  -l, --linkable           Request a linkable quote (default: unlinkable)\n");
+	cerr << "usage: sp [ options ] " NL
+"Required:" NL
+"  -A, --ias-signing-cafile=FILE" NL
+"                           Specify the IAS Report Signing CA file." NL
+"  -C, --ias-cert-file=FILE Specify the client certificate to use when" NL
+"                             communicating with IAS." NL
+"  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte." NL
+"                             ASCII hex string." NL
+"  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string." NNL
+"Optional:" NL
+"  -K, --key-file=FILE      The private key file in PEM format (default: use" NL
+"                             hardcoded key). The client must be given the " NL
+"                             corresponding public key. Can't combine with" NL
+"                             --key." NL
+"  -d, --debug              Print debug information to stderr." NL
+"  -e, --session-key=HEXSTRING" NL
+"                           Use HEXSTRING for the server's private sesion key." NL
+"                             Creates semi-deterministic sessions for testing" NL
+"                             purposes." NL
+"  -k, --key=HEXSTRING      The private key as a hex string. See --key-file" NL
+"                             for notes. Can't combine with --key-file." NL
+"  -l, --linkable           Request a linkable quote (default: unlinkable)." NL
+"  -v, --verbose            Be verbose. Print message structure details and the" NL
+"                             results of intermediate operations to stderr." 
+<<endl;
 	exit(1);
 }
 
