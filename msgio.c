@@ -46,7 +46,7 @@ int read_msg (void **dest, size_t *sz)
 
 	bread= 0;
 	while (repeat) {
-		if ( fgets(&buffer[bread], buffer_size-bread, stdin) == NULL ) {
+		if ( fgets(&buffer[bread], (int)(buffer_size-bread), stdin) == NULL ) {
 			if ( ferror(stdin) ) {
 				perror("fgets");
 				return -1;
@@ -77,7 +77,7 @@ int read_msg (void **dest, size_t *sz)
 	if ( bread && buffer[bread-1] == '\r' ) --bread;
 
 	if ( bread%2 ) {
-		fprintf(stderr, "read odd byte count %lu\n", bread);
+		fprintf(stderr, "read odd byte count %zu\n", bread);
 		return 0;	/* base16 encoding = even number of bytes */
 	}
 

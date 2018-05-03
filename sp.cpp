@@ -300,12 +300,12 @@ int main (int argc, char *argv[])
 	 * portion and the array portion by hand.
 	 */
 
-	dividerWithText("Copy/Paste Msg2 Below to Client");
+	dividerWithText(stderr, "Copy/Paste Msg2 Below to Client");
 
 	send_msg_partial((void *) &msg2, sizeof(sgx_ra_msg2_t));
 	send_msg(msg2.sig_rl, msg2.sig_rl_size);
 
-	divider();
+	divider(stderr);
 
 	/* Read message 3 */
 
@@ -372,7 +372,7 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 	if ( config->verbose ) {
 		sgx_quote_t *q= (sgx_quote_t *) msg3->quote;
 
-		dividerWithText("Msg3 Details");
+		dividerWithText(stderr, "Msg3 Details");
 		fprintf(stderr,   "msg3.mac                 = ");
 		print_hexstring(stderr, &msg3->mac, sizeof(msg3->mac));
 		fprintf(stderr, "\nmsg3.g_a.gx              = ");
@@ -403,10 +403,10 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 		print_hexstring(stderr, &q->signature, q->signature_len);
 		fprintf(stderr, "\n");
 
-		dividerWithText("Enclave Quote (base64)");
+		dividerWithText(stderr, "Enclave Quote (base64)");
 		fputs(b64quote, stderr);
 		fprintf(stderr, "\n");
-		divider();
+		divider(stderr);
 	}
 
 	get_attestation_report(config, b64quote, msg3->ps_sec_prop);
@@ -456,10 +456,10 @@ int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 	}
 
 	if ( config->verbose ) {
-		dividerWithText("Msg0 Details");
+		dividerWithText(stderr, "Msg0 Details");
 		fprintf(stderr, "msg0.extended_epid_group_id = ");
 		fprintf(stderr, "%u\n", msg01->msg0_extended_epid_group_id);
-		divider();
+		divider(stderr);
 	}
 
 	/* According to the Intel SGX Developer Reference
@@ -477,7 +477,7 @@ int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 	msg1= &msg01->msg1;	
 
 	if ( config->verbose ) {
-		dividerWithText("Msg1 Details");
+		dividerWithText(stderr, "Msg1 Details");
 		fprintf(stderr,   "msg1.g_a.gx = ");
 		print_hexstring(stderr, &msg1->g_a.gx, sizeof(msg1->g_a.gx));
 		fprintf(stderr, "\nmsg1.g_a.gy = ");
@@ -485,7 +485,7 @@ int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 		fprintf(stderr, "\nmsg1.gid    = ");
 		print_hexstring(stderr, &msg1->gid, sizeof(msg1->gid));
 		fprintf(stderr, "\n");
-		divider();
+		divider(stderr);
 	}
 
 	if ( config->session_private_key == NULL ) {
@@ -619,7 +619,7 @@ int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 	cmac128(smk, (unsigned char *) msg2, 148, (unsigned char *) &msg2->mac);
 
 	if ( config->verbose ) {
-		dividerWithText("Msg2 Details");
+		dividerWithText(stderr, "Msg2 Details");
 		fprintf(stderr,   "msg2.g_b.gx      = ");
 		print_hexstring(stderr, &msg2->g_b.gx, sizeof(msg2->g_b.gx));
 		fprintf(stderr, "\nmsg2.g_b.gy      = ");
@@ -637,7 +637,7 @@ int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 		fprintf(stderr, "\nmsg2.sig_rl_size = ");
 		print_hexstring(stderr, &msg2->sig_rl_size, sizeof(msg2->sig_rl_size));
 		fprintf(stderr, "\n");
-		divider();
+		divider(stderr);
 	}
 
 	free(msg01);

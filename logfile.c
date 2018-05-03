@@ -1,6 +1,6 @@
 /*
 
-Copyright 2018 Intel Corporation
+Copyright 2017 Intel Corporation
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -30,36 +30,41 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#ifndef __COMMON_H
-#define __COMMON_H
 
-/* Help keep our console messages clean and organzied */
+#include <stdio.h>
+#include <sys/types.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include "logfile.h"
+#include "hexutil.h"
 
-#include <string>
-
-#define LINE_TYPE '-'
-#define LINE_SHORT_LEN 4
-#define LINE_MAX_LEN   76
-#define LINE_TRAILING_LEN(header) ((LINE_MAX_LEN - std::string(header).size()) - LINE_SHORT_LEN -2)
-
-#define LINE_COMPLETE (std::string( LINE_MAX_LEN, LINE_TYPE).c_str())
-
-#define LINE_HEADER(header) (std::string(std::string( LINE_SHORT_LEN, LINE_TYPE) + ' ' + std::string(header) + ' ' + std::string(LINE_TRAILING_LEN(header), LINE_TYPE)).c_str())
-
-#define INDENT(level) (std::string( level, ' ' ))
-#define WARNING_INDENT(level) (std::string(level, '*'))
+FILE *spLog = NULL;
+FILE *clientLog = NULL;
 
 
+FILE * create_logfile(char *filename)
+{
+	FILE *fp;
 
-#if defined(__cplusplus)
-extern "C" {
+#ifdef _WIN32
+	if (fopen_s(&fp, filename, "w") != 0) {
+		fprintf(stderr, "fopen_s: ");
+#else
+	if ( (fp= fopen(filename, "w")) == NULL ) {
+		fprintf(stderr, "fopen: ");
 #endif
+		perror(filename);
+		exit(1);
+	}
 
-void dividerWithText(FILE *fd, std::string str);
-void divider(FILE *fd);
-
-#if defined(__cplusplus)
+	return fp;
 }
-#endif
 
-#endif
+
+void close_logfile (FILE *fp)
+{
+        if ( fp ) {
+            fclose(fp);
+            fp = NULL;
+        }
+}

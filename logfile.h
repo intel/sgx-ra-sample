@@ -1,6 +1,6 @@
 /*
 
-Copyright 2018 Intel Corporation
+Copyright 2017 Intel Corporation
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -30,36 +30,25 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#ifndef __COMMON_H
-#define __COMMON_H
 
-/* Help keep our console messages clean and organzied */
+#ifndef __LOGFILE__H
+#define __LOGFILE__H
 
-#include <string>
+#include <sys/types.h>
 
-#define LINE_TYPE '-'
-#define LINE_SHORT_LEN 4
-#define LINE_MAX_LEN   76
-#define LINE_TRAILING_LEN(header) ((LINE_MAX_LEN - std::string(header).size()) - LINE_SHORT_LEN -2)
+extern FILE * clientLog;
+extern FILE * spLog;
 
-#define LINE_COMPLETE (std::string( LINE_MAX_LEN, LINE_TYPE).c_str())
-
-#define LINE_HEADER(header) (std::string(std::string( LINE_SHORT_LEN, LINE_TYPE) + ' ' + std::string(header) + ' ' + std::string(LINE_TRAILING_LEN(header), LINE_TYPE)).c_str())
-
-#define INDENT(level) (std::string( level, ' ' ))
-#define WARNING_INDENT(level) (std::string(level, '*'))
-
-
-
-#if defined(__cplusplus)
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-void dividerWithText(FILE *fd, std::string str);
-void divider(FILE *fd);
+FILE * create_logfile(char *filename);
 
-#if defined(__cplusplus)
-}
+void close_logfile (FILE *fp);
+
+#ifdef __cplusplus
+};
 #endif
 
 #endif

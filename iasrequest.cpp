@@ -155,9 +155,9 @@ int IAS_Request::sigrl(uint32_t gid, string &sigrl)
 	fprintf(stderr, "+++ HTTP GET %s\n", url.c_str());
 
 	if ( http_request(this, response, url, "") ) {
-		dividerWithText("HTTP Response");
+		dividerWithText(stderr, "HTTP Response");
 		fputs(response.inspect().c_str(), stderr);
-		divider();
+		divider(stderr);
 
 		if ( response.statusCode == 200 ) {
 			rv= 1;
@@ -195,9 +195,9 @@ int IAS_Request::report(map<string,string> &payload)
 	fprintf(stderr, "+++ HTTP POST %s\n", url.c_str());
 
 	if ( http_request(this, response, url, body) ) {
-		dividerWithText("HTTP Response");
+		dividerWithText(stderr, "HTTP Response");
 		fputs(response.inspect().c_str(), stderr);
-		divider();
+		divider(stderr);
 	}
 }
 
