@@ -38,6 +38,7 @@ using namespace std;
 #include <stdio.h>
 #include <stdarg.h>
 #include <cstdio>
+#include <string.h>
 #include <string>
 #include "common.h"
 #include "logfile.h"
@@ -52,7 +53,10 @@ using namespace std;
 #define LINE_HEADER(header) (string(string( LINE_SHORT_LEN, LINE_TYPE) + ' ' + string(header) + ' ' + string(LINE_TRAILING_LEN(header), LINE_TYPE)).c_str())
 
 #define INDENT(level) (string( level, ' ' ))
+
 #define WARNING_INDENT(level) (string(level, '*'))
+
+#define TIMESTR_SIZE	64
 
 void edividerWithText (const char *text)
 {
@@ -87,8 +91,21 @@ int eprintf (const char *format, ...)
 
 	if ( fplog != NULL ) {
 		time_t ts;
-		time(&ts);
-		fprintf(fplog, "%s: ", ctime(&ts));
+		struct tm *timetm;
+		char timestr[TIMESTR_SIZE];	
+
+		/* Don't timestamp a single "\n" */
+		if ( !(strlen(format) == 1 && format[0] == '\n') ) {
+			time(&ts);
+			timetm= localtime(&ts);
+
+			/* If you change this format, you _may_ need to change TIMESTR_SIZE */
+			if ( strftime(timestr, TIMESTR_SIZE, "%b %e %Y %T", timetm) == 0 ) {
+				/* oops */
+				timestr[0]= 0;
+			}
+			fprintf(fplog, "%s ", timestr);
+		}
 		va_start(va, format);
 		rv= vfprintf(fplog, format, va);
 		va_end(va);

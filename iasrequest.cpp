@@ -16,6 +16,9 @@ using namespace httpparser;
 #include <string>
 #include <exception>
 
+extern char verbose;
+extern char debug;
+
 static string ias_servers[2]= {
     IAS_SERVER_DEVELOPMENT_HOST,
     IAS_SERVER_PRODUCTION_HOST
@@ -160,14 +163,18 @@ int IAS_Request::sigrl(uint32_t gid, string &sigrl)
 	url+= "/sigrl/";
 	url+= sgid;
 
-	edividerWithText("IAS sigrl HTTP Request");
-	eprintf("HTTP GET %s\n", url.c_str());
-	edivider();
+	if ( verbose ) {
+		edividerWithText("IAS sigrl HTTP Request");
+		eprintf("HTTP GET %s\n", url.c_str());
+		edivider();
+	}
 
 	if ( http_request(this, response, url, "") ) {
-		edividerWithText("IAS sigrl HTTP Response");
-		eputs(response.inspect().c_str());
-		edivider();
+		if ( verbose ) {
+			edividerWithText("IAS sigrl HTTP Response");
+			eputs(response.inspect().c_str());
+			edivider();
+		}
 
 		if ( response.statusCode == 200 ) {
 			rv= 1;
@@ -175,6 +182,9 @@ int IAS_Request::sigrl(uint32_t gid, string &sigrl)
 		} else {
 			rv= 0;
 		}
+	} else {
+		rv= 0;
+		eprintf("Could not query IAS\n");
 	}
 
 	return rv;
@@ -213,14 +223,21 @@ int IAS_Request::report(map<string,string> &payload)
 	url+= to_string(r_api_version);
 	url+= "/report";
 
-	edividerWithText("IAS report HTTP Request");
-	eprintf("HTTP POST %s\n", url.c_str());
-	edivider();
+	if ( verbose ) {
+		edividerWithText("IAS report HTTP Request");
+		eprintf("HTTP POST %s\n", url.c_str());
+		edivider();
+	}
 
 	if ( http_request(this, response, url, body) ) {
-		edividerWithText("IAS report HTTP Response");
-		eputs(response.inspect().c_str());
-		edivider();
+		if ( verbose ) {
+			edividerWithText("IAS report HTTP Response");
+			eputs(response.inspect().c_str());
+			edivider();
+		}
+	} else {
+		eprintf("Could not query IAS\n");
+		return 0;
 	}
 
 	/*
@@ -263,10 +280,12 @@ int IAS_Request::report(map<string,string> &payload)
 		cend= certchain.find("-----BEGIN", cstart+1);
 		len= ( (cend == string::npos) ? certchain.length() : cend )-cstart;
 
-		edividerWithText("Certficate");
-		eputs(certchain.substr(cstart, len).c_str());
-		eprintf("\n");
-		edivider();
+		if ( verbose ) {
+			edividerWithText("Certficate");
+			eputs(certchain.substr(cstart, len).c_str());
+			eprintf("\n");
+			edivider();
+		}
 
 		if ( ! cert_load(&cert, certchain.substr(cstart, len).c_str()) ) {
 			crypto_perror("cert_load");
@@ -278,7 +297,7 @@ int IAS_Request::report(map<string,string> &payload)
 	}
 
 	count= certvec.size();
-	eprintf( "+++ Found %lu certificates in chain\n", count);
+	if ( debug ) eprintf( "+++ Found %lu certificates in chain\n", count);
 
 	certar= (X509**) malloc(sizeof(X509 *)*(count+1));
 	if ( certar == 0 ) {
@@ -321,13 +340,13 @@ int IAS_Request::report(map<string,string> &payload)
 		goto cleanup;
 	}
 
-	edividerWithText("Report Signature");
-	print_hexstring(stderr, sig, sigsz);
-	if ( fplog != NULL ) print_hexstring(fplog, sig, sigsz);
-	eprintf( "\n");
-	edivider();
-	eprintf("%lu bytes\n", sigsz);
-	edivider();
+	if ( verbose ) {
+		edividerWithText("Report Signature");
+		print_hexstring(stderr, sig, sigsz);
+		if ( fplog != NULL ) print_hexstring(fplog, sig, sigsz);
+		eprintf( "\n");
+		edivider();
+	}
 
 	sign_cert= certvec[0]; /* The first cert in the list */
 
@@ -337,7 +356,7 @@ int IAS_Request::report(map<string,string> &payload)
 	 * verify the signature.
 	 */
 
-	eprintf("+++ Extracting public key from signing cert\n");
+	if ( debug ) eprintf("+++ Extracting public key from signing cert\n");
 	pkey= X509_get_pubkey(sign_cert);
 	if ( pkey == NULL ) {
 		eprintf("Could not extract public key from certificate\n");
@@ -345,13 +364,15 @@ int IAS_Request::report(map<string,string> &payload)
 		goto cleanup;
 	}
 
-	eprintf("+++ Verifying signature over report body\n");
-	edividerWithText("Report");
-	eputs(response.content_string().c_str());
-	eprintf("\n");
-	edivider();
-	eprintf("%lu bytes\n", response.content_string().length());
-	edivider();
+	if ( debug ) {
+		eprintf("+++ Verifying signature over report body\n");
+		edividerWithText("Report");
+		eputs(response.content_string().c_str());
+		eprintf("\n");
+		edivider();
+		eprintf("Content-length: %lu bytes\n", response.content_string().length());
+		edivider();
+	}
 
 	if ( ! sha256_verify(
 		(const unsigned char *) response.content_string().c_str(),

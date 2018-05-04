@@ -49,15 +49,12 @@ const char *hexstring (const void *vsrc, size_t len)
 	const unsigned char *src= (const unsigned char *) vsrc;
 	unsigned char *bp;
 
-	eprintf("+++ hexdump %lu bytes\n", len);
 	bsz= len*2+1;	/* Make room for NULL byte */
-	eprintf("+++ need %lu byte buffer\n", bsz);
 	if ( bsz >= _hex_buffer_size ) {
 		/* Allocate in 1K increments. Make room for the NULL byte. */
 		size_t newsz= 1024*(bsz/1024) + ((bsz%1024) ? 1024 : 0);
 		_hex_buffer_size= newsz;
 		_hex_buffer= (char *) realloc(_hex_buffer, newsz);
-		eprintf("+++ MALLOC: new buffer size = %lu\n", newsz);
 		if ( _hex_buffer == NULL ) {
 			return "(out of memory)";
 		}
