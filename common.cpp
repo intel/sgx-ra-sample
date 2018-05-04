@@ -33,7 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std;
 
-#include <sys/time.h>
+
 #include <time.h>
 #include <stdio.h>
 #include <stdarg.h>

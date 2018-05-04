@@ -144,8 +144,10 @@ int main (int argc, char *argv[])
 	/* Create a logfile to capture debug output and actual msg data */
 	fplog = create_logfile("client.log");
 	dividerWithText(fplog, "Client Log Timestamp");
-	time_t timeT = time(NULL);
-	struct tm lt = *localtime(&timeT);
+
+	const time_t timeT = time(NULL);
+	struct tm lt;
+	localtime_s(&lt, &timeT);
 
 	fprintf(fplog, "%4d-%02d-%02d %02d:%02d:%02d\n", 
                            lt.tm_year + 1900, 
