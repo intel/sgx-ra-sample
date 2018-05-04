@@ -37,9 +37,22 @@ using namespace std;
 #include <string>
 #include "common.h"
 
-void dividerWithText (FILE *fd, string str)
+#define LINE_TYPE '-'
+#define LINE_SHORT_LEN 4
+#define LINE_MAX_LEN   76
+#define LINE_TRAILING_LEN(header) ((LINE_MAX_LEN - string(header).size()) - LINE_SHORT_LEN -2)
+
+#define LINE_COMPLETE (string( LINE_MAX_LEN, LINE_TYPE).c_str())
+
+#define LINE_HEADER(header) (string(string( LINE_SHORT_LEN, LINE_TYPE) + ' ' + string(header) + ' ' + string(LINE_TRAILING_LEN(header), LINE_TYPE)).c_str())
+
+#define INDENT(level) (string( level, ' ' ))
+#define WARNING_INDENT(level) (string(level, '*'))
+
+
+void dividerWithText (FILE *fd, const char *text)
 {
-    fprintf(fd, "\n%s\n", LINE_HEADER(str));
+    fprintf(fd, "\n%s\n", LINE_HEADER(text));
 }
 
 void divider (FILE * fd)

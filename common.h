@@ -35,27 +35,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* Help keep our console messages clean and organzied */
 
-#include <string>
-
-#define LINE_TYPE '-'
-#define LINE_SHORT_LEN 4
-#define LINE_MAX_LEN   76
-#define LINE_TRAILING_LEN(header) ((LINE_MAX_LEN - std::string(header).size()) - LINE_SHORT_LEN -2)
-
-#define LINE_COMPLETE (std::string( LINE_MAX_LEN, LINE_TYPE).c_str())
-
-#define LINE_HEADER(header) (std::string(std::string( LINE_SHORT_LEN, LINE_TYPE) + ' ' + std::string(header) + ' ' + std::string(LINE_TRAILING_LEN(header), LINE_TYPE)).c_str())
-
-#define INDENT(level) (std::string( level, ' ' ))
-#define WARNING_INDENT(level) (std::string(level, '*'))
-
-
+#include <stdio.h>
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-void dividerWithText(FILE *fd, std::string str);
+void dividerWithText(FILE *fd, const char *text);
 void divider(FILE *fd);
 
 #if defined(__cplusplus)
