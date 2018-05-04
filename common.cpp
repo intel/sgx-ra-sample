@@ -97,7 +97,11 @@ int eprintf (const char *format, ...)
 		/* Don't timestamp a single "\n" */
 		if ( !(strlen(format) == 1 && format[0] == '\n') ) {
 			time(&ts);
+#ifndef _WIN32
 			timetm= localtime(&ts);
+#else
+			localtime_s(&timetm, &ts);
+#endif
 
 			/* If you change this format, you _may_ need to change TIMESTR_SIZE */
 			if ( strftime(timestr, TIMESTR_SIZE, "%b %e %Y %T", timetm) == 0 ) {

@@ -43,7 +43,7 @@ extern FILE *fplog;
 extern "C" {
 #endif
 
-FILE * create_logfile(char *filename);
+FILE *create_logfile(const char *filename);
 
 void close_logfile (FILE *fp);
 

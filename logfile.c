@@ -43,7 +43,7 @@ FILE *clientLog = NULL;
 FILE *fplog = NULL;
 
 
-FILE * create_logfile(char *filename)
+FILE *create_logfile(const char *filename)
 {
 	FILE *fp;
 

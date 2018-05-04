@@ -148,7 +148,7 @@ int main (int argc, char *argv[])
 	const time_t timeT = time(NULL);
 	struct tm lt;
 
-#ifndef WIN32
+#ifndef _WIN32
 	lt = *localtime(&timeT);
 #else
 
