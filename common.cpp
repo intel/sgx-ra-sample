@@ -91,20 +91,20 @@ int eprintf (const char *format, ...)
 
 	if ( fplog != NULL ) {
 		time_t ts;
-		struct tm *timetm;
+		struct tm timetm;
 		char timestr[TIMESTR_SIZE];	
 
 		/* Don't timestamp a single "\n" */
 		if ( !(strlen(format) == 1 && format[0] == '\n') ) {
 			time(&ts);
 #ifndef _WIN32
-			timetm= localtime(&ts);
+			timetm= *localtime(&ts);
 #else
 			localtime_s(&timetm, &ts);
 #endif
 
 			/* If you change this format, you _may_ need to change TIMESTR_SIZE */
-			if ( strftime(timestr, TIMESTR_SIZE, "%b %e %Y %T", timetm) == 0 ) {
+			if ( strftime(timestr, TIMESTR_SIZE, "%b %e %Y %T", &timetm) == 0 ) {
 				/* oops */
 				timestr[0]= 0;
 			}

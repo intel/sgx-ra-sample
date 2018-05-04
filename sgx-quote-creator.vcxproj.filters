@@ -48,6 +48,9 @@
     <ClInclude Include="msgio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="logfile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -78,6 +81,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="msgio.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="logfile.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
