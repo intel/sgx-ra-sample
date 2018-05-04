@@ -1,19 +1,25 @@
 #include <string.h>
 #include <stdio.h>
+#include <openssl/x509.h>
+#include "crypto.h"
 #include "common.h"
 #include "agent_wget.h"
 #include "iasrequest.h"
 #include "httpparser/response.h"
+#include "base64.h"
 
 using namespace std;
 using namespace httpparser;
 
 #include <string>
+#include <exception>
 
 static string ias_servers[2]= {
     IAS_SERVER_DEVELOPMENT_HOST,
     IAS_SERVER_PRODUCTION_HOST
 };
+
+static string url_decode(string str);
 
 IAS_Connection::IAS_Connection(int server_idx, uint32_t flags)
 {
@@ -175,8 +181,18 @@ int IAS_Request::report(map<string,string> &payload)
 	Response response;
 	map<string,string>::iterator imap;
 	string url= r_conn->base_url();
-
+	string certchain;
 	string body= "{\n";
+	size_t cstart, cend, count, i;
+	vector<X509 *> certvec;
+	X509 **certar;
+	X509 *sign_cert;
+	STACK_OF(X509) *stack;
+	string sigstr;
+	size_t sigsz;
+	int rv;
+	unsigned char *sig;
+	EVP_PKEY *pkey;
 	
 	for (imap= payload.begin(); imap!= payload.end(); ++imap) {
 		if ( imap != payload.begin() ) {
@@ -199,5 +215,159 @@ int IAS_Request::report(map<string,string> &payload)
 		fputs(response.inspect().c_str(), stderr);
 		divider(stderr);
 	}
+
+	/*
+	 * The response body has the attestation report. The headers have
+	 * a signature of the report, and the public signing certificate.
+	 * We need to:
+	 *
+	 * 1) Verify the certificate chain, to ensure it's issued by the
+	 *    Intel CA (passed with the -A option).
+	 *
+	 * 2) Extract the public key from the signing cert, and verify
+	 *    the signature.
+	 */
+
+	// Get the certificate chain from the headers 
+
+	certchain= response.headers_as_string("X-IASReport-Signing-Certificate");
+	if ( certchain == "" ) {
+		fprintf(stderr, "Header X-IASReport-Signing-Certificate not found\n");
+		return 0;
+	}
+
+	// URL decode
+	try {
+		certchain= url_decode(certchain);
+	}
+	catch (int e) {
+		fprintf(stderr, "invalid URL encoding in header X-IASReport-Signing-Certificate\n");
+		return 0;
+	}
+
+	// Build the cert stack. Find the positions in the string where we
+	// have a BEGIN block.
+
+	cstart= cend= 0;
+	while (cend != string::npos ) {
+		X509 *cert;
+		size_t len;
+
+		cend= certchain.find("-----BEGIN", cstart+1);
+		len= ( (cend == string::npos) ? certchain.length() : cend )-cstart;
+
+		dividerWithText(stderr, "Certficate");
+		fputs(certchain.substr(cstart, len).c_str(), stderr);
+		fprintf(stderr, "\n");
+		divider(stderr);
+
+		if ( ! cert_load(&cert, certchain.substr(cstart, len).c_str()) ) {
+			crypto_perror("cert_load");
+			return 0;
+		}
+
+		certvec.push_back(cert);
+		cstart= cend;
+	}
+
+	count= certvec.size();
+	fprintf(stderr, "+++ Found %lu certificates in chain\n", count);
+
+	certar= (X509**) malloc(sizeof(X509 *)*(count+1));
+	if ( certar == 0 ) {
+		perror("malloc");
+		return 0;
+	}
+	for (i= 0; i< count; ++i) certar[i]= certvec[i];
+	certar[count]= NULL;
+
+	// Create a STACK_OF(X509) stack from our certs
+
+	stack= cert_stack_build(certar);
+	if ( stack == NULL ) {
+		crypto_perror("cert_stack_build");
+		return 0;
+	}
+
+	// Now verify the signing certificate
+
+	rv= cert_verify(this->conn()->cert_store(), stack);
+	fprintf(stderr, "+++ certificate verification returned %d\n", rv);
+
+	// We don't need these anymore
+
+	cert_stack_free(stack);
+	free(certar);
+
+	if ( ! rv ) {
+		crypto_perror("cert_stack_build");
+		fprintf(stderr, "certificate verification failure\n");
+		return 0;
+	}
+
+	// The signing cert is valid, so extract and verify the signature
+
+	sigstr= response.headers_as_string("X-IASReport-Signature");
+	if ( sigstr == "" ) {
+		fprintf(stderr, "Header X-IASReport-Signature not found\n");
+		return 0;
+	}
+
+	sig= (unsigned char *) base64_decode(sigstr.c_str(), &sigsz);
+	if ( sig == NULL ) {
+		fprintf(stderr, "Could not decode signature\n");
+	}
+
+	sign_cert= certvec[0]; /* The first cert in the list */
+
+	/*
+	 * The report body is SHA256 signed with the private key of the
+	 * signing cert.  Extract the public key from the certificate and
+	 * verify the signature.
+	 */
+
+	pkey= X509_get_pubkey(sign_cert);
+	if ( pkey == NULL ) {
+		fprintf(stderr, "Could not extract public key from certificate\n");
+		free(sig);
+		return 0;
+	}
+
+	
+
+	free(sig);
+
+	return 1;
+}
+
+// A simple URL decoder 
+
+static string url_decode(string str)
+{
+	string decoded;
+	size_t i;
+	size_t len= str.length();
+
+	for (i= 0; i< len; ++i) {
+		if ( str[i] == '+' ) decoded+= ' ';
+		else if ( str[i] == '%' ) {
+			char *e= NULL;
+			unsigned long int v;
+
+			// Have a % but run out of characters in the string
+
+			if ( i+3 > len ) throw std::length_error("premature end of string");
+
+			v= strtoul(str.substr(i+1, 2).c_str(), &e, 16);
+
+			// Have %hh but hh is not a valid hex code.
+			if ( *e ) throw std::out_of_range("invalid encoding");
+
+			decoded+= static_cast<char>(v);
+			i+= 2;
+		} else decoded+= str[i];
+	}
+
+	return decoded;
 }
 

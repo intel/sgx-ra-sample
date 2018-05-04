@@ -86,18 +86,22 @@ typedef struct config_struct {
 	char debug;
 	unsigned char kdk[16];
 	char *cert_file;
-	char *signing_ca_file;
-	IAS_Connection *ias;
+	X509_STORE *store;
+	X509 *signing_ca;
 } config_t;
 
 void usage();
+
 int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
 	config_t *config);
-int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config);
-int process_msg3 (ra_msg4_t *msg2, config_t *config);
-int get_sigrl (config_t *config, sgx_epid_group_id_t gid, char **sigrl,
+
+int process_msg01 (IAS_Connection *ias, sgx_ra_msg2_t *msg2, char **sigrl,
+	config_t *config);
+int process_msg3 (IAS_Connection *ias, ra_msg4_t *msg2, config_t *config);
+
+int get_sigrl (IAS_Connection *ias, sgx_epid_group_id_t gid, char **sigrl,
 	uint32_t *msg2);
-int get_attestation_report(config_t *config, const char *b64quote,
+int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 	sgx_ps_sec_prop_desc_t sec_prop);
 
 int main (int argc, char *argv[])
@@ -114,6 +118,7 @@ int main (int argc, char *argv[])
 	ra_msg4_t msg4;
 	uint32_t msg2_sz;
 	int oops;
+	IAS_Connection *ias;
 
 	memset(&config, 0, sizeof(config));
 
@@ -148,9 +153,15 @@ int main (int argc, char *argv[])
 		case 0:
 			break;
 		case 'A':
-			config.signing_ca_file= strdup(optarg);
-			if ( config.signing_ca_file == NULL ) {
-				perror("strdup");
+			if ( ! cert_load_file(&config.signing_ca, optarg) ) {
+				crypto_perror("cert_load_file");
+				fprintf(stderr, "%s: could not load IAS Signing Cert CA\n", optarg);
+				exit(1);
+			}
+
+			config.store= cert_init_ca(config.signing_ca);
+			if ( config.store == NULL ) {
+				fprintf(stderr, "%s: could not initialize certificate store\n", optarg);
 				exit(1);
 			}
 			++flag_ca;
@@ -272,8 +283,8 @@ int main (int argc, char *argv[])
 
 	try {
 		oops= 0;
-		config.ias= new IAS_Connection(IAS_SERVER_DEVELOPMENT, 0);
-		config.ias->client_cert(config.cert_file, "PEM");
+		ias= new IAS_Connection(IAS_SERVER_DEVELOPMENT, 0);
+		ias->client_cert(config.cert_file, "PEM");
 	}
 	catch (int e) {
 		oops= 1;
@@ -281,9 +292,12 @@ int main (int argc, char *argv[])
 	}
 	if ( oops ) exit(1);
 
+	/* Set the cert store for this connect */
+	ias->cert_store(config.store);
+
 	/* Read message 0 and 1, then generate message 2 */
 
-	if ( ! process_msg01(&msg2, &sigrl, &config) ) {
+	if ( ! process_msg01(ias, &msg2, &sigrl, &config) ) {
 		fprintf(stderr, "error processing msg1\n");
 		crypto_destroy();
 		return 1;
@@ -309,14 +323,14 @@ int main (int argc, char *argv[])
 
 	/* Read message 3 */
 
-	process_msg3(&msg4, &config);
+	process_msg3(ias, &msg4, &config);
 
 	crypto_destroy();
 
 	return 0;
 }
 
-int process_msg3 (ra_msg4_t *msg4, config_t *config)
+int process_msg3 (IAS_Connection *ias, ra_msg4_t *msg4, config_t *config)
 {
 	sgx_ra_msg3_t *msg3;
 	size_t blen= 0;
@@ -409,7 +423,7 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
 		divider(stderr);
 	}
 
-	get_attestation_report(config, b64quote, msg3->ps_sec_prop);
+	get_attestation_report(ias, b64quote, msg3->ps_sec_prop);
 
 	free(b64quote);
 
@@ -421,7 +435,8 @@ int process_msg3 (ra_msg4_t *msg4, config_t *config)
  * the client concatenated together for efficiency (msg0||msg1).
  */
 
-int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
+int process_msg01 (IAS_Connection *ias, sgx_ra_msg2_t *msg2, char **sigrl,
+	config_t *config)
 {
 	struct msg01_struct {
 		uint32_t msg0_extended_epid_group_id;
@@ -585,7 +600,7 @@ int process_msg01 (sgx_ra_msg2_t *msg2, char **sigrl, config_t *config)
 
 	/* Get the sigrl */
 
-	if ( ! get_sigrl(config, msg1->gid, sigrl, &msg2->sig_rl_size) ) {
+	if ( ! get_sigrl(ias, msg1->gid, sigrl, &msg2->sig_rl_size) ) {
 		fprintf(stderr, "could not retrieve the sigrl\n");
 	}
 
@@ -693,25 +708,24 @@ int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
 	/* Now hash that to get our KDK (Key Definition Key) */
 
 	/*
-     * KDK = AES_CMAC(0x00000000000000000000000000000000, secret)
-     */
+	 * KDK = AES_CMAC(0x00000000000000000000000000000000, secret)
+	 */
 
 	cmac128(cmackey, Gab_x, slen, kdk);
 
 	return 1;
 }
 
-int get_sigrl (config_t *config, sgx_epid_group_id_t gid, char **sig_rl,
+int get_sigrl (IAS_Connection *ias, sgx_epid_group_id_t gid, char **sig_rl,
 	uint32_t *sig_rl_size)
 {
-	IAS_Connection *conn= config->ias;
 	IAS_Request *req;
 	int oops;
 	string sigrlstr;
 
 	try {
 		oops= 0;
-		req= new IAS_Request(conn);
+		req= new IAS_Request(ias);
 	}
 	catch (int e) {
 		fprintf(stderr, "Exception while creating IAS request object\n");
@@ -731,17 +745,16 @@ int get_sigrl (config_t *config, sgx_epid_group_id_t gid, char **sig_rl,
 	return 1;
 }
 
-int get_attestation_report(config_t *config, const char *b64quote,
+int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 	sgx_ps_sec_prop_desc_t secprop) 
 {
-	IAS_Connection *conn= config->ias;
 	IAS_Request *req;
 	int oops;
 	map<string,string> payload;
 
 	try {
 		oops= 0;
-		req= new IAS_Request(conn);
+		req= new IAS_Request(ias);
 	}
 	catch (int e) {
 		fprintf(stderr, "Exception while creating IAS request object\n");

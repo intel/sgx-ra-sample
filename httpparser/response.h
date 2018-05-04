@@ -10,6 +10,7 @@
 
 #include <string>
 #include <vector>
+#include <algorithm> // Added by JM
 #include <sstream>
 
 namespace httpparser
@@ -63,6 +64,29 @@ struct Response {
 
 		return stream.str();
 	}
+
+	// headers_as_string() by JM
+	std::string headers_as_string(std::string name) const
+	{
+        std::stringstream stream;
+		// Just in case we get more than one header with the same name.
+		for(std::vector<Response::HeaderItem>::const_iterator it = headers.begin();
+            it != headers.end(); ++it)
+		{
+			if ( is_equal_ncase(it->name, name) ) stream << it->value << "\n";
+		}
+
+		return stream.str();
+	}
+
+	// Case-insensitive string comparison - JM
+	bool is_equal_ncase(std::string a, std::string b) const
+	{
+		transform(a.begin(), a.end(), a.begin(), toupper);
+		transform(b.begin(), b.end(), b.begin(), toupper);
+		return ( a == b );
+	}
+
 };
 
 } // namespace httpparser

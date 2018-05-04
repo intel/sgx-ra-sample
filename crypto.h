@@ -1,8 +1,10 @@
 #ifndef _CRYPTO_INIT_H
 #define _CRYPTO_INIT_H
 
-#include <openssl/evp.h>
 #include <sgx_key_exchange.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/x509.h>
 
 #define KEY_PUBLIC	0
 #define KEY_PRIVATE	1
@@ -34,10 +36,29 @@ int key_to_sgx_ec256 (sgx_ec256_public_t *k, EVP_PKEY *key);
 unsigned char *key_shared_secret (EVP_PKEY *key, EVP_PKEY *peerkey, size_t *slen);
 EVP_PKEY *key_generate();
 
+/* SHA256 */
+
+int sha256_digest(unsigned char *msg, size_t mlen, unsigned char digest[32]);
+
+/* HMAC */
+
+int sha256_verify(unsigned char *msg, size_t mlen, unsigned char *sig,
+	size_t sigsz, EVP_PKEY *pkey);
+
 /* ECDSA signature */
 
 int ecdsa_sign(unsigned char *msg, size_t mlen, EVP_PKEY *key,
 	unsigned char r[32], unsigned char s[32], unsigned char digest[32]);
+
+/* Certs */
+
+int cert_load_file (X509 **cert, const char *filename);
+int cert_load_size (X509 **cert, const char *pemdata, size_t sz);
+int cert_load (X509 **cert, const char *pemdata);
+X509_STORE *cert_init_ca(X509 *cert);
+int cert_verify(X509_STORE *store, STACK_OF(X509) *chain);
+STACK_OF(X509) *cert_stack_build(X509 **certs);
+void cert_stack_free(STACK_OF(X509) *chain);
 
 #ifdef __cplusplus
 };

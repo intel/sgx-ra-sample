@@ -6,6 +6,8 @@
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/bn.h>
+#include <openssl/x509.h>
+#include <openssl/x509v3.h>
 #include <string.h>
 #include <stdio.h>
 #include <sgx_key_exchange.h>
@@ -573,6 +575,17 @@ cleanup:
 }
 
 /*==========================================================================
+ * HMAC
+ *========================================================================== */
+
+int sha256_verify(unsigned char *msg, size_t mlen, unsigned char *sig,
+    size_t sigsz, EVP_PKEY *pkey)
+{
+	return 1;
+}
+
+
+/*==========================================================================
  * ECDSA
  *========================================================================== */
 
@@ -621,5 +634,142 @@ cleanup:
 	if ( sig != NULL ) ECDSA_SIG_free(sig);
 	if ( eckey != NULL ) EC_KEY_free(eckey);
 	return (error_type == e_none);
+}
+
+/*==========================================================================
+ * Certificate verification
+ *========================================================================== */
+
+int cert_load_file (X509 **cert, const char *filename)
+{
+	FILE *fp;
+
+	error_type= e_none;
+
+	fp= fopen(filename, "r");
+	if ( fp == NULL ) {
+		error_type= e_system;
+		return 0;
+	}
+
+	*cert= PEM_read_X509(fp, NULL, NULL, NULL);
+	if ( *cert == NULL ) error_type= e_crypto;
+
+	fclose(fp);
+
+	return (error_type == e_none);
+}
+
+int cert_load (X509 **cert, const char *pemdata)
+{
+	return cert_load_size(cert, pemdata, strlen(pemdata));
+}
+
+int cert_load_size (X509 **cert, const char *pemdata, size_t sz)
+{
+	BIO * bmem;
+	error_type= e_none;
+
+	bmem= BIO_new(BIO_s_mem());
+	if ( bmem == NULL ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	if ( BIO_write(bmem, pemdata, sz) != sz ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	*cert= PEM_read_bio_X509(bmem, NULL, NULL, NULL);
+	if ( *cert == NULL ) error_type= e_crypto;
+
+cleanup:
+	if ( bmem != NULL ) BIO_free(bmem);
+
+	return (error_type == e_none);
+}
+
+X509_STORE *cert_init_ca(X509 *cert)
+{
+	X509_STORE *store;
+	X509_STORE_CTX *ctx;
+
+	error_type= e_none;
+
+	store= X509_STORE_new();
+	if ( store == NULL ) {
+		error_type= e_crypto;
+		return NULL;
+	}
+
+	if ( X509_STORE_add_cert(store, cert) != 1 ) {
+		X509_STORE_free(store);
+		error_type= e_crypto;
+		return NULL;
+	}
+
+	return store;
+}
+
+/*
+ * Verify cert chain against our CA in store. Assume the first cert in
+ * the chain is the one to validate. Note that a store context can only
+ * be used for a single verification so we need to do this every time
+ * we want to validate a cert.
+ */
+
+int cert_verify (X509_STORE *store, STACK_OF(X509) *chain)
+{
+	X509_STORE_CTX *ctx;
+	X509 *cert= sk_X509_value(chain, 0);
+
+	error_type= e_none;
+
+	ctx= X509_STORE_CTX_new();
+	if ( ctx == NULL ) {
+		error_type= e_crypto;
+		return 0;
+	}
+
+	if ( X509_STORE_CTX_init(ctx, store, cert, chain) != 1 ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	if ( X509_verify_cert(ctx) != 1 ) error_type=e_crypto;
+
+cleanup:
+	if ( ctx != NULL ) X509_STORE_CTX_free(ctx);
+
+	return (error_type == e_none);
+}
+
+/*
+ * Take an array of certificate pointers and build a stack.
+ */
+
+STACK_OF(X509) *cert_stack_build (X509 **certs)
+{
+	X509 **pcert;
+	STACK_OF(X509) *stack;
+	int i;
+
+	error_type= e_none;
+
+	stack= sk_X509_new_null();
+	if ( stack == NULL ) {
+		error_type= e_crypto;
+		return NULL;
+	}
+
+	for ( pcert= certs; *pcert!= NULL; ++pcert ) sk_X509_push(stack, *pcert);
+
+	return stack;
+}
+
+void cert_stack_free (STACK_OF(X509) *chain)
+{
+	sk_X509_free(chain);
 }
 

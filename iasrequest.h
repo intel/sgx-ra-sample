@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <inttypes.h>
+#include <openssl/x509.h>
 
 using namespace std;
 
@@ -44,6 +45,7 @@ class IAS_Connection {
 	uint16_t c_proxy_port;
 	int c_proxy_mode;
 	uint32_t c_flags;
+	X509_STORE *c_store;
 
 public:
 	IAS_Connection(int server, uint32_t flags);
@@ -64,6 +66,9 @@ public:
 	int client_key(const char *file, const char *passwd);
 	string client_key_file() { return c_key_file; }
 	size_t client_key_passwd(char **passwd);
+
+	void cert_store(X509_STORE *store) { c_store= store; }
+	X509_STORE *cert_store() { return c_store; }
 };
 
 
