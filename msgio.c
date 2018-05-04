@@ -7,11 +7,14 @@
 #endif
 #include "hexutil.h"
 #include "msgio.h"
+#include "common.h"
 
 #define BUFFER_SZ	1024*1024
 
 static char *buffer= NULL;
 static uint32_t buffer_size= BUFFER_SZ;
+
+extern char debug;
 
 /*
  * Read a msg from stdin. There's a fixed portion and a variable-length
@@ -84,6 +87,12 @@ int read_msg (void **dest, size_t *sz)
 	*dest= malloc(bread/2);
 	if ( *dest == NULL ) return -1;
 
+	if ( debug ) {
+		edividerWithText("read buffer");
+		eputs(buffer);
+		edivider();
+	}
+
 	from_hexstring(*dest, buffer, bread/2);
 
 	if ( sz != NULL ) *sz= bread;
@@ -127,14 +136,14 @@ void send_msg (void *src, size_t sz)
 
 /* Send a partial message (no newline) */
 
-void send_msg_partial_to_log (FILE *fd, void *src, size_t sz) {
-        if ( sz ) print_hexstring(fd, src, sz);
+void fsend_msg_partial (FILE *fp, void *src, size_t sz) {
+        if ( sz ) print_hexstring(fp, src, sz);
 }
 
-void send_msg_to_log (FILE* fd, void *src, size_t sz)
+void fsend_msg (FILE *fp, void *src, size_t sz)
 {
-        if ( sz ) print_hexstring(fd, src, sz);
-        fprintf(fd,"\n");
-        fflush(fd);
+        if ( sz ) print_hexstring(fp, src, sz);
+        fprintf(fp,"\n");
+        fflush(fp);
 }
 

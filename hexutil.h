@@ -8,8 +8,12 @@
 extern "C" {
 #endif
 
-int from_hexstring(unsigned char *dest, unsigned char *src, size_t len);
-void print_hexstring(FILE *fp, void *src, size_t len);
+int from_hexstring(unsigned char *dest, const void *src, size_t len);
+
+void print_hexstring(FILE *fp, const void *src, size_t len);
+void print_hexstring_nl(FILE *fp, const void *src, size_t len);
+
+const char *hexstring(const void *src, size_t len);
 
 #ifdef __cplusplus
 };

@@ -160,20 +160,14 @@ int IAS_Request::sigrl(uint32_t gid, string &sigrl)
 	url+= "/sigrl/";
 	url+= sgid;
 
-	dividerWithText(stderr, "IAS sigrl HTTP Request");
-	dividerWithText(spLog, "IAS sigrl Request");
-	fprintf(stderr, "HTTP GET %s\n", url.c_str());
-	fprintf(spLog, "HTTP GET %s\n", url.c_str());
-	divider(stderr);
-	divider(spLog);
+	edividerWithText("IAS sigrl HTTP Request");
+	eprintf("HTTP GET %s\n", url.c_str());
+	edivider();
 
 	if ( http_request(this, response, url, "") ) {
-		dividerWithText(stderr, "IAS sigrl HTTP Response");
-		dividerWithText(spLog, "IAS sigrl HTTP Response");
-		fputs(response.inspect().c_str(), stderr);
-		fputs(response.inspect().c_str(), spLog);
-		divider(stderr);
-		divider(spLog);
+		edividerWithText("IAS sigrl HTTP Response");
+		eputs(response.inspect().c_str());
+		edivider();
 
 		if ( response.statusCode == 200 ) {
 			rv= 1;
@@ -219,20 +213,14 @@ int IAS_Request::report(map<string,string> &payload)
 	url+= to_string(r_api_version);
 	url+= "/report";
 
-	dividerWithText(stderr, "IAS report HTTP Request");
-	dividerWithText(spLog, "IAS report HTTP Request");
-	fprintf(stderr, "HTTP POST %s\n", url.c_str());
-	fprintf(spLog, "HTTP POST %s\n", url.c_str());
-	divider(stderr);
-	divider(spLog);
+	edividerWithText("IAS report HTTP Request");
+	eprintf("HTTP POST %s\n", url.c_str());
+	edivider();
 
 	if ( http_request(this, response, url, body) ) {
-		dividerWithText(stderr, "IAS report HTTP Response");
-		dividerWithText(spLog, "IAS report HTTP Response");
-		fputs(response.inspect().c_str(), stderr);
-		fputs(response.inspect().c_str(), spLog);
-		divider(stderr);
-		divider(spLog);
+		edividerWithText("IAS report HTTP Response");
+		eputs(response.inspect().c_str());
+		edivider();
 	}
 
 	/*
@@ -251,7 +239,7 @@ int IAS_Request::report(map<string,string> &payload)
 
 	certchain= response.headers_as_string("X-IASReport-Signing-Certificate");
 	if ( certchain == "" ) {
-		fprintf(stderr, "Header X-IASReport-Signing-Certificate not found\n");
+		eprintf("Header X-IASReport-Signing-Certificate not found\n");
 		return 0;
 	}
 
@@ -260,7 +248,7 @@ int IAS_Request::report(map<string,string> &payload)
 		certchain= url_decode(certchain);
 	}
 	catch (int e) {
-		fprintf(stderr, "invalid URL encoding in header X-IASReport-Signing-Certificate\n");
+		eprintf("invalid URL encoding in header X-IASReport-Signing-Certificate\n");
 		return 0;
 	}
 
@@ -275,10 +263,10 @@ int IAS_Request::report(map<string,string> &payload)
 		cend= certchain.find("-----BEGIN", cstart+1);
 		len= ( (cend == string::npos) ? certchain.length() : cend )-cstart;
 
-		dividerWithText(stderr, "Certficate");
-		fputs(certchain.substr(cstart, len).c_str(), stderr);
-		fprintf(stderr, "\n");
-		divider(stderr);
+		edividerWithText("Certficate");
+		eputs(certchain.substr(cstart, len).c_str());
+		eprintf("\n");
+		edivider();
 
 		if ( ! cert_load(&cert, certchain.substr(cstart, len).c_str()) ) {
 			crypto_perror("cert_load");
@@ -290,7 +278,7 @@ int IAS_Request::report(map<string,string> &payload)
 	}
 
 	count= certvec.size();
-	fprintf(stderr, "+++ Found %lu certificates in chain\n", count);
+	eprintf( "+++ Found %lu certificates in chain\n", count);
 
 	certar= (X509**) malloc(sizeof(X509 *)*(count+1));
 	if ( certar == 0 ) {
@@ -314,31 +302,32 @@ int IAS_Request::report(map<string,string> &payload)
 
 	if ( ! rv ) {
 		crypto_perror("cert_stack_build");
-		fprintf(stderr, "certificate verification failure\n");
+		eprintf("certificate verification failure\n");
 		goto cleanup;
-	} else fprintf(stderr, "+++ certificate chain verified\n", rv);
+	} else eprintf("+++ certificate chain verified\n", rv);
 
 	// The signing cert is valid, so extract and verify the signature
 
 	sigstr= response.headers_as_string("X-IASReport-Signature");
 	if ( sigstr == "" ) {
-		fprintf(stderr, "Header X-IASReport-Signature not found\n");
+		eprintf("Header X-IASReport-Signature not found\n");
 		rv= 0;
 		goto cleanup;
 	}
 
 	sig= (unsigned char *) base64_decode(sigstr.c_str(), &sigsz);
 	if ( sig == NULL ) {
-		fprintf(stderr, "Could not decode signature\n");
+		eprintf("Could not decode signature\n");
 		goto cleanup;
 	}
 
-	dividerWithText(stderr, "Report Signature");
+	edividerWithText("Report Signature");
 	print_hexstring(stderr, sig, sigsz);
-	fprintf(stderr, "\n");
-	divider(stderr);
-	fprintf(stderr, "%lu bytes\n", sigsz);
-	divider(stderr);
+	if ( fplog != NULL ) print_hexstring(fplog, sig, sigsz);
+	eprintf( "\n");
+	edivider();
+	eprintf("%lu bytes\n", sigsz);
+	edivider();
 
 	sign_cert= certvec[0]; /* The first cert in the list */
 
@@ -348,21 +337,21 @@ int IAS_Request::report(map<string,string> &payload)
 	 * verify the signature.
 	 */
 
-	fprintf(stderr, "+++ Extracting public key from signing cert\n");
+	eprintf("+++ Extracting public key from signing cert\n");
 	pkey= X509_get_pubkey(sign_cert);
 	if ( pkey == NULL ) {
-		fprintf(stderr, "Could not extract public key from certificate\n");
+		eprintf("Could not extract public key from certificate\n");
 		free(sig);
 		goto cleanup;
 	}
 
-	fprintf(stderr, "+++ Verifying signature over report body\n");
-	dividerWithText(stderr, "Report");
-	fputs(response.content_string().c_str(), stderr);
-	fprintf(stderr, "\n");
-	divider(stderr);
-	fprintf(stderr, "%lu bytes\n", response.content_string().length());
-	divider(stderr);
+	eprintf("+++ Verifying signature over report body\n");
+	edividerWithText("Report");
+	eputs(response.content_string().c_str());
+	eprintf("\n");
+	edivider();
+	eprintf("%lu bytes\n", response.content_string().length());
+	edivider();
 
 	if ( ! sha256_verify(
 		(const unsigned char *) response.content_string().c_str(),
@@ -370,10 +359,10 @@ int IAS_Request::report(map<string,string> &payload)
 
 		free(sig);
 		crypto_perror("sha256_verify");
-		fprintf(stderr, "Could not validate signature\n");
+		eprintf("Could not validate signature\n");
 	} else {
-		if ( rv ) fprintf(stderr, "+++ Signature verified\n");
-		else fprintf(stderr, "Invalid report signature\n");
+		if ( rv ) eprintf("+++ Signature verified\n");
+		else eprintf("Invalid report signature\n");
 	}
 
 cleanup:

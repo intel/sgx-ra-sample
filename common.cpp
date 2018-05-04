@@ -33,9 +33,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std;
 
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+#include <stdarg.h>
 #include <cstdio>
 #include <string>
 #include "common.h"
+#include "logfile.h"
 
 #define LINE_TYPE '-'
 #define LINE_SHORT_LEN 4
@@ -49,10 +54,21 @@ using namespace std;
 #define INDENT(level) (string( level, ' ' ))
 #define WARNING_INDENT(level) (string(level, '*'))
 
+void edividerWithText (const char *text)
+{
+	dividerWithText(stderr, text);
+	if ( fplog != NULL ) dividerWithText(fplog, text);
+}
 
 void dividerWithText (FILE *fd, const char *text)
 {
     fprintf(fd, "\n%s\n", LINE_HEADER(text));
+}
+
+void edivider ()
+{
+	divider(stderr);
+	if ( fplog != NULL ) divider(fplog);
 }
 
 void divider (FILE * fd)
@@ -60,3 +76,29 @@ void divider (FILE * fd)
     fprintf(fd, "%s\n", LINE_COMPLETE);
 }
 
+int eprintf (const char *format, ...)
+{
+	va_list va;
+	int rv;
+
+	va_start(va, format);
+	rv= vfprintf(stderr, format, va);
+	va_end(va);
+
+	if ( fplog != NULL ) {
+		time_t ts;
+		time(&ts);
+		fprintf(fplog, "%s: ", ctime(&ts));
+		va_start(va, format);
+		rv= vfprintf(fplog, format, va);
+		va_end(va);
+	}
+
+	return rv;
+}
+
+int eputs (const char *s)
+{
+	if ( fplog != NULL ) fputs(s, fplog);
+	return fputs(s, stderr);
+}

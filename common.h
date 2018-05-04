@@ -41,8 +41,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern "C" {
 #endif
 
+void edividerWithText(const char *text);
+void edivider();
+
 void dividerWithText(FILE *fd, const char *text);
 void divider(FILE *fd);
+
+int eprintf(const char *format, ...);
+int eputs(const char *s);
 
 #if defined(__cplusplus)
 }

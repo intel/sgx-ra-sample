@@ -36,8 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sys/types.h>
 
-extern FILE * clientLog;
-extern FILE * spLog;
+extern FILE *clientLog;
+extern FILE *fplog;
 
 #ifdef __cplusplus
 extern "C" {

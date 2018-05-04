@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 FILE *spLog = NULL;
 FILE *clientLog = NULL;
+FILE *fplog = NULL;
 
 
 FILE * create_logfile(char *filename)

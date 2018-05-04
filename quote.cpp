@@ -100,7 +100,7 @@ int file_in_searchpath (const char *file, const char *search, char *fullpath,
 
 sgx_status_t sgx_create_enclave_search (
 	const char *filename,
-	const int debug,
+	const int edebug,
 	sgx_launch_token_t *token,
 	int *updated,
 	sgx_enclave_id_t *eid,
@@ -111,6 +111,9 @@ void usage();
 int do_quote(sgx_enclave_id_t eid, config_t *config);
 int do_attestation(sgx_enclave_id_t eid, config_t *config);
 
+char debug= 0;
+char verbose= 0;
+
 #define MODE_QUOTE 	0x0
 #define MODE_EPID 	0x1
 #define MODE_ATTEST	0x2
@@ -119,8 +122,6 @@ int do_attestation(sgx_enclave_id_t eid, config_t *config);
 #define OPT_NONCE	0x02
 #define OPT_LINK	0x04
 #define OPT_PUBKEY	0x08
-#define OPT_VERBOSE	0x10
-#define OPT_DEBUG	0x20
 
 /* Macros to set, clear, and get the mode and options */
 
@@ -137,24 +138,24 @@ int main (int argc, char *argv[])
 	int updated= 0;
 	int sgx_support;
 	uint32_t i;
+	EVP_PKEY *service_public_key= NULL;
+	char have_spid= 0;
 
-        /* Create a logfile to capture debug output and actual msg data */
-        spLog = NULL;
-        clientLog = create_logfile("client.log");
-        dividerWithText(clientLog,"Client Log Timestamp");
-        time_t timeT = time(NULL);
-        struct tm lt = *localtime(&timeT);
-        fprintf(clientLog, "%4d-%02d-%02d %02d:%02d:%02d\n", 
+	/* Create a logfile to capture debug output and actual msg data */
+	fplog = create_logfile("client.log");
+	dividerWithText(fplog, "Client Log Timestamp");
+	time_t timeT = time(NULL);
+	struct tm lt = *localtime(&timeT);
+
+	fprintf(fplog, "%4d-%02d-%02d %02d:%02d:%02d\n", 
                            lt.tm_year + 1900, 
                            lt.tm_mon + 1, 
                            lt.tm_mday,  
                            lt.tm_hour, 
                            lt.tm_min, 
                            lt.tm_sec);
-        divider(clientLog);
+	divider(fplog);
 
-	EVP_PKEY *service_public_key= NULL;
-	char have_spid= 0;
 
 	memset(&config, 0, sizeof(config));
 	config.mode= MODE_QUOTE;
@@ -232,7 +233,7 @@ int main (int argc, char *argv[])
 			config.mode= MODE_ATTEST;
 			break;
 		case 'd':
-			SET_OPT(config.flags, OPT_DEBUG);
+			debug= 1;
 			break;
 		case 'e':
 			config.mode= MODE_EPID;
@@ -303,7 +304,7 @@ int main (int argc, char *argv[])
 			++have_spid;
 			break;
 		case 'v':
-			SET_OPT(config.flags, OPT_VERBOSE);
+			verbose= 1;
 			break;
 		case 'h':
 		case '?':
@@ -377,7 +378,7 @@ int main (int argc, char *argv[])
 	}
 
      
-        close_logfile(clientLog);
+        close_logfile(fplog);
 }
 
 int do_attestation (sgx_enclave_id_t eid, config_t *config)
@@ -391,8 +392,6 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	uint32_t flags= config->flags;
 	sgx_ra_context_t ra_ctx= 0xdeadbeef;
 	int rv;
-	char verbose= OPT_ISSET(flags, OPT_VERBOSE);
-	char debug= OPT_ISSET(flags, OPT_DEBUG);
 
 	/*
 	 * WARNING! Normally, the public key would be hardcoded into the
@@ -430,17 +429,17 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	}
 	if ( verbose ) {
 		dividerWithText(stderr, "Msg0 Details");
-		dividerWithText(clientLog, "Msg0 Details");
+		dividerWithText(fplog, "Msg0 Details");
 		fprintf(stderr,   "Extended Epid Group ID: ");
-		fprintf(clientLog,   "Extended Epid Group ID: ");
+		fprintf(fplog,   "Extended Epid Group ID: ");
 		print_hexstring(stderr, &msg0_extended_epid_group_id,
 			 sizeof(uint32_t));
-		print_hexstring(clientLog, &msg0_extended_epid_group_id,
+		print_hexstring(fplog, &msg0_extended_epid_group_id,
 			 sizeof(uint32_t));
 		fprintf(stderr, "\n");
-		fprintf(clientLog, "\n");
+		fprintf(fplog, "\n");
 		divider(stderr);
-		divider(clientLog);
+		divider(fplog);
 	}
  
 	/* Generate msg1 */
@@ -448,29 +447,29 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	status= sgx_ra_get_msg1(ra_ctx, eid, sgx_ra_get_ga, &msg1);
 	if ( status != SGX_SUCCESS ) {
 		fprintf(stderr, "sgx_ra_get_msg1: %08x\n", status);
-		fprintf(clientLog, "sgx_ra_get_msg1: %08x\n", status);
+		fprintf(fplog, "sgx_ra_get_msg1: %08x\n", status);
 		return 1;
 	}
 
 	if ( verbose ) {
 		dividerWithText(stderr,"Msg1 Details");
-		dividerWithText(clientLog,"Msg1 Details");
+		dividerWithText(fplog,"Msg1 Details");
 		fprintf(stderr,   "msg1.g_a.gx = ");
-		fprintf(clientLog,   "msg1.g_a.gx = ");
+		fprintf(fplog,   "msg1.g_a.gx = ");
 		print_hexstring(stderr, msg1.g_a.gx, 32);
-		print_hexstring(clientLog, msg1.g_a.gx, 32);
+		print_hexstring(fplog, msg1.g_a.gx, 32);
 		fprintf(stderr, "\nmsg1.g_a.gy = ");
-		fprintf(clientLog, "\nmsg1.g_a.gy = ");
+		fprintf(fplog, "\nmsg1.g_a.gy = ");
 		print_hexstring(stderr, msg1.g_a.gy, 32);
-		print_hexstring(clientLog, msg1.g_a.gy, 32);
+		print_hexstring(fplog, msg1.g_a.gy, 32);
 		fprintf(stderr, "\nmsg1.gid    = ");
-		fprintf(clientLog, "\nmsg1.gid    = ");
+		fprintf(fplog, "\nmsg1.gid    = ");
 		print_hexstring(stderr, msg1.gid, 4);
-		print_hexstring(clientLog, msg1.gid, 4);
+		print_hexstring(fplog, msg1.gid, 4);
 		fprintf(stderr, "\n");
-		fprintf(clientLog, "\n");
+		fprintf(fplog, "\n");
 		divider(stderr);
-		divider(clientLog);
+		divider(fplog);
 	}
 
 	/*
@@ -491,11 +490,11 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	send_msg(&msg1, sizeof(msg1));
 	divider(stderr);
 
-	dividerWithText(clientLog, "Msg0||Msg1 ==> SP");
-	send_msg_partial_to_log(clientLog, &msg0_extended_epid_group_id,
+	dividerWithText(fplog, "Msg0||Msg1 ==> SP");
+	fsend_msg_partial(fplog, &msg0_extended_epid_group_id,
 		sizeof(msg0_extended_epid_group_id));
-	send_msg_to_log(clientLog, &msg1, sizeof(msg1));
-	divider(clientLog);
+	fsend_msg(fplog, &msg1, sizeof(msg1));
+	divider(fplog);
 
 	fprintf(stderr, "Waiting for msg2...\n");
 
@@ -516,53 +515,53 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	if ( verbose ) {
 		dividerWithText(stderr, "Msg2 Details");
-		dividerWithText(clientLog, "Msg2 Details (Received from SP)");
+		dividerWithText(fplog, "Msg2 Details (Received from SP)");
 		fprintf(stderr,   "msg2.g_b.gx      = ");
-		fprintf(clientLog,   "msg2.g_b.gx      = ");
+		fprintf(fplog,   "msg2.g_b.gx      = ");
 		print_hexstring(stderr, &msg2->g_b.gx, sizeof(msg2->g_b.gx));
-		print_hexstring(clientLog, &msg2->g_b.gx, sizeof(msg2->g_b.gx));
+		print_hexstring(fplog, &msg2->g_b.gx, sizeof(msg2->g_b.gx));
 		fprintf(stderr, "\nmsg2.g_b.gy      = ");
-		fprintf(clientLog, "\nmsg2.g_b.gy      = ");
+		fprintf(fplog, "\nmsg2.g_b.gy      = ");
 		print_hexstring(stderr, &msg2->g_b.gy, sizeof(msg2->g_b.gy));
-		print_hexstring(clientLog, &msg2->g_b.gy, sizeof(msg2->g_b.gy));
+		print_hexstring(fplog, &msg2->g_b.gy, sizeof(msg2->g_b.gy));
 		fprintf(stderr, "\nmsg2.spid        = ");
-		fprintf(clientLog, "\nmsg2.spid        = ");
+		fprintf(fplog, "\nmsg2.spid        = ");
 		print_hexstring(stderr, &msg2->spid, sizeof(msg2->spid));
-		print_hexstring(clientLog, &msg2->spid, sizeof(msg2->spid));
+		print_hexstring(fplog, &msg2->spid, sizeof(msg2->spid));
 		fprintf(stderr, "\nmsg2.quote_type  = ");
-		fprintf(clientLog, "\nmsg2.quote_type  = ");
+		fprintf(fplog, "\nmsg2.quote_type  = ");
 		print_hexstring(stderr, &msg2->quote_type, sizeof(msg2->quote_type));
-		print_hexstring(clientLog, &msg2->quote_type, sizeof(msg2->quote_type));
+		print_hexstring(fplog, &msg2->quote_type, sizeof(msg2->quote_type));
 		fprintf(stderr, "\nmsg2.kdf_id      = ");
-		fprintf(clientLog, "\nmsg2.kdf_id      = ");
+		fprintf(fplog, "\nmsg2.kdf_id      = ");
 		print_hexstring(stderr, &msg2->kdf_id, sizeof(msg2->kdf_id));
-		print_hexstring(clientLog, &msg2->kdf_id, sizeof(msg2->kdf_id));
+		print_hexstring(fplog, &msg2->kdf_id, sizeof(msg2->kdf_id));
 		fprintf(stderr, "\nmsg2.sign_ga_gb  = ");
-		fprintf(clientLog, "\nmsg2.sign_ga_gb  = ");
+		fprintf(fplog, "\nmsg2.sign_ga_gb  = ");
 		print_hexstring(stderr, &msg2->sign_gb_ga, sizeof(msg2->sign_gb_ga));
-		print_hexstring(clientLog, &msg2->sign_gb_ga, sizeof(msg2->sign_gb_ga));
+		print_hexstring(fplog, &msg2->sign_gb_ga, sizeof(msg2->sign_gb_ga));
 		fprintf(stderr, "\nmsg2.mac         = ");
-		fprintf(clientLog, "\nmsg2.mac         = ");
+		fprintf(fplog, "\nmsg2.mac         = ");
 		print_hexstring(stderr, &msg2->mac, sizeof(msg2->mac));
-		print_hexstring(clientLog, &msg2->mac, sizeof(msg2->mac));
+		print_hexstring(fplog, &msg2->mac, sizeof(msg2->mac));
 		fprintf(stderr, "\nmsg2.sig_rl_size = ");
-		fprintf(clientLog, "\nmsg2.sig_rl_size = ");
+		fprintf(fplog, "\nmsg2.sig_rl_size = ");
 		print_hexstring(stderr, &msg2->sig_rl_size, sizeof(msg2->sig_rl_size));
-		print_hexstring(clientLog, &msg2->sig_rl_size, sizeof(msg2->sig_rl_size));
+		print_hexstring(fplog, &msg2->sig_rl_size, sizeof(msg2->sig_rl_size));
 		fprintf(stderr, "\nmsg2.sig_rl      = ");
-		fprintf(clientLog, "\nmsg2.sig_rl      = ");
+		fprintf(fplog, "\nmsg2.sig_rl      = ");
 		print_hexstring(stderr, &msg2->sig_rl, msg2->sig_rl_size);
-		print_hexstring(clientLog, &msg2->sig_rl, msg2->sig_rl_size);
+		print_hexstring(fplog, &msg2->sig_rl, msg2->sig_rl_size);
 		fprintf(stderr, "\n");
-		fprintf(clientLog, "\n");
+		fprintf(fplog, "\n");
 		divider(stderr);
-		divider(clientLog);
+		divider(fplog);
 	}
 
 	if ( debug ) {
 		fprintf(stderr, "+++ msg2_size = %zu\n",
 			sizeof(sgx_ra_msg2_t)+msg2->sig_rl_size);
-		fprintf(clientLog, "+++ msg2_size = %zu\n",
+		fprintf(fplog, "+++ msg2_size = %zu\n",
 			sizeof(sgx_ra_msg2_t)+msg2->sig_rl_size);
 	}
 
@@ -583,56 +582,56 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	if ( status != SGX_SUCCESS ) {
 		fprintf(stderr, "sgx_ra_proc_msg2: %08x\n", status);
-		fprintf(clientLog, "sgx_ra_proc_msg2: %08x\n", status);
+		fprintf(fplog, "sgx_ra_proc_msg2: %08x\n", status);
 
 		return 1;
 	} 
 
 	if ( debug ) {
 		fprintf(stderr, "+++ msg3_size = %u\n", msg3_sz);
-		fprintf(clientLog, "+++ msg3_size = %u\n", msg3_sz);
+		fprintf(fplog, "+++ msg3_size = %u\n", msg3_sz);
 	}
 	                          
 	if ( verbose ) {
 		dividerWithText(stderr, "Msg3 Details");
-		dividerWithText(clientLog, "Msg3 Details");
+		dividerWithText(fplog, "Msg3 Details");
 		fprintf(stderr,   "msg3.mac         = ");
-		fprintf(clientLog,   "msg3.mac         = ");
+		fprintf(fplog,   "msg3.mac         = ");
 		print_hexstring(stderr, msg3->mac, sizeof(msg3->mac));
-		print_hexstring(clientLog, msg3->mac, sizeof(msg3->mac));
+		print_hexstring(fplog, msg3->mac, sizeof(msg3->mac));
 		fprintf(stderr, "\nmsg3.g_a.gx      = ");
-		fprintf(clientLog, "\nmsg3.g_a.gx      = ");
+		fprintf(fplog, "\nmsg3.g_a.gx      = ");
 		print_hexstring(stderr, msg3->g_a.gx, sizeof(msg3->g_a.gx));
-		print_hexstring(clientLog, msg3->g_a.gx, sizeof(msg3->g_a.gx));
+		print_hexstring(fplog, msg3->g_a.gx, sizeof(msg3->g_a.gx));
 		fprintf(stderr, "\nmsg3.g_a.gy      = ");
-		fprintf(clientLog, "\nmsg3.g_a.gy      = ");
+		fprintf(fplog, "\nmsg3.g_a.gy      = ");
 		print_hexstring(stderr, msg3->g_a.gy, sizeof(msg3->g_a.gy));
-		print_hexstring(clientLog, msg3->g_a.gy, sizeof(msg3->g_a.gy));
+		print_hexstring(fplog, msg3->g_a.gy, sizeof(msg3->g_a.gy));
 		fprintf(stderr, "\nmsg3.ps_sec_prop.sgx_ps_sec_prop_desc = ");
-		fprintf(clientLog, "\nmsg3.ps_sec_prop.sgx_ps_sec_prop_desc = ");
+		fprintf(fplog, "\nmsg3.ps_sec_prop.sgx_ps_sec_prop_desc = ");
 		print_hexstring(stderr, msg3->ps_sec_prop.sgx_ps_sec_prop_desc,
 			sizeof(msg3->ps_sec_prop.sgx_ps_sec_prop_desc));
-		print_hexstring(clientLog, msg3->ps_sec_prop.sgx_ps_sec_prop_desc,
+		print_hexstring(fplog, msg3->ps_sec_prop.sgx_ps_sec_prop_desc,
 			sizeof(msg3->ps_sec_prop.sgx_ps_sec_prop_desc));
-		fprintf(clientLog, "\n");
+		fprintf(fplog, "\n");
 		fprintf(stderr, "\nmsg3.quote       = ");
-		fprintf(clientLog, "\nmsg3.quote       = ");
+		fprintf(fplog, "\nmsg3.quote       = ");
 		print_hexstring(stderr, msg3->quote, msg3_sz-sizeof(sgx_ra_msg3_t));
-		print_hexstring(clientLog, msg3->quote, msg3_sz-sizeof(sgx_ra_msg3_t));
-		fprintf(clientLog, "\n");
+		print_hexstring(fplog, msg3->quote, msg3_sz-sizeof(sgx_ra_msg3_t));
+		fprintf(fplog, "\n");
 		fprintf(stderr, "\n");
-		fprintf(clientLog, "\n");
+		fprintf(fplog, "\n");
 		divider(stderr);
-		divider(clientLog);
+		divider(fplog);
 	}
 
 	dividerWithText(stderr, "Copy/Paste Msg3 Below to SP");
 	send_msg(msg3, msg3_sz);
 	divider(stderr);
 
-	dividerWithText(clientLog, "Msg3 ==> SP");
-	send_msg_to_log(clientLog, msg3, msg3_sz);
-	divider(clientLog);
+	dividerWithText(fplog, "Msg3 ==> SP");
+	fsend_msg(fplog, msg3, msg3_sz);
+	divider(fplog);
 
 	if ( msg3 ) {
 		free(msg3);
@@ -851,7 +850,7 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
  */
 
 #ifndef _WIN32
-sgx_status_t sgx_create_enclave_search (const char *filename, const int debug,
+sgx_status_t sgx_create_enclave_search (const char *filename, const int edebug,
 	sgx_launch_token_t *token, int *updated, sgx_enclave_id_t *eid,
 	sgx_misc_attribute_t *attr)
 {
@@ -861,27 +860,27 @@ sgx_status_t sgx_create_enclave_search (const char *filename, const int debug,
 	/* Is filename an absolute path? */
 
 	if ( filename[0] == '/' ) 
-		return sgx_create_enclave(filename, debug, token, updated, eid, attr);
+		return sgx_create_enclave(filename, edebug, token, updated, eid, attr);
 
 	/* Is the enclave in the current working directory? */
 
 	if ( stat(filename, &sb) == 0 )
-		return sgx_create_enclave(filename, debug, token, updated, eid, attr);
+		return sgx_create_enclave(filename, edebug, token, updated, eid, attr);
 
 	/* Search the paths in LD_LBRARY_PATH */
 
 	if ( file_in_searchpath(filename, getenv("LD_LIBRARY_PATH"), epath, PATH_MAX) )
-		return sgx_create_enclave(epath, debug, token, updated, eid, attr);
+		return sgx_create_enclave(epath, edebug, token, updated, eid, attr);
 		
 	/* Search the paths in DT_RUNPATH */
 
 	if ( file_in_searchpath(filename, getenv("DT_RUNPATH"), epath, PATH_MAX) )
-		return sgx_create_enclave(epath, debug, token, updated, eid, attr);
+		return sgx_create_enclave(epath, edebug, token, updated, eid, attr);
 
 	/* Standard system library paths */
 
 	if ( file_in_searchpath(filename, DEF_LIB_SEARCHPATH, epath, PATH_MAX) )
-		return sgx_create_enclave(epath, debug, token, updated, eid, attr);
+		return sgx_create_enclave(epath, edebug, token, updated, eid, attr);
 
 	/*
 	 * If we've made it this far then we don't know where else to look.
@@ -891,7 +890,7 @@ sgx_status_t sgx_create_enclave_search (const char *filename, const int debug,
 	 * get reported to the calling function.
 	 */
 
-	return sgx_create_enclave(filename, debug, token, updated, eid, attr);
+	return sgx_create_enclave(filename, edebug, token, updated, eid, attr);
 }
 
 int file_in_searchpath (const char *file, const char *search, char *fullpath, 
