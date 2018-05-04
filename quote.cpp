@@ -147,8 +147,13 @@ int main (int argc, char *argv[])
 
 	const time_t timeT = time(NULL);
 	struct tm lt;
-	localtime_s(&lt, &timeT);
 
+#ifndef WIN32
+	lt = *localtime(&timeT);
+#else
+
+	localtime_s(&lt, &timeT);
+#endif
 	fprintf(fplog, "%4d-%02d-%02d %02d:%02d:%02d\n", 
                            lt.tm_year + 1900, 
                            lt.tm_mon + 1, 
