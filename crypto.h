@@ -38,12 +38,12 @@ EVP_PKEY *key_generate();
 
 /* SHA256 */
 
-int sha256_digest(unsigned char *msg, size_t mlen, unsigned char digest[32]);
+int sha256_digest(const unsigned char *msg, size_t mlen, unsigned char digest[32]);
 
 /* HMAC */
 
-int sha256_verify(unsigned char *msg, size_t mlen, unsigned char *sig,
-	size_t sigsz, EVP_PKEY *pkey);
+int sha256_verify(const unsigned char *msg, size_t mlen, unsigned char *sig,
+	size_t sigsz, EVP_PKEY *pkey, int *result);
 
 /* ECDSA signature */
 

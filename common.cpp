@@ -44,6 +44,6 @@ void dividerWithText (FILE *fd, string str)
 
 void divider (FILE * fd)
 {
-    fprintf(fd, "%s\n\n", LINE_COMPLETE);
+    fprintf(fd, "%s\n", LINE_COMPLETE);
 }
 

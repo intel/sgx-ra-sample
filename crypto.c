@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <sgx_key_exchange.h>
 #include "crypto.h"
+#include "hexutil.h"
 
 static enum _error_type {
 	e_none,
@@ -540,7 +541,7 @@ cleanup:
  * SHA
  *========================================================================== */
 
-int sha256_digest(unsigned char *msg, size_t mlen, unsigned char digest[32])
+int sha256_digest(const unsigned char *msg, size_t mlen, unsigned char digest[32])
 {
 	EVP_MD_CTX *ctx;
 
@@ -578,10 +579,34 @@ cleanup:
  * HMAC
  *========================================================================== */
 
-int sha256_verify(unsigned char *msg, size_t mlen, unsigned char *sig,
-    size_t sigsz, EVP_PKEY *pkey)
+int sha256_verify(const unsigned char *msg, size_t mlen, unsigned char *sig,
+    size_t sigsz, EVP_PKEY *pkey, int *result)
 {
-	return 1;
+	EVP_MD_CTX *ctx;
+
+	error_type= e_none;
+
+	ctx= EVP_MD_CTX_new();
+	if ( ctx == NULL ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	if ( EVP_DigestVerifyInit(ctx, NULL, EVP_sha256(), NULL, pkey) != 1 ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	if ( EVP_DigestVerifyUpdate(ctx, msg, mlen) != 1 ) {
+		error_type= e_crypto;
+		goto cleanup;
+	}
+
+	if ( EVP_DigestVerifyFinal(ctx, sig, sigsz) != 1 ) error_type= e_crypto;
+
+cleanup:
+	if ( ctx != NULL ) EVP_MD_CTX_free(ctx);
+	return (error_type == e_none);
 }
 
 

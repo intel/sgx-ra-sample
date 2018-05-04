@@ -8,6 +8,7 @@
 #include "logfile.h"
 #include "httpparser/response.h"
 #include "base64.h"
+#include "hexutil.h"
 
 using namespace std;
 using namespace httpparser;
@@ -226,8 +227,8 @@ int IAS_Request::report(map<string,string> &payload)
 	divider(spLog);
 
 	if ( http_request(this, response, url, body) ) {
-	        dividerWithText(stderr, "IAS report HTTP Response");
-	        dividerWithText(spLog, "IAS report HTTP Response");
+		dividerWithText(stderr, "IAS report HTTP Response");
+		dividerWithText(spLog, "IAS report HTTP Response");
 		fputs(response.inspect().c_str(), stderr);
 		fputs(response.inspect().c_str(), spLog);
 		divider(stderr);
@@ -310,31 +311,34 @@ int IAS_Request::report(map<string,string> &payload)
 	// Now verify the signing certificate
 
 	rv= cert_verify(this->conn()->cert_store(), stack);
-	fprintf(stderr, "+++ certificate verification returned %d\n", rv);
-
-	// We don't need these anymore
-
-	cert_stack_free(stack);
-	free(certar);
 
 	if ( ! rv ) {
 		crypto_perror("cert_stack_build");
 		fprintf(stderr, "certificate verification failure\n");
-		return 0;
-	}
+		goto cleanup;
+	} else fprintf(stderr, "+++ certificate chain verified\n", rv);
 
 	// The signing cert is valid, so extract and verify the signature
 
 	sigstr= response.headers_as_string("X-IASReport-Signature");
 	if ( sigstr == "" ) {
 		fprintf(stderr, "Header X-IASReport-Signature not found\n");
-		return 0;
+		rv= 0;
+		goto cleanup;
 	}
 
 	sig= (unsigned char *) base64_decode(sigstr.c_str(), &sigsz);
 	if ( sig == NULL ) {
 		fprintf(stderr, "Could not decode signature\n");
+		goto cleanup;
 	}
+
+	dividerWithText(stderr, "Report Signature");
+	print_hexstring(stderr, sig, sigsz);
+	fprintf(stderr, "\n");
+	divider(stderr);
+	fprintf(stderr, "%lu bytes\n", sigsz);
+	divider(stderr);
 
 	sign_cert= certvec[0]; /* The first cert in the list */
 
@@ -344,18 +348,42 @@ int IAS_Request::report(map<string,string> &payload)
 	 * verify the signature.
 	 */
 
+	fprintf(stderr, "+++ Extracting public key from signing cert\n");
 	pkey= X509_get_pubkey(sign_cert);
 	if ( pkey == NULL ) {
 		fprintf(stderr, "Could not extract public key from certificate\n");
 		free(sig);
-		return 0;
+		goto cleanup;
 	}
 
-	
+	fprintf(stderr, "+++ Verifying signature over report body\n");
+	dividerWithText(stderr, "Report");
+	fputs(response.content_string().c_str(), stderr);
+	fprintf(stderr, "\n");
+	divider(stderr);
+	fprintf(stderr, "%lu bytes\n", response.content_string().length());
+	divider(stderr);
 
+	if ( ! sha256_verify(
+		(const unsigned char *) response.content_string().c_str(),
+		response.content_string().length(), sig, sigsz, pkey, &rv) ) {
+
+		free(sig);
+		crypto_perror("sha256_verify");
+		fprintf(stderr, "Could not validate signature\n");
+	} else {
+		if ( rv ) fprintf(stderr, "+++ Signature verified\n");
+		else fprintf(stderr, "Invalid report signature\n");
+	}
+
+cleanup:
+	if ( pkey != NULL ) EVP_PKEY_free(pkey);
+	cert_stack_free(stack);
+	free(certar);
+	for (i= 0; i<count; ++i) X509_free(certvec[i]);
 	free(sig);
 
-	return 1;
+	return rv;
 }
 
 // A simple URL decoder 
