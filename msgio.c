@@ -124,3 +124,17 @@ void send_msg (void *src, size_t sz)
 	fflush(stdout);
 }
 
+
+/* Send a partial message (no newline) */
+
+void send_msg_partial_to_log (FILE *fd, void *src, size_t sz) {
+        if ( sz ) print_hexstring(fd, src, sz);
+}
+
+void send_msg_to_log (FILE* fd, void *src, size_t sz)
+{
+        if ( sz ) print_hexstring(fd, src, sz);
+        fprintf(fd,"\n");
+        fflush(fd);
+}
+

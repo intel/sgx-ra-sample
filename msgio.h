@@ -19,6 +19,9 @@ int read_msg(void **dest, size_t *sz);
 void send_msg_partial(void *buf, size_t f_size);
 void send_msg(void *buf, size_t f_size);
 
+void send_msg_partial_to_log(FILE* fd, void *buf, size_t f_size);
+void send_msg_to_log(FILE* fd, void *buf, size_t f_size);
+
 #ifdef __cplusplus
 };
 #endif
