@@ -306,6 +306,7 @@
     <ClInclude Include="EnclaveQuote_u.h" />
     <ClInclude Include="fileio.h" />
     <ClInclude Include="hexutil.h" />
+    <ClInclude Include="logfile.h" />
     <ClInclude Include="msgio.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
@@ -335,6 +336,7 @@
     </ClCompile>
     <ClCompile Include="fileio.c" />
     <ClCompile Include="hexutil.c" />
+    <ClCompile Include="logfile.c" />
     <ClCompile Include="msgio.c" />
     <ClCompile Include="quote.cpp" />
     <ClCompile Include="stdafx.cpp" />

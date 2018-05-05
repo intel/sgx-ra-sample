@@ -671,11 +671,21 @@ int cert_load_file (X509 **cert, const char *filename)
 
 	error_type= e_none;
 
-	fp= fopen(filename, "r");
-	if ( fp == NULL ) {
-		error_type= e_system;
+
+#ifdef _WIN32
+	if ((fopen_s(&fp, filename, "r")) != 0) {
+		error_type = e_system;
+		ep = filename;
 		return 0;
 	}
+#else
+	if ((fp = fopen(filename, "r")) == NULL) {
+		error_type = e_system;
+		ep = filename;
+		return 0;
+	}
+#endif
+
 
 	*cert= PEM_read_X509(fp, NULL, NULL, NULL);
 	if ( *cert == NULL ) error_type= e_crypto;
