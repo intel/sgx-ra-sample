@@ -14,8 +14,6 @@
 static char *buffer= NULL;
 static uint32_t buffer_size= BUFFER_SZ;
 
-extern char debug;
-
 /*
  * Read a msg from stdin. There's a fixed portion and a variable-length
  * payload. 

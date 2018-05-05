@@ -35,13 +35,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __LOGFILE__H
 
 #include <sys/types.h>
-
-extern FILE *clientLog;
-extern FILE *fplog;
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern FILE *fplog;
 
 FILE *create_logfile(const char *filename);
 

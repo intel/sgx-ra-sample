@@ -38,8 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "logfile.h"
 #include "hexutil.h"
 
-FILE *spLog = NULL;
-FILE *clientLog = NULL;
 FILE *fplog = NULL;
 
 

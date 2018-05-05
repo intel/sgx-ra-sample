@@ -15,6 +15,9 @@
 extern "C" {
 #endif
 
+extern char debug;
+extern char verbose;
+
 int read_msg(void **dest, size_t *sz);
 
 void send_msg_partial(void *buf, size_t f_size);
