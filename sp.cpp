@@ -775,7 +775,7 @@ int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 				for (vector<string>::const_iterator i = messages.begin();
 					i != messages.end(); ++i ) {
 
-					eprintf("%s\n", *i);
+					eprintf("%s\n", i->c_str());
 				}
 				edivider();
 			}
