@@ -238,7 +238,8 @@ ias_error_t IAS_Request::sigrl(uint32_t gid, string &sigrl)
 	return response.statusCode;
 }
 
-ias_error_t IAS_Request::report(map<string,string> &payload, string &content)
+ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
+	vector<string> &messages)
 {
 	Response response;
 	map<string,string>::iterator imap;
@@ -250,7 +251,7 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content)
 	X509 **certar;
 	X509 *sign_cert;
 	STACK_OF(X509) *stack;
-	string sigstr;
+	string sigstr, header;
 	size_t sigsz;
 	ias_error_t status;
 	int rv;
@@ -452,6 +453,16 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content)
 			status= IAS_BAD_SIGNATURE;
 		}
 	}
+
+	/*
+	 * Check for advisory headers
+	 */
+
+	header= response.headers_as_string("Advisory-URL");
+	if ( header.length() ) messages.push_back(header);
+
+	header= response.headers_as_string("Advisory-IDs");
+	if ( header.length() ) messages.push_back(header);
 
 cleanup:
 	if ( pkey != NULL ) EVP_PKEY_free(pkey);

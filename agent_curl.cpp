@@ -108,8 +108,6 @@ int AgentCurl::initialize ()
 		 return 0;
 */
 
-	eprintf("+++ Cert file type: %s\n", conn->client_cert_type().c_str());
-
 	if ( curl_easy_setopt(curl, CURLOPT_SSLCERT,
 		conn->client_cert_file().c_str()) != CURLE_OK ) return 0;
 
@@ -127,7 +125,6 @@ int AgentCurl::initialize ()
 
 	if ( conn->client_key_passwd(&passwd, &pwlen) == 0 ) return 0;
 	if ( pwlen ) {
-		eprintf("+++ Setting password\n");
 		CURLcode ccode= curl_easy_setopt(curl, CURLOPT_KEYPASSWD, passwd);
 		delete[] passwd;
 		if ( ccode != CURLE_OK ) return 0;
@@ -142,8 +139,6 @@ int AgentCurl::initialize ()
 
 	if ( curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, _write_callback) 
 		!= CURLE_OK ) return 0;
-
-	eprintf("+++ Initialization complete\n");
 
 	return 1;
 }
@@ -197,16 +192,8 @@ int AgentCurl::request(string const &url, string const &postdata,
 		return 0;
 	}
 
-	edivider();
-	eprintf("%s\n", sresponse.c_str());
-	edivider();
-
 	result= parser.parse(response, sresponse.c_str(),
 		sresponse.c_str()+sresponse.length());
-
-	edivider();
-	eprintf("response.statusCode = %u\n", response.statusCode);
-	edivider();
 
     return ( result == HttpResponseParser::ParsingCompleted );
 }
@@ -232,8 +219,6 @@ static size_t _read_callback(char *buffer, size_t sz, size_t n, void *instream)
 	char **bp= (char **) instream;
 	size_t len= sz*n;
 	size_t slen= strlen(*bp);
-
-	eprintf("+++ read callback for %u bytes\n", len);
 
 	if ( !slen ) return 0;
 

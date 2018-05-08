@@ -748,6 +748,7 @@ int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 	IAS_Request *req;
 	int oops;
 	map<string,string> payload;
+	vector<string> messages;
 	ias_error_t status;
 	string content;
 
@@ -763,8 +764,24 @@ int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 
 	payload.insert(make_pair("isvEnclaveQuote", b64quote));
 	
-	status= req->report(payload, content);
-	if ( status == IAS_OK ) return 1;
+	status= req->report(payload, content, messages);
+	if ( status == IAS_OK ) {
+		if ( verbose ) {
+			edividerWithText("Report Body");
+			eprintf("+++ %s\n", content.c_str());
+			edivider();
+			if ( messages.size() ) {
+				edividerWithText("IAS Advisories");
+				for (vector<string>::const_iterator i = messages.begin();
+					i != messages.end(); ++i ) {
+
+					eprintf("+++ %s\n", *i);
+				}
+				edivider();
+			}
+		}
+		return 1;
+	}
 
 	eprintf("attestation query returned %lu: \n", status);
 

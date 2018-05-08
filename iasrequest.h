@@ -10,6 +10,7 @@ using namespace std;
 
 #include <string>
 #include <map>
+#include <vector>
 
 /* Our arguments and data must be NULL-terminated strings */
 
@@ -112,7 +113,8 @@ public:
 	IAS_Connection *conn() { return r_conn; }
 
 	ias_error_t sigrl(uint32_t gid, string &sigrl);
-	ias_error_t report(map<string,string> &payload, string &content);
+	ias_error_t report(map<string,string> &payload, string &content,
+		vector<string> &messages);
 };
 
 #endif
