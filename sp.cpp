@@ -768,14 +768,14 @@ int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 	if ( status == IAS_OK ) {
 		if ( verbose ) {
 			edividerWithText("Report Body");
-			eprintf("+++ %s\n", content.c_str());
+			eprintf("%s\n", content.c_str());
 			edivider();
 			if ( messages.size() ) {
 				edividerWithText("IAS Advisories");
 				for (vector<string>::const_iterator i = messages.begin();
 					i != messages.end(); ++i ) {
 
-					eprintf("+++ %s\n", *i);
+					eprintf("%s\n", *i);
 				}
 				edivider();
 			}
