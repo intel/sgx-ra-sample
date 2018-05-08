@@ -61,9 +61,11 @@ int AgentCurl::initialize ()
 	if ( curl_easy_setopt(curl, CURLOPT_HTTPPROXYTUNNEL, 1L) !=
 		CURLE_OK ) return 0;
 
+#ifdef CURL_OPT_SUPPRESS_CONNECT_HEADERS
 	// Suppress the proxy CONNECT headers.
 	if ( curl_easy_setopt(curl, CURLOPT_SUPPRESS_CONNECT_HEADERS, 1L) !=
 		CURLE_OK ) return 0;
+#endif
 
 	// Configure proxy
 	//------------------------------------------------------------
