@@ -4,7 +4,9 @@
 #include "crypto.h"
 #include "common.h"
 #include "agent.h"
+#ifndef _WIN32
 #include "agent_wget.h"
+#endif
 #include "agent_curl.h"
 #include "iasrequest.h"
 #include "logfile.h"
