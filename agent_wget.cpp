@@ -14,7 +14,6 @@ using namespace httpparser;
 
 #include <string>
 #include <vector>
-#include <map>
 
 static vector<string> wget_args;
 
@@ -22,11 +21,10 @@ static vector<string> wget_args;
 #define WGET_NO_ERROR		0
 #define WGET_SERVER_ERROR	8
 
-int http_request (IAS_Request *req, Response &response, string url,
-	string const &post)
+int AgentWget::request (string const &url, string const &post,
+	 Response &response)
 {
 	HttpResponseParser parser;
-	IAS_Connection *conn= req->conn();
 	int pipefd[2];
 	pid_t pid;
 	string arg;

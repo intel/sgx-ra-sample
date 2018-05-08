@@ -3,7 +3,9 @@
 #include <openssl/x509.h>
 #include "crypto.h"
 #include "common.h"
+#include "agent.h"
 #include "agent_wget.h"
+#include "agent_curl.h"
 #include "iasrequest.h"
 #include "logfile.h"
 #include "httpparser/response.h"
@@ -36,6 +38,7 @@ IAS_Connection::IAS_Connection(int server_idx, uint32_t flags)
 	c_xor= NULL;
 	c_server_port= IAS_PORT;
 	c_proxy_mode= IAS_PROXY_AUTO;
+	c_agent= NULL;
 }
 
 IAS_Connection::~IAS_Connection()
@@ -58,9 +61,26 @@ int IAS_Connection::proxy(const char *server, uint16_t port)
 	return rv;
 }
 
+string IAS_Connection::proxy_url()
+{
+	string proxy_url;
+
+	if ( c_proxy_server == "" ) return "";
+
+	proxy_url= "http://" + c_proxy_server;
+
+	if ( c_proxy_port != 80 ) {
+		proxy_url+= ":";
+		proxy_url+= to_string(c_proxy_port);
+	}
+
+	return proxy_url;
+}
+
 int IAS_Connection::client_cert(const char *file, const char *certtype)
 {
 	int rv= 1;
+	eprintf("certtype=%s\n", certtype);
 	try {
 		c_cert_file= file;
 		if ( certtype != NULL ) c_cert_type= certtype;
@@ -73,56 +93,56 @@ int IAS_Connection::client_cert(const char *file, const char *certtype)
 
 int IAS_Connection::client_key(const char *file, const char *passwd)
 {
-	int rv= 1;
-	size_t pwlen= strlen(passwd);
 	size_t i;
 
 	try {
 		c_key_file= file;
 	}
 	catch (int e) {
-		rv= 0;
+		return 0;
 	}
-	if ( ! rv ) return 0;
 
 	if ( passwd != NULL ) {
+		c_pwlen= strlen(passwd);
 		try {
-			c_key_passwd= new unsigned char[pwlen];
-			c_xor= new unsigned char[pwlen];
+			c_key_passwd= new unsigned char[c_pwlen];
+			c_xor= new unsigned char[c_pwlen];
 		}
 		catch (int e) { 
-			rv= 0;
-		}
-		if ( ! rv ) {
 			if ( c_key_passwd != NULL ) delete[] c_key_passwd;
-			c_key_passwd= NULL;
 			return 0;
 		}
-	}
 
-	//rand_bytes(c_xor, pwlen);
-	for (i= 0; i< pwlen; ++i) c_key_passwd[i]= (unsigned char) passwd[i]^c_xor[i];
+		//rand_bytes(c_xor, pwlen);
+		for (i= 0; i< c_pwlen; ++i) c_key_passwd[i]=
+			(unsigned char) passwd[i]^c_xor[i];
+	}
 
 	return 1;
 }
 
-size_t IAS_Connection::client_key_passwd(char **passwd)
+int IAS_Connection::client_key_passwd(char **passwd, size_t *pwlen)
 {
-	size_t rv= c_pwlen;
 	size_t i;
+
+	if ( c_pwlen == 0 ) {
+		*pwlen= 0;
+		*passwd= NULL;
+		return 1;
+	}
 
 	try {
 		*passwd= new char[c_pwlen+1];
 	}
 	catch (int e) {
-		rv= 0;
+		return 0;
 	}
-	if ( ! rv ) return 0;
 
-	for (i= 0; i< c_pwlen; ++i) *passwd[i]= (char) (c_key_passwd[i] ^ c_xor[i]);
-	passwd[c_pwlen]= 0;
+	for (i= 0; i< c_pwlen; ++i) *passwd[i]=
+		 (char) (c_key_passwd[i] ^ c_xor[i]);
+	 passwd[c_pwlen]= 0;
 
-	return rv;
+	return 1;
 }
 
 string IAS_Connection::base_url()
@@ -139,6 +159,34 @@ string IAS_Connection::base_url()
 	return url;
 }
 
+// Reuse the existing agent or get a new one.
+
+Agent *IAS_Connection::agent()
+{
+	if ( c_agent == NULL ) return this->new_agent();
+	return c_agent;
+}
+
+// Get a new agent (and discard the old one if there was one)
+
+Agent *IAS_Connection::new_agent()
+{
+	Agent *newagent= NULL;
+
+	try {
+		newagent= (Agent *) new AgentCurl(this);
+	}
+	catch (int e) {
+		return NULL;
+	}
+	if ( newagent->initialize() == 0 ) {
+		delete newagent;
+		return NULL;
+	}
+
+	c_agent= newagent;
+	return c_agent;
+}
 
 IAS_Request::IAS_Request(IAS_Connection *conn, uint16_t version)
 {
@@ -150,12 +198,13 @@ IAS_Request::~IAS_Request()
 {
 }
 
-int IAS_Request::sigrl(uint32_t gid, string &sigrl)
+ias_error_t IAS_Request::sigrl(uint32_t gid, string &sigrl)
 {
 	Response response;
 	char sgid[9];
 	string url= r_conn->base_url();
 	int rv;
+	Agent *agent= r_conn->new_agent();
 
 	snprintf(sgid, 9, "%08x", gid);
 
@@ -169,28 +218,25 @@ int IAS_Request::sigrl(uint32_t gid, string &sigrl)
 		edivider();
 	}
 
-	if ( http_request(this, response, url, "") ) {
+	if ( agent->request(url, "", response) ) {
 		if ( verbose ) {
 			edividerWithText("IAS sigrl HTTP Response");
 			eputs(response.inspect().c_str());
 			edivider();
 		}
 
-		if ( response.statusCode == 200 ) {
-			rv= 1;
+		if ( response.statusCode == IAS_OK ) {
 			sigrl= response.content_string();
-		} else {
-			rv= 0;
-		}
+		} 
 	} else {
-		rv= 0;
 		eprintf("Could not query IAS\n");
+		return IAS_QUERY_FAILED;
 	}
 
-	return rv;
+	return response.statusCode;
 }
 
-int IAS_Request::report(map<string,string> &payload)
+ias_error_t IAS_Request::report(map<string,string> &payload, string &content)
 {
 	Response response;
 	map<string,string>::iterator imap;
@@ -204,24 +250,31 @@ int IAS_Request::report(map<string,string> &payload)
 	STACK_OF(X509) *stack;
 	string sigstr;
 	size_t sigsz;
+	ias_error_t status;
 	int rv;
 	unsigned char *sig;
 	EVP_PKEY *pkey;
+	Agent *agent= r_conn->new_agent();
 	
-	for (imap= payload.begin(); imap!= payload.end(); ++imap) {
-		if ( imap != payload.begin() ) {
-			body.append(",\n");
+	try {
+		for (imap= payload.begin(); imap!= payload.end(); ++imap) {
+			if ( imap != payload.begin() ) {
+				body.append(",\n");
+			}
+			body.append("\"");
+			body.append(imap->first);
+			body.append("\":\"");
+			body.append(imap->second);
+			body.append("\"");
 		}
-		body.append("\"");
-		body.append(imap->first);
-		body.append("\":\"");
-		body.append(imap->second);
-		body.append("\"");
-	}
-	body.append("\n}");
+		body.append("\n}");
 
-	url+= to_string(r_api_version);
-	url+= "/report";
+		url+= to_string(r_api_version);
+		url+= "/report";
+	}
+	catch (int e) {
+		return IAS_QUERY_FAILED;
+	}
 
 	if ( verbose ) {
 		edividerWithText("IAS report HTTP Request");
@@ -229,7 +282,7 @@ int IAS_Request::report(map<string,string> &payload)
 		edivider();
 	}
 
-	if ( http_request(this, response, url, body) ) {
+	if ( agent->request(url, body, response) ) {
 		if ( verbose ) {
 			edividerWithText("IAS report HTTP Response");
 			eputs(response.inspect().c_str());
@@ -237,8 +290,10 @@ int IAS_Request::report(map<string,string> &payload)
 		}
 	} else {
 		eprintf("Could not query IAS\n");
-		return 0;
+		return IAS_QUERY_FAILED;
 	}
+
+	if ( response.statusCode != IAS_OK ) return response.statusCode;
 
 	/*
 	 * The response body has the attestation report. The headers have
@@ -257,7 +312,7 @@ int IAS_Request::report(map<string,string> &payload)
 	certchain= response.headers_as_string("X-IASReport-Signing-Certificate");
 	if ( certchain == "" ) {
 		eprintf("Header X-IASReport-Signing-Certificate not found\n");
-		return 0;
+		return IAS_BAD_CERTIFICATE;
 	}
 
 	// URL decode
@@ -266,7 +321,7 @@ int IAS_Request::report(map<string,string> &payload)
 	}
 	catch (int e) {
 		eprintf("invalid URL encoding in header X-IASReport-Signing-Certificate\n");
-		return 0;
+		return IAS_BAD_CERTIFICATE;
 	}
 
 	// Build the cert stack. Find the positions in the string where we
@@ -289,7 +344,7 @@ int IAS_Request::report(map<string,string> &payload)
 
 		if ( ! cert_load(&cert, certchain.substr(cstart, len).c_str()) ) {
 			crypto_perror("cert_load");
-			return 0;
+			return IAS_BAD_CERTIFICATE;
 		}
 
 		certvec.push_back(cert);
@@ -302,7 +357,7 @@ int IAS_Request::report(map<string,string> &payload)
 	certar= (X509**) malloc(sizeof(X509 *)*(count+1));
 	if ( certar == 0 ) {
 		perror("malloc");
-		return 0;
+		return IAS_INTERNAL_ERROR;
 	}
 	for (i= 0; i< count; ++i) certar[i]= certvec[i];
 	certar[count]= NULL;
@@ -312,7 +367,7 @@ int IAS_Request::report(map<string,string> &payload)
 	stack= cert_stack_build(certar);
 	if ( stack == NULL ) {
 		crypto_perror("cert_stack_build");
-		return 0;
+		return IAS_INTERNAL_ERROR;
 	}
 
 	// Now verify the signing certificate
@@ -322,6 +377,7 @@ int IAS_Request::report(map<string,string> &payload)
 	if ( ! rv ) {
 		crypto_perror("cert_stack_build");
 		eprintf("certificate verification failure\n");
+		status= IAS_BAD_CERTIFICATE;
 		goto cleanup;
 	} else eprintf("+++ certificate chain verified\n", rv);
 
@@ -330,13 +386,14 @@ int IAS_Request::report(map<string,string> &payload)
 	sigstr= response.headers_as_string("X-IASReport-Signature");
 	if ( sigstr == "" ) {
 		eprintf("Header X-IASReport-Signature not found\n");
-		rv= 0;
+		status= IAS_BAD_SIGNATURE;
 		goto cleanup;
 	}
 
 	sig= (unsigned char *) base64_decode(sigstr.c_str(), &sigsz);
 	if ( sig == NULL ) {
 		eprintf("Could not decode signature\n");
+		status= IAS_BAD_SIGNATURE;
 		goto cleanup;
 	}
 
@@ -361,29 +418,37 @@ int IAS_Request::report(map<string,string> &payload)
 	if ( pkey == NULL ) {
 		eprintf("Could not extract public key from certificate\n");
 		free(sig);
+		status= IAS_INTERNAL_ERROR;
 		goto cleanup;
 	}
+
+	content= response.content_string();
 
 	if ( debug ) {
 		eprintf("+++ Verifying signature over report body\n");
 		edividerWithText("Report");
-		eputs(response.content_string().c_str());
+		eputs(content.c_str());
 		eprintf("\n");
 		edivider();
 		eprintf("Content-length: %lu bytes\n", response.content_string().length());
 		edivider();
 	}
 
-	if ( ! sha256_verify(
-		(const unsigned char *) response.content_string().c_str(),
-		response.content_string().length(), sig, sigsz, pkey, &rv) ) {
+	if ( ! sha256_verify((const unsigned char *) content.c_str(),
+		content.length(), sig, sigsz, pkey, &rv) ) {
 
 		free(sig);
 		crypto_perror("sha256_verify");
 		eprintf("Could not validate signature\n");
+		status= IAS_BAD_SIGNATURE;
 	} else {
-		if ( rv ) eprintf("+++ Signature verified\n");
-		else eprintf("Invalid report signature\n");
+		if ( rv ) {
+			if ( verbose ) eprintf("+++ Signature verified\n");
+			status= IAS_OK;
+		} else {
+			eprintf("Invalid report signature\n");
+			status= IAS_BAD_SIGNATURE;
+		}
 	}
 
 cleanup:
@@ -393,7 +458,7 @@ cleanup:
 	for (i= 0; i<count; ++i) X509_free(certvec[i]);
 	free(sig);
 
-	return rv;
+	return status;
 }
 
 // A simple URL decoder 
