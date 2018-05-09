@@ -36,10 +36,10 @@ if [ "$1" = "-z" ]
 then
 	echo "Running: $CMD"
 	$CMD
-else if [ "$1" = "-h" ]
+elif [ "$1" = "-h" ]
 then
 	echo "usage: `basename $0` [ -z ]" >&2
-	exit
+	exit 1
 else
 	echo "Running: socat TCP4-LISTEN:7777,fork,reuseaddr EXEC:\"$CMD\",nofork"
 	socat TCP4-LISTEN:7777,fork,reuseaddr EXEC:"$CMD",nofork
