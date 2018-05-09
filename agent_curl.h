@@ -14,6 +14,8 @@ class AgentCurl : protected Agent
 {
 	CURL *curl;
 	string sresponse;
+	int flag_eoh;
+	size_t header_pos, header_len;
 
 public:
 	AgentCurl(IAS_Connection *conn);

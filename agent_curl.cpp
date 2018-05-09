@@ -164,6 +164,9 @@ int AgentCurl::request(string const &url, string const &postdata,
 	HttpResponseParser::ParseResult result;
 	const char *bp;
 
+	header_len= header_pos= 0;
+	flag_eoh= 0;
+
 	if ( postdata != "" ) {
 		curl_slist *slist= NULL;
 
@@ -204,7 +207,7 @@ int AgentCurl::request(string const &url, string const &postdata,
 		return 0;
 	}
 
-	result= parser.parse(response, sresponse.c_str(),
+	result= parser.parse(response, sresponse.substr(header_pos).c_str(),
 		sresponse.c_str()+sresponse.length());
 
     return ( result == HttpResponseParser::ParsingCompleted );
@@ -214,9 +217,36 @@ size_t AgentCurl::header_callback(char *ptr, size_t sz, size_t n)
 {
 	size_t len= sz*n;
 	string header;
+	size_t idx;
+
+	eprintf("+++ HDR len=%lu, pos=%lu ==> ", header_len, header_pos);
+
+	// Look for a blank header that occurs in the middle of the
+	// headers: that's the separator between the proxy and server
+	// headers. We want the last header block.
 
 	header.assign(ptr, len);
-	eprintf("HEADER [%s]\n", header.c_str());
+	// Find where newline chars begin
+	idx= header.find_first_of("\n\r");
+
+	if ( flag_eoh ) {
+		if ( idx != 0 )	{
+			// We got a non-blank header line after receiving the
+			// end of a header block, so we have started a new
+			// header block.
+
+			header_pos= header_len;
+			flag_eoh= 0;
+		} 
+	} else {
+		// If we have a blank line, we reached the end of a header
+		// block.
+		if ( idx == 0 ) flag_eoh= 1;
+	}
+
+	header_len+= len;
+
+	eprintf("len=%lu, pos=%lu\n", header_len, header_pos);
 	return len;
 }
 
