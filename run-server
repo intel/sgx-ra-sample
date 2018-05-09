@@ -1,18 +1,45 @@
 #! /bin/sh
 
-export LD_LIBRARY_PATH=/opt/openssl/1.1.0h/lib:/usr/local/lib
+# Where is OpenSSL 1.1.x?
 
-CA="-A ref_sp/Intel_IAS_SGX_Report_Signing_CA.crt"
-SPID="-S ../ias-ra-data/spid/plse-dev.spid"
-CERT="-C ./dev.pem"
+OPENSSL_LIB=
+for dir in /opt/openssl/*/lib /opt/openssl/lib /usr/local/lib
+do
+	if [ -d "$dir" ]
+	then
+		if nm $dir/libcrypto.so | grep ECDSA_SIG_set0 > /dev/null 2>&1
+		then
+			OPENSSL_LIB="$dir"
+			break;
+		fi
+	fi
+done
 
-CMD="./sp -d -v $SPID $CERT $CA"
+if [ "$LD_LIBRARY_PATH" = "" ]
+then
+	export LD_LIBRARY_PATH=$OPENSSL_LIB
+else
+	export LD_LIBRARY_PATH=$OPENSSL_LIB:$LD_LIBRARY_PATH
+fi
+
+unset no_proxy
+unset NO_PROXY
+
+SPID="-S ref_sp/plse-dev.spid"
+CERT="-C ref_sp/plse-ias-dev.pem"
+CA="-A ref_sp/IASReportSigningCACert.pem"
+
+CMD="./sp -v -d $SPID $CERT $CA"
 
 
 if [ "$1" = "-z" ]
 then
 	echo "Running: $CMD"
 	$CMD
+else if [ "$1" = "-h" ]
+then
+	echo "usage: `basename $0` [ -z ]" >&2
+	exit
 else
 	echo "Running: socat TCP4-LISTEN:7777,fork,reuseaddr EXEC:\"$CMD\",nofork"
 	socat TCP4-LISTEN:7777,fork,reuseaddr EXEC:"$CMD",nofork
