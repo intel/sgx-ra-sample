@@ -22,6 +22,7 @@ public:
 	int request(string const &url, string const &postdata, 
 		Response &response);
 	size_t write_callback(char *ptr, size_t sz, size_t n);
+	size_t header_callback(char *ptr, size_t sz, size_t n);
 
 };
 
