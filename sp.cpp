@@ -85,6 +85,7 @@ typedef struct config_struct {
 	EVP_PKEY *session_private_key;
 	unsigned char kdk[16];
 	char *cert_file;
+	char *cert_type[4];
 	X509_STORE *store;
 	X509 *signing_ca;
 } config_t;
@@ -128,6 +129,7 @@ int main (int argc, char *argv[])
 	fprintf(fplog, "Server log started\n");
 
 	memset(&config, 0, sizeof(config));
+	strncpy((char *) config.cert_type, "PEM", 3);
 
 	static struct option long_opt[] =
 	{
@@ -142,6 +144,7 @@ int main (int argc, char *argv[])
 		{"key",				required_argument,	0, 'k'},
 		{"linkable",		no_argument,		0, 'l'},
 		{"spid",			required_argument,	0, 's'},
+		{"ias-cert-type",	required_argument,	0, 't'},
 		{"verbose",			no_argument,		0, 'v'},
 		{ 0, 0, 0, 0 }
 	};
@@ -229,6 +232,8 @@ int main (int argc, char *argv[])
 			}
 			++flag_spid;
 			break;
+		case 't':
+			break;
 		case 'v':
 			verbose= 1;
 			break;
@@ -293,7 +298,7 @@ int main (int argc, char *argv[])
 	try {
 		oops= 0;
 		ias= new IAS_Connection(IAS_SERVER_DEVELOPMENT, 0);
-		ias->client_cert(config.cert_file, "PEM");
+		ias->client_cert(config.cert_file, (char *) config.cert_type);
 	}
 	catch (int e) {
 		oops= 1;
@@ -437,7 +442,9 @@ int process_msg3 (IAS_Connection *ias, ra_msg4_t *msg4, config_t *config)
 		edivider();
 	}
 
-	get_attestation_report(ias, b64quote, msg3->ps_sec_prop);
+	if ( ! get_attestation_report(ias, b64quote, msg3->ps_sec_prop) ) {
+		eprintf("Attestation failed\n");
+	}
 
 	free(b64quote);
 
@@ -610,6 +617,7 @@ int process_msg01 (IAS_Connection *ias, sgx_ra_msg2_t *msg2, char **sigrl,
 
 	if ( ! get_sigrl(ias, msg1->gid, sigrl, &msg2->sig_rl_size) ) {
 		eprintf("could not retrieve the sigrl\n");
+		return 0;
 	}
 
 	memcpy(gb_ga, &msg2->g_b, 64);
@@ -722,7 +730,7 @@ int get_sigrl (IAS_Connection *ias, sgx_epid_group_id_t gid, char **sig_rl,
 	}
 	if ( oops ) return 0;
 
-	if ( ! req->sigrl(*(uint32_t *) gid, sigrlstr) ) {
+	if ( req->sigrl(*(uint32_t *) gid, sigrlstr) != IAS_OK ) {
 		return 0;
 	}
 
@@ -740,6 +748,9 @@ int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 	IAS_Request *req;
 	int oops;
 	map<string,string> payload;
+	vector<string> messages;
+	ias_error_t status;
+	string content;
 
 	try {
 		oops= 0;
@@ -753,7 +764,61 @@ int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 
 	payload.insert(make_pair("isvEnclaveQuote", b64quote));
 	
-	req->report(payload);
+	status= req->report(payload, content, messages);
+	if ( status == IAS_OK ) {
+		if ( verbose ) {
+			edividerWithText("Report Body");
+			eprintf("%s\n", content.c_str());
+			edivider();
+			if ( messages.size() ) {
+				edividerWithText("IAS Advisories");
+				for (vector<string>::const_iterator i = messages.begin();
+					i != messages.end(); ++i ) {
+
+					eprintf("%s\n", i->c_str());
+				}
+				edivider();
+			}
+		}
+		return 1;
+	}
+
+	eprintf("attestation query returned %lu: \n", status);
+
+	switch(status) {
+		case IAS_QUERY_FAILED:
+			eprintf("Could not query IAS\n");
+			break;
+		case IAS_BADREQUEST:
+			eprintf("Invalid payload\n");
+			break;
+		case IAS_UNAUTHORIZED:
+			eprintf("Failed to authenticate or authorize request\n");
+			break;
+		case IAS_SERVER_ERR:
+			eprintf("An internal error occurred on the IAS server\n");
+			break;
+		case IAS_UNAVAILABLE:
+			eprintf("Service is currently not able to process the request. Try again later.\n");
+			break;
+		case IAS_INTERNAL_ERROR:
+			eprintf("An internal error occurred while processing the IAS response\n");
+			break;
+		case IAS_BAD_CERTIFICATE:
+			eprintf("The signing certificate could not be validated\n");
+			break;
+		case IAS_BAD_SIGNATURE:
+			eprintf("The report signature could not be validated\n");
+			break;
+		default:
+			if ( status >= 100 && status < 600 ) {
+				eprintf("Unexpected HTTP response code\n");
+			} else {
+				eprintf("An unknown error occurred.\n");
+			}
+	}
+
+	return 0;
 }
 
 #define NNL <<endl<<endl<<
@@ -783,6 +848,8 @@ void usage ()
 "  -k, --key=HEXSTRING      The private key as a hex string. See --key-file" NL
 "                             for notes. Can't combine with --key-file." NL
 "  -l, --linkable           Request a linkable quote (default: unlinkable)." NL
+"  -t, --ias-cert-type=TYPE The client certificate type. Can be PEM (default)" NL
+"                             or P12." NL
 "  -v, --verbose            Be verbose. Print message structure details and the" NL
 "                             results of intermediate operations to stderr." 
 <<endl;

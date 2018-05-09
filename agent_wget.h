@@ -1,24 +1,23 @@
-#ifndef __HTTP_H
-#define __HTTP_H
+#ifndef __AGENT__WGET__H
+#define __AGENT__WGET__H
 
 #include "httpparser/response.h"
 #include "iasrequest.h"
+#include "agent.h"
 
 using namespace httpparser;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 using namespace std;
 
 #include <string>
 
-int http_request(IAS_Request *req, Response &response, string url,
-	string const &post);
+class Agent;
+class IAS_Request;
 
-#ifdef __cplusplus
+class AgentWget : protected Agent
+{
+public:
+	AgentWget(IAS_Connection *conn) : Agent(conn) {};
+	int request(string const &url, string const &post, Response &response);
 };
-#endif
 
 #endif

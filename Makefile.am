@@ -47,7 +47,7 @@ EnclaveQuote.signed.so: EnclaveQuote/EnclaveQuote.signed.so
 ## AM_CPPFLAGS += 
 ## AM_CFLAGS = 
 
-AM_CXXFLAGS = -std=c++11
+AM_CXXFLAGS = -std=c++11 
 
 AM_CPPFLAGS += -fno-builtin-memset @OPENSSL_CPPFLAGS@
 AM_LDFLAGS += @OPENSSL_LDFLAGS@
@@ -65,7 +65,8 @@ bin_PROGRAMS = quote sp
 ## You can't use $(wildcard ...) with automake so all source files 
 ## have to be explicitly listed.
 
-common = byteorder.c common.cpp crypto.c hexutil.c fileio.c base64.c msgio.c logfile.c
+common = byteorder.c common.cpp crypto.c hexutil.c fileio.c base64.c \
+	msgio.c logfile.c
 
 ## quote 
 
@@ -76,7 +77,7 @@ BUILT_SOURCES = EnclaveQuote_u.c EnclaveQuote_u.h
 
 ## sp
 
-sp_SOURCES = sp.cpp agent_wget.cpp iasrequest.cpp $(common)
+sp_SOURCES = sp.cpp agent_wget.cpp agent_curl.cpp iasrequest.cpp $(common)
 
 ## Library flags. At minimum, an Intel SGX application will need:
 ##
@@ -91,7 +92,7 @@ sp_SOURCES = sp.cpp agent_wget.cpp iasrequest.cpp $(common)
 ## targets work on simulation builds.
 
 quote_LDADD=-l$(SGX_URTS_LIB) -lsgx_ukey_exchange -l$(SGX_UAE_SERVICE_LIB) \
-	-l:libcrypto.a -l:libsgx_capable.a -lpthread -ldl
+	-lcrypto -l:libsgx_capable.a -lpthread -ldl
 
-sp_LDADD=-lcurl -l:libcrypto.a -lpthread -ldl 
+sp_LDADD=-lcurl -lcrypto
 
