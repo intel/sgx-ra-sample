@@ -54,6 +54,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sgx_key_exchange.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
+#include "json.hpp"
 #include "common.h"
 #include "hexutil.h"
 #include "fileio.h"
@@ -65,6 +66,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "iasrequest.h"
 #include "logfile.h"
 
+using json::JSON;
 using namespace std;
 
 #include <map>
@@ -89,6 +91,8 @@ typedef struct config_struct {
 	X509_STORE *store;
 	X509 *signing_ca;
 } config_t;
+
+Msg4 msg4;
 
 void usage();
 
@@ -780,7 +784,66 @@ int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 				edivider();
 			}
 		}
-		return 1;
+
+
+            JSON reportObj = JSON::Load(content);
+
+            if ( verbose ) {
+                edividerWithText("IAS Report - JSON - Required Fields");
+                eprintf("id:\t\t\t%s\n", reportObj["id"].ToString().c_str());
+                eprintf("timestamp:\t\t%s\n", reportObj["timestamp"].ToString().c_str());
+                eprintf("isvEnclaveQuoteStatus:\t%s\n", reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
+                eprintf("isvEnclaveQuoteBody:\t%s\n", reportObj["isvEnclaveQuoteBody"].ToString().c_str());
+
+                edividerWithText("IAS Report - JSON - Optional Fields");
+
+                eprintf("platformInfoBlob:\t%s\n", reportObj["iplatformInfoBlob"].ToString().c_str());
+                eprintf("revocationReason:\t%s\n", reportObj["revocationReason"].ToString().c_str());
+                eprintf("pseManifestStatus:\t%s\n", reportObj["pseManifestStatus"].ToString().c_str());
+                eprintf("pseManifestHash:\t%s\n", reportObj["pseManifestHash"].ToString().c_str());
+                eprintf("nonce:\t%s\n", reportObj["nonce"].ToString().c_str());
+                eprintf("epidPseudonym:\t%s\n", reportObj["epidPseudonym"].ToString().c_str());
+                edivider();
+            }
+       
+          
+            /* This samples attestion policy is either Trusted in the case of an "OK", 
+             * or a NotTrusted for any other isvEnclaveQuoteStatus value */
+  
+            /* Simply check to see if status is OK, else enclave considered not trusted */
+            memset (&msg4, 0, sizeof (Msg4));
+
+	    if ( verbose ) edividerWithText("ISV Enclave Trust Status");
+
+            if ( !(reportObj["isvEnclaveQuoteStatus"].ToString().compare("OK"))) {
+                msg4.trustStatus = Trusted;
+		if ( verbose ) eprintf("Enclave TRUSTED\n");
+            }
+            else {
+                msg4.trustStatus = NotTrusted;
+		if ( verbose ) eprintf("Enclave NOT TRUSTED\n");
+            }
+
+            if (!reportObj["iplatformInfoBlob"].IsNull()) {
+                if ( verbose ) eprintf("A Platform Info Blob (PIB) was provided by the IAS\n");
+                int ret = from_hexstring ((unsigned char *)(&msg4.platformInfoBlob), 
+                                           reportObj["iplatformInfoBlob"].ToString().c_str(),
+                                           reportObj["iplatformInfoBlob"].ToString().length());
+
+            }
+            else {
+		if ( verbose ) eprintf("A Platform Info Blob (PIB) was NOT provided by the IAS\n");
+            }
+                 
+	    if ( verbose ) edivider();
+
+            edividerWithText("Copy/Paste Msg4 Below to Client"); 
+
+	    send_msg(&msg4, sizeof( msg4));
+	    fsend_msg(fplog, &msg4, sizeof( msg4));
+            edivider();
+
+            return 1;
 	}
 
 	eprintf("attestation query returned %lu: \n", status);

@@ -95,6 +95,9 @@ typedef struct config_struct {
 	sgx_quote_nonce_t nonce;
 } config_t;
 
+
+Msg4 msg4;
+
 int file_in_searchpath (const char *file, const char *search, char *fullpath,
 	size_t len);
 
@@ -644,6 +647,9 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		free(msg3);
 		msg3 = NULL;
 	}
+ 
+        /* Read Ms4 provided by Service Provider, then process */
+
 
 	return 0;
 }
