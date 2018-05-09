@@ -119,11 +119,16 @@ do
 	fi
 done
 
-if [ "$LD_LIBRARY_PATH" = "" ]
+if [ "$OPENSSL_LIB" = "" ]
 then
-	export LD_LIBRARY_PATH=$OPENSSL_LIB
+	echo "Could not auto-detect openssl v1.1.0 or newer. Make sure LD_LIBRARY_PATH is set" >&2
 else
-	export LD_LIBRARY_PATH=$OPENSSL_LIB:$LD_LIBRARY_PATH
+	if [ "$LD_LIBRARY_PATH" = "" ]
+	then
+		export LD_LIBRARY_PATH=$OPENSSL_LIB
+	else
+		export LD_LIBRARY_PATH=$OPENSSL_LIB:$LD_LIBRARY_PATH
+	fi
 fi
 
 if [ "$PROG" = "run-client" ]
