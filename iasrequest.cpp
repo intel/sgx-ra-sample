@@ -382,7 +382,9 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 		eprintf("certificate verification failure\n");
 		status= IAS_BAD_CERTIFICATE;
 		goto cleanup;
-	} else eprintf("+++ certificate chain verified\n", rv);
+	} else {
+		if ( debug ) eprintf("+++ certificate chain verified\n", rv);
+	}
 
 	// The signing cert is valid, so extract and verify the signature
 

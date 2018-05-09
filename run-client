@@ -1,16 +1,1 @@
-#! /bin/sh
-
-HOST=localhost
-
-if [ "$1" != "" ]
-then
-	HOST=$1
-fi
-
-SPID="-S ref_sp/plse-dev.spid"
-
-CMD="./quote -v -d $SPID -a"
-
-echo "Running $CMD"
-
-socat TCP4:$HOST:7777 EXEC:"$CMD",nofork
+run-server
