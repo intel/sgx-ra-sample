@@ -2,7 +2,6 @@ aclocal.m4
 compile
 depcomp
 missing
-ref_sp
 testing
 configure
 config.h.in
