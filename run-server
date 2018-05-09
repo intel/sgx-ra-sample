@@ -1,13 +1,20 @@
 #! /bin/sh
 
-export LD_LIBRARY_PATH=/usr/local/lib
+export LD_LIBRARY_PATH=/opt/openssl/1.1.0h/lib:/usr/local/lib
 
+CA="-A ref_sp/Intel_IAS_SGX_Report_Signing_CA.crt"
 SPID="-S ../ias-ra-data/spid/plse-dev.spid"
 CERT="-C ./dev.pem"
 
-CMD="./sp -d -v $SPID $CERT"
+CMD="./sp -d -v $SPID $CERT $CA"
 
-echo "Running: $CMD"
 
-socat TCP4-LISTEN:7777,fork,reuseaddr EXEC:"$CMD $SPID",nofork
+if [ "$1" = "-z" ]
+then
+	echo "Running: $CMD"
+	$CMD
+else
+	echo "Running: socat TCP4-LISTEN:7777,fork,reuseaddr EXEC:\"$CMD\",nofork"
+	socat TCP4-LISTEN:7777,fork,reuseaddr EXEC:"$CMD",nofork
+fi
 

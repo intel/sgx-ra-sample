@@ -219,8 +219,6 @@ size_t AgentCurl::header_callback(char *ptr, size_t sz, size_t n)
 	string header;
 	size_t idx;
 
-	eprintf("+++ HDR len=%lu, pos=%lu ==> ", header_len, header_pos);
-
 	// Look for a blank header that occurs in the middle of the
 	// headers: that's the separator between the proxy and server
 	// headers. We want the last header block.
@@ -246,7 +244,6 @@ size_t AgentCurl::header_callback(char *ptr, size_t sz, size_t n)
 
 	header_len+= len;
 
-	eprintf("len=%lu, pos=%lu\n", header_len, header_pos);
 	return len;
 }
 

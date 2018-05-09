@@ -1,3 +1,16 @@
 #! /bin/sh
 
-socat TCP4:localhost:7777 EXEC:"./quote -S ../ias-ra-data/spid/plse-dev.spid -a -v -d",nofork
+HOST=localhost
+
+if [ "$1" != "" ]
+then
+	HOST=$1
+fi
+
+SPID="-S ref_sp/plse-dev.spid"
+
+CMD="./quote -v -d $SPID -a"
+
+echo "Running $CMD"
+
+socat TCP4:$HOST:7777 EXEC:"$CMD",nofork
