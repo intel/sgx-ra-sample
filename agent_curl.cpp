@@ -13,6 +13,7 @@ using namespace httpparser;
 
 #include <string>
 
+static size_t _header_callback(char *ptr, size_t sz, size_t n, void *data);
 static size_t _write_callback(char *ptr, size_t sz, size_t n, void *data);
 static size_t _read_callback(char *buffer, size_t size, size_t nitems, 
 	void *instream);
@@ -65,6 +66,15 @@ int AgentCurl::initialize ()
 	// Suppress the proxy CONNECT headers.
 	if ( curl_easy_setopt(curl, CURLOPT_SUPPRESS_CONNECT_HEADERS, 1L) !=
 		CURLE_OK ) return 0;
+#else
+	// Sigh. Our version of libcurl is too old so we need to detect
+	// proxy headers by hand.
+
+	if ( curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, _header_callback)
+		 != CURLE_OK) return 0;
+
+	if ( curl_easy_setopt(curl, CURLOPT_HEADERDATA, this) != CURLE_OK)
+		return 0;
 #endif
 
 	// Configure proxy
@@ -200,11 +210,28 @@ int AgentCurl::request(string const &url, string const &postdata,
     return ( result == HttpResponseParser::ParsingCompleted );
 }
 
+size_t AgentCurl::header_callback(char *ptr, size_t sz, size_t n)
+{
+	size_t len= sz*n;
+	string header;
+
+	header.assign(ptr, len);
+	eprintf("HEADER [%s]\n", header.c_str());
+	return len;
+}
+
 size_t AgentCurl::write_callback(char *ptr, size_t sz, size_t n)
 {
-	size_t bytes= sz*n;
-	sresponse.append(ptr, bytes);
-	return bytes;
+	size_t len= sz*n;
+	sresponse.append(ptr, len);
+	return len;
+}
+
+static size_t _header_callback(char *ptr, size_t sz, size_t n, void *data)
+{
+	AgentCurl *agent= (AgentCurl *) data;
+
+	return agent->header_callback(ptr, sz, n);
 }
 
 static size_t _write_callback(char *ptr, size_t sz, size_t n, void *data)
