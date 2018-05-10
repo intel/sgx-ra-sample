@@ -805,7 +805,6 @@ int get_attestation_report(IAS_Connection *ias, const char *b64quote,
                 eprintf("epidPseudonym:\t%s\n", reportObj["epidPseudonym"].ToString().c_str());
                 edivider();
             }
-       
           
             /* This samples attestion policy is either Trusted in the case of an "OK", 
              * or a NotTrusted for any other isvEnclaveQuoteStatus value */
@@ -824,11 +823,19 @@ int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 		if ( verbose ) eprintf("Enclave NOT TRUSTED - Reason: %s\n",reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
             }
 
+            /* Check to see if a platformInfoBlob was sent back as part of the response */
             if (!reportObj["platformInfoBlob"].IsNull()) {
                 if ( verbose ) eprintf("A Platform Info Blob (PIB) was provided by the IAS\n");
+
+                /* The platformInfoBlob has two parts, a TVL Header (4 bytes), and TLV Payload (variable) */
+                string pibBuff = reportObj["platformInfoBlob"].ToString();
+
+                /* remove the TLV Header (8 base16 chars, ie. 4 bytes) from the PIB Buff. */
+                pibBuff.erase(pibBuff.begin(), pibBuff.begin() + (4*2)); 
+
                 int ret = from_hexstring ((unsigned char *)(&msg4.platformInfoBlob), 
-                                           reportObj["platformInfoBlob"].ToString().c_str(),
-                                           reportObj["platformInfoBlob"].ToString().length());
+                                           pibBuff.c_str(),
+                                           pibBuff.length());
 
             }
             else {
@@ -839,8 +846,12 @@ int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 
             edividerWithText("Copy/Paste Msg4 Below to Client"); 
 
-	    send_msg(&msg4, sizeof( msg4));
-	    fsend_msg(fplog, &msg4, sizeof( msg4));
+            /* Serialize the members of the Msg4 structure independently */
+            /* vs. the entire structure as one send_msg() */
+	    send_msg_partial(&msg4.trustStatus, sizeof( msg4.trustStatus));
+	    send_msg(&msg4.platformInfoBlob, sizeof( msg4.platformInfoBlob));
+	    fsend_msg_partial(fplog, &msg4.trustStatus, sizeof( msg4.trustStatus));
+	    fsend_msg(fplog, &msg4.platformInfoBlob, sizeof( msg4.platformInfoBlob));
             edivider();
 
             return 1;

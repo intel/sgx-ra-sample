@@ -414,10 +414,10 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	/* Executes an ECALL that runs sgx_ra_init() */
 
 	if ( OPT_ISSET(flags, OPT_PUBKEY) ) {
-		fprintf(stderr, "+++ using supplied public key\n");
+		if ( debug ) fprintf(stderr, "+++ using supplied public key\n");
 		status= enclave_ra_init(eid, &sgxrv, config->pubkey, 0, &ra_ctx);
 	} else {
-		fprintf(stderr, "+++ using default public key\n");
+		if ( debug ) fprintf(stderr, "+++ using default public key\n");
 		status= enclave_ra_init_def(eid, &sgxrv, 0, &ra_ctx);
 	}
 	if ( status != SGX_SUCCESS ) {
@@ -651,6 +651,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
         Msg4 *msg4 = NULL;
         size_t msg4sz = 0;
+        int enclaveTrusted = 1; // Not Trusted
         
         read_msg((void **)&msg4, &msg4sz);
 
@@ -658,26 +659,67 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
         if ( msg4->trustStatus == Trusted ) {
             eprintf("Enclave TRUSTED\n");
+            enclaveTrusted = 0; // Trusted
         }
         else if (msg4->trustStatus == NotTrusted ) {
             eprintf("Enclave NOT TRUSTED\n");
+            enclaveTrusted = 1; // Not Trusted
         }
         else {
             eprintf("Enclave Trust is OTHER\n");
+            enclaveTrusted = 2; // Not Trusted
         }
 
         /* check to see if we have a PIB by comparing to empty PIB */
         sgx_platform_info_t emptyPIB;
         memset(&emptyPIB, 0, sizeof (sgx_platform_info_t));
 
-        if (memcmp(&emptyPIB, (void *)(&msg4->platformInfoBlob), sizeof (sgx_platform_info_t)) == 0 ) {
-            eprintf("A Platform Info Blob (PIB) was NOT provided by the IAS\n");
+        int retPibCmp = memcmp(&emptyPIB, (void *)(&msg4->platformInfoBlob), sizeof (sgx_platform_info_t));
+
+        if (retPibCmp == 0 ) {
+            if ( verbose ) eprintf("A Platform Info Blob (PIB) was NOT provided by the IAS\n");
         }
         else {
-            eprintf("A Platform Info Blob (PIB) was provided by the IAS\n");
-        }
+            if ( verbose ) eprintf("A Platform Info Blob (PIB) was provided by the IAS\n");
 
-        edivider();
+            if ( debug )  {
+                eprintf("+++ PIB: " );
+                print_hexstring(stderr, &msg4->platformInfoBlob, sizeof (sgx_platform_info_t));
+                print_hexstring(fplog, &msg4->platformInfoBlob, sizeof (sgx_platform_info_t));
+                eprintf("\n");
+            }
+
+            /* We have a PIB, so check to see if there are actions to take */
+            sgx_update_info_bit_t update_info;
+            sgx_status_t ret = sgx_report_attestation_status(&msg4->platformInfoBlob, 
+                                                             enclaveTrusted, 
+                                                             &update_info);
+
+            if ( debug )  eprintf("+++ sgx_report_attestation_status ret = 0x%4x\n", ret);
+
+             edivider();
+
+            /* Check to see if there is an update needed */
+            if ( ret == SGX_ERROR_UPDATE_NEEDED ) {
+
+                edividerWithText("Platform Update Required");
+                eprintf("The following Platform Update(s) are required to bring this\n");
+                eprintf("platform's Trusted Computing Base (TCB) back into compliance:\n");
+                if( update_info.pswUpdate ) {
+                    eprintf("\t* Intel SGX Platform Software needs to be updated to the latest version.\n");
+                }
+
+                if( update_info.csmeFwUpdate ) {
+                    eprintf("\t* The Intel Management Engine Firmware Needs to be Updated.  Contact your OEM for a BIOS Update.\n");
+                }
+
+                if( update_info.ucodeUpdate )  {
+                    eprintf("\t* The CPU Microcode needs to be updated.  Contact your OEM for a platform BIOS Update.\n");
+                }                                           
+                
+                edivider();      
+            }
+        }
 
         if ( msg4 ) {
             free (msg4);
