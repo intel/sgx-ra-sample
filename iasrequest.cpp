@@ -117,7 +117,7 @@ string IAS_Connection::proxy_url()
 int IAS_Connection::client_cert(const char *file, const char *certtype)
 {
 	int rv= 1;
-	eprintf("certtype=%s\n", certtype);
+	if (verbose ) eprintf("certtype=%s\n", certtype);
 	try {
 		c_cert_file= file;
 		if ( certtype != NULL ) c_cert_type= certtype;
