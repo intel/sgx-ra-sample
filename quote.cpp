@@ -96,7 +96,6 @@ typedef struct config_struct {
 } config_t;
 
 
-Msg4 msg4;
 
 int file_in_searchpath (const char *file, const char *search, char *fullpath,
 	size_t len);
@@ -648,9 +647,43 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		msg3 = NULL;
 	}
  
-        /* Read Ms4 provided by Service Provider, then process */
+        /* Read Msg4 provided by Service Provider, then process */
 
+        Msg4 *msg4 = NULL;
+        size_t msg4sz = 0;
+        
+        read_msg((void **)&msg4, &msg4sz);
 
+        edividerWithText("Enclave Trust Status from Service Provider");
+
+        if ( msg4->trustStatus == Trusted ) {
+            eprintf("Enclave TRUSTED\n");
+        }
+        else if (msg4->trustStatus == NotTrusted ) {
+            eprintf("Enclave NOT TRUSTED\n");
+        }
+        else {
+            eprintf("Enclave Trust is OTHER\n");
+        }
+
+        /* check to see if we have a PIB by comparing to empty PIB */
+        sgx_platform_info_t emptyPIB;
+        memset(&emptyPIB, 0, sizeof (sgx_platform_info_t));
+
+        if (memcmp(&emptyPIB, (void *)(&msg4->platformInfoBlob), sizeof (sgx_platform_info_t)) == 0 ) {
+            eprintf("A Platform Info Blob (PIB) was NOT provided by the IAS\n");
+        }
+        else {
+            eprintf("A Platform Info Blob (PIB) was provided by the IAS\n");
+        }
+
+        edivider();
+
+        if ( msg4 ) {
+            free (msg4);
+            msg4 = NULL;
+        }
+   
 	return 0;
 }
 
