@@ -797,7 +797,7 @@ int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 
                 edividerWithText("IAS Report - JSON - Optional Fields");
 
-                eprintf("platformInfoBlob:\t%s\n", reportObj["iplatformInfoBlob"].ToString().c_str());
+                eprintf("platformInfoBlob:\t%s\n", reportObj["platformInfoBlob"].ToString().c_str());
                 eprintf("revocationReason:\t%s\n", reportObj["revocationReason"].ToString().c_str());
                 eprintf("pseManifestStatus:\t%s\n", reportObj["pseManifestStatus"].ToString().c_str());
                 eprintf("pseManifestHash:\t%s\n", reportObj["pseManifestHash"].ToString().c_str());
@@ -824,11 +824,11 @@ int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 		if ( verbose ) eprintf("Enclave NOT TRUSTED\n");
             }
 
-            if (!reportObj["iplatformInfoBlob"].IsNull()) {
+            if (!reportObj["platformInfoBlob"].IsNull()) {
                 if ( verbose ) eprintf("A Platform Info Blob (PIB) was provided by the IAS\n");
                 int ret = from_hexstring ((unsigned char *)(&msg4.platformInfoBlob), 
-                                           reportObj["iplatformInfoBlob"].ToString().c_str(),
-                                           reportObj["iplatformInfoBlob"].ToString().length());
+                                           reportObj["platformInfoBlob"].ToString().c_str(),
+                                           reportObj["platformInfoBlob"].ToString().length());
 
             }
             else {
