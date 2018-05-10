@@ -821,7 +821,7 @@ int get_attestation_report(IAS_Connection *ias, const char *b64quote,
             }
             else {
                 msg4.trustStatus = NotTrusted;
-		if ( verbose ) eprintf("Enclave NOT TRUSTED\n");
+		if ( verbose ) eprintf("Enclave NOT TRUSTED - Reason: %s\n",reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
             }
 
             if (!reportObj["platformInfoBlob"].IsNull()) {
