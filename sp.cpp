@@ -1,6 +1,6 @@
 /*
 
-Copyright 2017 Intel Corporation
+Copyright 2018 Intel Corporation
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -17,24 +17,22 @@ documentation and/or other materials provided with the distribution.
 contributors may be used to endorse or promote products derived from
 this software without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
-TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED BY INTEL CORPORATION "AS IS" AND ANY EXPRESS
+OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OFLIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
 
-#ifdef _WIN32
-#pragma comment(lib, "crypt32.lib")
-#else
+#ifndef _WIN32
 #include "config.h"
 #endif
 
@@ -46,7 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/types.h>
 #ifdef _WIN32
 #include <intrin.h>
-#include "getopt.h"
+#include "win32/getopt.h"
 #else
 #include <getopt.h>
 #include <unistd.h>
@@ -66,12 +64,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "iasrequest.h"
 #include "logfile.h"
 
-using json::JSON;
+using namespace json;
 using namespace std;
 
 #include <map>
 #include <string>
 #include <iostream>
+
+#ifdef _WIN32
+#define strdup(x) _strdup(x)
+#endif
 
 static const unsigned char def_service_private_key[32] = {
 	0x90, 0xe7, 0x6c, 0xbb, 0x2d, 0x52, 0xa1, 0xce,
@@ -111,30 +113,31 @@ int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 char debug= 0;
 char verbose= 0;
 
-int main (int argc, char *argv[])
+int main(int argc, char *argv[])
 {
-	u_int32_t i;
-	char flag_spid= 0;
-	char flag_pubkey= 0;
-	char flag_cert= 0;
-	char flag_ca= 0;
-	char flag_usage= 0;
-	char *sigrl= NULL;
+	char flag_spid = 0;
+	char flag_pubkey = 0;
+	char flag_cert = 0;
+	char flag_ca = 0;
+	char flag_usage = 0;
+	char *sigrl = NULL;
 	config_t config;
 	sgx_ra_msg2_t msg2;
 	ra_msg4_t msg4;
-	uint32_t msg2_sz;
 	int oops;
-	IAS_Connection *ias;
+	IAS_Connection *ias= NULL;
 
 	/* Create a logfile to capture debug output and actual msg data */
 
-	fplog= create_logfile("sp.log");
+	fplog = create_logfile("sp.log");
 	fprintf(fplog, "Server log started\n");
 
 	memset(&config, 0, sizeof(config));
-	strncpy((char *) config.cert_type, "PEM", 3);
-
+#ifdef _WIN32
+	strncpy_s((char *)config.cert_type, 4, "PEM", 3);
+#else
+	strncpy((char *)config.cert_type, "PEM", 3);
+#endif
 	static struct option long_opt[] =
 	{
 		{"ias-signing-cafile",
@@ -157,89 +160,88 @@ int main (int argc, char *argv[])
 
 	while (1) {
 		int c;
-		int opt_index= 0;
-		off_t fsz;
+		int opt_index = 0;
 
-		c= getopt_long(argc, argv, "A:C:K:S:de:hk:lr:s:v", long_opt, &opt_index);
-		if ( c == -1 ) break;
+		c = getopt_long(argc, argv, "A:C:K:S:de:hk:lr:s:v", long_opt, &opt_index);
+		if (c == -1) break;
 
-		switch(c) {
+		switch (c) {
 		case 0:
 			break;
 		case 'A':
-			if ( ! cert_load_file(&config.signing_ca, optarg) ) {
+			if (!cert_load_file(&config.signing_ca, optarg)) {
 				crypto_perror("cert_load_file");
 				eprintf("%s: could not load IAS Signing Cert CA\n", optarg);
-				exit(1);
+				return 1;
 			}
 
-			config.store= cert_init_ca(config.signing_ca);
-			if ( config.store == NULL ) {
+			config.store = cert_init_ca(config.signing_ca);
+			if (config.store == NULL) {
 				eprintf("%s: could not initialize certificate store\n", optarg);
-				exit(1);
+				return 1;
 			}
 			++flag_ca;
 
 			break;
 		case 'C':
-			config.cert_file= strdup(optarg);
-			if ( config.cert_file == NULL ) {
+			config.cert_file = strdup(optarg);
+			if (config.cert_file == NULL) {
 				perror("strdup");
-				exit(1);
+				return 1;
 			}
 			++flag_cert;
 
 			break;
 		case 'S':
-			if ( ! from_hexstring_file((unsigned char *) &config.spid, optarg, 16)) {
+			if (!from_hexstring_file((unsigned char *)&config.spid, optarg, 16)) {
 				eprintf("SPID must be 32-byte hex string\n");
-				exit(1);
+				return 1;
 			}
 			++flag_spid;
 
 			break;
 		case 'K':
-			if ( ! key_load_file(&config.service_private_key, optarg, KEY_PRIVATE) ) {
+			if (!key_load_file(&config.service_private_key, optarg, KEY_PRIVATE)) {
 				crypto_perror("key_load_file");
 				eprintf("%s: could not load EC private key\n", optarg);
-				exit(1);
+				return 1;
 			}
 			break;
 		case 'd':
-			debug= 1;
+			debug = 1;
 			break;
 		case 'e':
-			if ( ! key_load(&config.session_private_key, optarg, KEY_PRIVATE) ) {
+			if (!key_load(&config.session_private_key, optarg, KEY_PRIVATE)) {
 				crypto_perror("key_load");
 				eprintf("%s: could not load session key\n", optarg);
-				exit(1);
+				return 1;
 			}
 			break;
 		case 'k':
-			if ( ! key_load(&config.service_private_key, optarg, KEY_PRIVATE) ) {
+			if (!key_load(&config.service_private_key, optarg, KEY_PRIVATE)) {
 				crypto_perror("key_load");
 				eprintf("%s: could not load EC private key\n", optarg);
-				exit(1);
+				return 1;
 			}
 			break;
 		case 'l':
-			config.quote_type= SGX_LINKABLE_SIGNATURE;
+			config.quote_type = SGX_LINKABLE_SIGNATURE;
 			break;
 		case 's':
-			if ( strlen(optarg) < 32 ) {
+			if (strlen(optarg) < 32) {
 				eprintf("SPID must be 32-byte hex string\n");
-				exit(1);
+				return 1;
 			}
-			if ( ! from_hexstring((unsigned char *) &config.spid, (unsigned char *) optarg, 16) ) {
+			if (!from_hexstring((unsigned char *)&config.spid, (unsigned char *)optarg, 16)) {
 				eprintf("SPID must be 32-byte hex string\n");
-				exit(1);
+				return 1;
 			}
 			++flag_spid;
 			break;
 		case 't':
 			break;
 		case 'v':
-			verbose= 1;
+			verbose = 1;
 			break;
 		case 'h':
 		case '?':
@@ -249,24 +251,24 @@ int main (int argc, char *argv[])
 	}
 
 	/*
-	 * Use the hardcoded default key unless one is provided on the 
+	 * Use the hardcoded default key unless one is provided on the
 	 * command line. Most real-world services would hardcode the
 	 * key since the public half is also hardcoded into the enclave.
 	 */
 
-	if ( config.service_private_key == NULL ) {
-		if ( debug ) {
+	if (config.service_private_key == NULL) {
+		if (debug) {
 			eprintf("Using default private key\n");
 		}
-		config.service_private_key= key_private_from_bytes(def_service_private_key);
-		if ( config.service_private_key == NULL ) {
+		config.service_private_key = key_private_from_bytes(def_service_private_key);
+		if (config.service_private_key == NULL) {
 			crypto_perror("key_private_from_bytes");
-			exit(1);
+			return 1;
 		}
 
 	}
 
-	if ( debug ) {
+	if (debug) {
 		eprintf("+++ using private key:\n");
 		PEM_write_PrivateKey(stderr, config.service_private_key, NULL,
 			NULL, 0, 0, NULL);
@@ -274,24 +276,24 @@ int main (int argc, char *argv[])
 			NULL, 0, 0, NULL);
 	}
 
-	if ( ! flag_spid ) {
+	if (!flag_spid) {
 		eprintf("--spid or --spid-file is required\n");
-		flag_usage= 1;
+		flag_usage = 1;
 	}
 
-	if ( ! flag_cert ) {
+	if (!flag_cert) {
 		eprintf("--ias-cert-file is required\n");
-		flag_usage= 1;
+		flag_usage = 1;
 	}
 
-	if ( ! flag_ca ) {
+	if (!flag_ca) {
 		eprintf("--ias-signing-cafile is required\n");
-		flag_usage= 1;
+		flag_usage = 1;
 	}
 
-	if ( flag_usage ) usage();
+	if (flag_usage) usage();
 
-	if ( verbose ) eprintf("Using cert file %s\n", config.cert_file);
+	if (verbose) eprintf("Using cert file %s\n", config.cert_file);
 
 	/* Initialize out support libraries */
 
@@ -300,15 +302,14 @@ int main (int argc, char *argv[])
 	/* Initialize our IAS request object */
 
 	try {
-		oops= 0;
-		ias= new IAS_Connection(IAS_SERVER_DEVELOPMENT, 0);
-		ias->client_cert(config.cert_file, (char *) config.cert_type);
+		ias = new IAS_Connection(IAS_SERVER_DEVELOPMENT, 0);
+		ias->client_cert(config.cert_file, (char *)config.cert_type);
 	}
 	catch (int e) {
-		oops= 1;
+		oops = 1;
 		eprintf("exception while creating IAS request object\n");
+		return 1;
 	}
-	if ( oops ) exit(1);
 
 	/* Set the cert store for this connect */
 	ias->cert_store(config.store);
@@ -360,7 +361,6 @@ int process_msg3 (IAS_Connection *ias, ra_msg4_t *msg4, config_t *config)
 	int rv;
 	uint32_t quote_sz;
 	char *buffer= NULL;
-	unsigned char smk[16], gb_ga[128];
 	char *b64quote;
 
 	/*
@@ -399,7 +399,7 @@ int process_msg3 (IAS_Connection *ias, ra_msg4_t *msg4, config_t *config)
 	 *
 	 * Total message size is sz/2 since the income message is in base16.
 	 */
-	quote_sz= (sz/2)-sizeof(sgx_ra_msg3_t);
+	quote_sz = (uint32_t)((sz / 2) - sizeof(sgx_ra_msg3_t));
 
 	/* Encode the report body as base64 */
 
@@ -469,12 +469,10 @@ int process_msg01 (IAS_Connection *ias, sgx_ra_msg2_t *msg2, char **sigrl,
 	} *msg01;
 	sgx_ra_msg1_t *msg1;
 	size_t blen= 0;
-	size_t sz;
 	char *buffer= NULL;
 	unsigned char smk[16], gb_ga[128];
 	unsigned char digest[32], r[32], s[32];
 	EVP_PKEY *Gb;
-	mode_t fmode;
 	int rv;
 
 	memset(msg2, 0, sizeof(sgx_ra_msg2_t));
@@ -720,7 +718,7 @@ int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
 int get_sigrl (IAS_Connection *ias, sgx_epid_group_id_t gid, char **sig_rl,
 	uint32_t *sig_rl_size)
 {
-	IAS_Request *req;
+	IAS_Request *req= NULL;
 	int oops;
 	string sigrlstr;
 
@@ -730,9 +728,9 @@ int get_sigrl (IAS_Connection *ias, sgx_epid_group_id_t gid, char **sig_rl,
 	}
 	catch (int e) {
 		eprintf("Exception while creating IAS request object\n");
-		oops= 1;
+		return 0;
 	}
-	if ( oops ) return 0;
+
 
 	if ( req->sigrl(*(uint32_t *) gid, sigrlstr) != IAS_OK ) {
 		return 0;
@@ -749,22 +747,19 @@ int get_sigrl (IAS_Connection *ias, sgx_epid_group_id_t gid, char **sig_rl,
 int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 	sgx_ps_sec_prop_desc_t secprop) 
 {
-	IAS_Request *req;
-	int oops;
+	IAS_Request *req = NULL;
 	map<string,string> payload;
 	vector<string> messages;
 	ias_error_t status;
 	string content;
 
 	try {
-		oops= 0;
 		req= new IAS_Request(ias);
 	}
 	catch (int e) {
 		eprintf("Exception while creating IAS request object\n");
-		oops= 1;
+		return 0;
 	}
-	if ( oops ) return 0;
 
 	payload.insert(make_pair("isvEnclaveQuote", b64quote));
 	
@@ -916,6 +911,6 @@ void usage ()
 "  -v, --verbose            Be verbose. Print message structure details and the" NL
 "                             results of intermediate operations to stderr." 
 <<endl;
-	exit(1);
+	::exit(1);
 }
 
