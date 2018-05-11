@@ -1,9 +1,17 @@
+#pragma comment(lib, "Crypt32.lib")
+#pragma comment(lib, "Winhttp.lib")
+
 #include "agent_win32.h"
+#include <wincrypt.h>
 #include <Windows.h>
 #include <winhttp.h>
 #include <stdio.h>
 #include "../httpparser/httpresponseparser.h"
 #include "../httpparser/response.h"
+
+#include <string>
+
+using namespace std;
 
 #define USER_AGENT L"WinHTTP"
 
@@ -27,7 +35,6 @@ int AgentWin::initialize()
 	LPCWSTR proxy_bypass = NULL;
 	int status = 0;
 	BYTE *cert= NULL;
-	DWORD certsz;
 
 	// Proxy configuration
 	//-----------------------------------------------------
@@ -36,7 +43,6 @@ int AgentWin::initialize()
 		access = WINHTTP_ACCESS_TYPE_NO_PROXY;
 	}
 	else if (conn->proxy_mode() == IAS_PROXY_FORCE) {
-		size_t sz, wsz;
 		string proxy = conn->proxy_url();
 		wstring wproxy = wstring(proxy.begin(), proxy.end());
 
@@ -129,7 +135,6 @@ int AgentWin::request(string const &url, string const &postdata,
 	while (datasz > 0) {
 		BYTE *data;
 		DWORD bread = 0;
-		BOOL result;
 		
 		try {
 			data = new BYTE[datasz];

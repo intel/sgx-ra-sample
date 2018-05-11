@@ -110,8 +110,8 @@ int get_sigrl (IAS_Connection *ias, sgx_epid_group_id_t gid, char **sigrl,
 int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 	sgx_ps_sec_prop_desc_t sec_prop);
 
-char debug= 0;
-char verbose= 0;
+char debug = 0;
+char verbose = 0;
 
 int main(int argc, char *argv[])
 {
@@ -305,7 +305,7 @@ int main(int argc, char *argv[])
 		ias = new IAS_Connection(IAS_SERVER_DEVELOPMENT, 0);
 		ias->client_cert(config.cert_file, (char *)config.cert_type);
 	}
-	catch (int e) {
+	catch (...) {
 		oops = 1;
 		eprintf("exception while creating IAS request object\n");
 		return 1;
@@ -726,7 +726,7 @@ int get_sigrl (IAS_Connection *ias, sgx_epid_group_id_t gid, char **sig_rl,
 		oops= 0;
 		req= new IAS_Request(ias);
 	}
-	catch (int e) {
+	catch (...) {
 		eprintf("Exception while creating IAS request object\n");
 		return 0;
 	}
@@ -756,7 +756,7 @@ int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 	try {
 		req= new IAS_Request(ias);
 	}
-	catch (int e) {
+	catch (...) {
 		eprintf("Exception while creating IAS request object\n");
 		return 0;
 	}

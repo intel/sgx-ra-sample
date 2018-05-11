@@ -55,8 +55,10 @@ using namespace httpparser;
 #include <string>
 #include <exception>
 
-extern char verbose;
-extern char debug;
+extern "C" {
+	extern char verbose;
+	extern char debug;
+};
 
 static string ias_servers[2]= {
     IAS_SERVER_DEVELOPMENT_HOST,

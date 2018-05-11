@@ -50,7 +50,7 @@ char *base64_encode(const char *msg, size_t sz)
 
 	BIO_push(b64, bmem);
 
-	if ( BIO_write(b64, msg, sz) == -1 ) return NULL;
+	if ( BIO_write(b64, msg, (int) sz) == -1 ) return NULL;
 
 	BIO_flush(b64);
 
@@ -78,11 +78,11 @@ char *base64_decode(const char *msg, size_t *sz)
 	b64= BIO_new(BIO_f_base64());
 	BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
 
-	bmem= BIO_new_mem_buf(msg, len);
+	bmem= BIO_new_mem_buf(msg, (int) len);
 
 	BIO_push(b64, bmem);
 
-	*sz= BIO_read(b64, buf, len);
+	*sz= BIO_read(b64, buf, (int) len);
 	if ( *sz == -1 ) return NULL;
 
 	BIO_free_all(bmem);
