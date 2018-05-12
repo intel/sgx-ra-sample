@@ -8,12 +8,20 @@
 #include <stdio.h>
 #include "../httpparser/httpresponseparser.h"
 #include "../httpparser/response.h"
+#include "../common.h"
 
 #include <string>
 
 using namespace std;
 
 #define USER_AGENT L"WinHTTP"
+
+void _win_http_callback(HINTERNET conn, DWORD_PTR ctx, DWORD status, LPVOID info, DWORD sz);
+
+extern "C" {
+	extern char debug;
+	extern char verbose;
+};
 
 AgentWin::AgentWin(IAS_Connection *conn_in) : Agent(conn_in)
 {
@@ -59,6 +67,16 @@ int AgentWin::initialize()
 
 	if (!load_certificate()) return 0;
 
+	// Debugging info
+	//-----------------------------------------------------
+
+	if (debug) {
+		callback = WinHttpSetStatusCallback(http,
+			(WINHTTP_STATUS_CALLBACK)_win_http_callback,
+			WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS,
+			NULL);
+	}
+
 	return 1;
 }
 
@@ -81,6 +99,7 @@ int AgentWin::request(string const &url, string const &postdata,
 	};
 	HttpResponseParser parser;
 	HttpResponseParser::ParseResult result;
+	wstring whostname, wuri;
 
 	// How to crack a URL
 	// https://msdn.microsoft.com/EN-US/library/windows/desktop/aa384092(v=vs.85).aspx
@@ -95,20 +114,36 @@ int AgentWin::request(string const &url, string const &postdata,
 
 	if (WinHttpCrackUrl(wurl.c_str(), (DWORD)wurl.length(), 0, &urlcomp) == FALSE)
 	{
+		this->perror("WinHttpCrackUrl");
 		return 0;
 	}
 
-	hcon = WinHttpConnect(http, urlcomp.lpszHostName, urlcomp.nPort, NULL);
-	if (hcon == NULL) return 0;
+	whostname = wstring(urlcomp.lpszHostName, urlcomp.dwHostNameLength);
+	wuri = wstring(urlcomp.lpszUrlPath, urlcomp.dwUrlPathLength);
 
-	req = WinHttpOpenRequest(hcon, (postdata.length()) ? L"POST" : L"GET", urlcomp.lpszUrlPath, NULL,
+	hcon = WinHttpConnect(http, whostname.c_str(), urlcomp.nPort, NULL);
+	if (hcon == NULL) {
+		this->perror("WinHttpConnect");
+		return 0;
+	}
+
+	req = WinHttpOpenRequest(hcon, (postdata.length()) ? L"POST" : L"GET", wuri.c_str(), NULL,
 		WINHTTP_NO_REFERER, accept_types, WINHTTP_FLAG_REFRESH | WINHTTP_FLAG_SECURE);
-	if (req == NULL) goto error;
+	if (req == NULL) {
+		this->perror("WinHttpOpenRequest");
+		goto error;
+	}
 
 	if (WinHttpSendRequest(req, WINHTTP_NO_ADDITIONAL_HEADERS, 0, (LPVOID)(postdata.length()) ? data : NULL,
-		postdata.length(), postdata.length(), NULL) == FALSE) goto error;
+		(DWORD)postdata.length(), (DWORD)postdata.length(), NULL) == FALSE) {
+		this->perror("WinHttpSendRequest");
+		goto error;
+	}
 
-	if (WinHttpReceiveResponse(req, NULL) == FALSE) goto error;
+	if (WinHttpReceiveResponse(req, NULL) == FALSE) {
+		this->perror("WinHttpReceiveResponse");
+		goto error;
+	}
 
 	// Get the headers
 
@@ -162,10 +197,33 @@ int AgentWin::request(string const &url, string const &postdata,
 
 error:
 	if (hdr != NULL) delete[] hdr;
-	if (hcon != NULL) CloseHandle(hcon);
-	if (req != NULL) CloseHandle(req);
+	if (hcon != NULL) WinHttpCloseHandle(hcon);
+	if (req != NULL) WinHttpCloseHandle(req);
 
 	return status;
+}
+
+void AgentWin::perror(const char *prefix)
+{
+	LPSTR buffer= NULL;
+	size_t sz;
+	DWORD err = GetLastError();
+
+	eprintf("ERR\n");
+
+	sz = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_HMODULE,
+		reinterpret_cast<LPCVOID>(GetModuleHandle(TEXT("winhttp.dll"))),
+		err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR) &buffer, 0, NULL);
+
+	eprintf("bufsize= %ld\n", sz);
+	if ( sz > 0 )
+	{ 
+		eprintf("%s: %s\n", prefix, buffer);
+	}
+	else {
+		eprintf("%s: Error %ld (0x%08x)\n", prefix, err, err);
+		eprintf("FormatMessage: error %ld\n", GetLastError());
+	}
 }
 
 int AgentWin::load_certificate()
@@ -188,6 +246,15 @@ int AgentWin::load_certificate()
 	if (ctx == NULL) return 0;
 
 	return 1;
+}
+
+void _win_http_callback(HINTERNET conn, DWORD_PTR ctx, DWORD status, LPVOID info, DWORD sz)
+{
+	wprintf(L"<-<- Status 0x%08x ", status);
+	if (sz > 0) {
+		wstring msg = wstring((wchar_t *)info, sz);
+		wprintf(L"%ls \n", msg.c_str());
+	}
 }
 
 /*

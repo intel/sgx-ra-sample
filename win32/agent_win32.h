@@ -16,9 +16,11 @@ class AgentWin : protected Agent
 	string sresponse;
 	PCCERT_CONTEXT ctx;
 	HCERTSTORE cstore;
+	WINHTTP_STATUS_CALLBACK callback;
 
 	// DWORD read_certificate(BYTE **buffer);
 	int load_certificate();
+	void perror(const char *prefix);
 
 public:
 	AgentWin(IAS_Connection *conn);

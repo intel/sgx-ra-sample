@@ -44,6 +44,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/types.h>
 #ifdef _WIN32
 #include <intrin.h>
+#include <openssl/applink.c>
 #include "win32/getopt.h"
 #else
 #include <getopt.h>
@@ -145,6 +146,8 @@ int main(int argc, char *argv[])
 		{"ias-cert-file",	required_argument,	0, 'C'},
 		{"key-file",		required_argument,	0, 'K'},
 		{"spid-file",		required_argument,	0, 'S'},
+		{"ias-signing-caname",
+							required_argument,	0, 'a'},
 		{"debug",			required_argument,	0, 'd'},
 		{"session-key",		required_argument,	0, 'e'},
 		{"help",			no_argument, 		0, 'h'},

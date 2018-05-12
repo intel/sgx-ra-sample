@@ -92,7 +92,7 @@ int IAS_Connection::proxy(const char *server, uint16_t port)
 	try {
 		c_proxy_server= server;
 	}
-	catch (int e) {
+	catch (...) {
 		rv= 0;
 	}
 	c_proxy_port= port;
@@ -124,7 +124,7 @@ int IAS_Connection::client_cert(const char *file, const char *certtype)
 		c_cert_file= file;
 		if ( certtype != NULL ) c_cert_type= certtype;
 	}
-	catch (int e) {
+	catch (...) {
 		rv= 0;
 	}
 	return rv;
@@ -137,7 +137,7 @@ int IAS_Connection::client_key(const char *file, const char *passwd)
 	try {
 		c_key_file= file;
 	}
-	catch (int e) {
+	catch (...) {
 		return 0;
 	}
 
@@ -147,7 +147,7 @@ int IAS_Connection::client_key(const char *file, const char *passwd)
 			c_key_passwd= new unsigned char[c_pwlen];
 			c_xor= new unsigned char[c_pwlen];
 		}
-		catch (int e) { 
+		catch (...) { 
 			if ( c_key_passwd != NULL ) delete[] c_key_passwd;
 			return 0;
 		}
@@ -173,7 +173,7 @@ int IAS_Connection::client_key_passwd(char **passwd, size_t *pwlen)
 	try {
 		*passwd= new char[c_pwlen+1];
 	}
-	catch (int e) {
+	catch (...) {
 		return 0;
 	}
 
@@ -219,7 +219,7 @@ Agent *IAS_Connection::new_agent()
 		newagent= (Agent *) new AgentCurl(this);
 #endif
 	}
-	catch (int e) {
+	catch (...) {
 		return NULL;
 	}
 	if ( newagent->initialize() == 0 ) {
@@ -246,7 +246,6 @@ ias_error_t IAS_Request::sigrl(uint32_t gid, string &sigrl)
 	Response response;
 	char sgid[9];
 	string url= r_conn->base_url();
-	int rv;
 	Agent *agent= r_conn->new_agent();
 
 	snprintf(sgid, 9, "%08x", gid);
@@ -316,7 +315,7 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 		url+= to_string(r_api_version);
 		url+= "/report";
 	}
-	catch (int e) {
+	catch (...) {
 		return IAS_QUERY_FAILED;
 	}
 
@@ -363,7 +362,7 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 	try {
 		certchain= url_decode(certchain);
 	}
-	catch (int e) {
+	catch (...) {
 		eprintf("invalid URL encoding in header X-IASReport-Signing-Certificate\n");
 		return IAS_BAD_CERTIFICATE;
 	}
