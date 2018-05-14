@@ -11,12 +11,20 @@
 #include "../common.h"
 
 #include <string>
+#include <locale>
+#include <codecvt>
 
 using namespace std;
+
+// Quick and easy conversion from a unicode string to a standard string
+using convert_type = codecvt_utf8<wchar_t>;
+
+wstring_convert<convert_type, wchar_t> converter;
 
 #define USER_AGENT L"WinHTTP"
 
 void _win_http_callback(HINTERNET conn, DWORD_PTR ctx, DWORD status, LPVOID info, DWORD sz);
+void _callback_secure_failure(DWORD status);
 
 extern "C" {
 	extern char debug;
@@ -77,6 +85,18 @@ int AgentWin::initialize()
 			NULL);
 	}
 
+
+	// TEMPORARY
+	{
+		unsigned long val = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2;
+		if (WinHttpSetOption(http, WINHTTP_OPTION_SECURE_PROTOCOLS, (LPVOID)&val, sizeof(unsigned long)) == FALSE)
+		{
+			this->perror("WinHttpSetOption: WINHTTP_OPTION_SECURE_PROTOCOLS");
+			return 0;
+		}
+
+	}
+
 	return 1;
 }
 
@@ -131,6 +151,25 @@ int AgentWin::request(string const &url, string const &postdata,
 		WINHTTP_NO_REFERER, accept_types, WINHTTP_FLAG_REFRESH | WINHTTP_FLAG_SECURE);
 	if (req == NULL) {
 		this->perror("WinHttpOpenRequest");
+		goto error;
+	}
+
+
+	// TEMPORARY
+	{
+		unsigned long val = SECURITY_FLAG_IGNORE_CERT_CN_INVALID | SECURITY_FLAG_IGNORE_CERT_DATE_INVALID | SECURITY_FLAG_IGNORE_UNKNOWN_CA;
+		if (WinHttpSetOption(req, WINHTTP_OPTION_SECURITY_FLAGS, (LPVOID)&val, sizeof(unsigned long)) == FALSE)
+		{
+			this->perror("WinHttpSetOption: WINHTTP_OPTION_SECURITY_FLAGS ");
+			goto error;
+		}
+	}
+
+	// Set the client certificate context
+
+	if (WinHttpSetOption(req, WINHTTP_OPTION_CLIENT_CERT_CONTEXT, (LPVOID) ctx, sizeof(CERT_CONTEXT)) == FALSE)
+	{
+		this->perror("WinHttpSetOption: WINHTTP_OPTION_CLIENT_CERT_CONTEXT");
 		goto error;
 	}
 
@@ -209,13 +248,9 @@ void AgentWin::perror(const char *prefix)
 	size_t sz;
 	DWORD err = GetLastError();
 
-	eprintf("ERR\n");
-
 	sz = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_HMODULE,
 		reinterpret_cast<LPCVOID>(GetModuleHandle(TEXT("winhttp.dll"))),
 		err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR) &buffer, 0, NULL);
-
-	eprintf("bufsize= %ld\n", sz);
 	if ( sz > 0 )
 	{ 
 		eprintf("%s: %s\n", prefix, buffer);
@@ -231,16 +266,9 @@ int AgentWin::load_certificate()
 	string name = conn->client_cert_file();
 	wstring wname = wstring(name.begin(), name.end());
 
+	// Assumes that the certificate is located in your personal certificate store.
 	cstore = CertOpenSystemStore(NULL, TEXT("MY"));
 	if (cstore == NULL) return 0;
-
-	/*
-	certsz = read_certificate(&cert);
-	if (certsz == 0 || cert == NULL) goto cleanup;
-
-	ctx = CertCreateCertificateContext(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, cert, certsz);
-	if (ctx == NULL) goto cleanup;
-	*/
 
 	ctx = CertFindCertificateInStore(cstore, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, 0, CERT_FIND_SUBJECT_STR, (LPVOID) wname.c_str(), NULL);
 	if (ctx == NULL) return 0;
@@ -248,13 +276,114 @@ int AgentWin::load_certificate()
 	return 1;
 }
 
+// Callback to get status info of the connection. For debugging purposes
+
 void _win_http_callback(HINTERNET conn, DWORD_PTR ctx, DWORD status, LPVOID info, DWORD sz)
 {
-	wprintf(L"<-<- Status 0x%08x ", status);
-	if (sz > 0) {
-		wstring msg = wstring((wchar_t *)info, sz);
-		wprintf(L"%ls \n", msg.c_str());
+	string msg;
+
+	eprintf("+++ Status 0x%08x: ", status);
+
+	// Print the status info
+	switch (status) {
+	case WINHTTP_CALLBACK_STATUS_CLOSING_CONNECTION:
+		eprintf("Closing connection to the server\n");
+		break;
+	case WINHTTP_CALLBACK_STATUS_CONNECTED_TO_SERVER:
+		msg = converter.to_bytes(wstring((wchar_t *) info, sz));
+		eprintf("Successfully connected to the server %s\n", msg.c_str());
+		break;
+	case WINHTTP_CALLBACK_STATUS_CONNECTING_TO_SERVER:
+		msg = converter.to_bytes(wstring((wchar_t *)info, sz));
+		eprintf("Connecting to the server %s\n", msg.c_str());
+		break;
+	case WINHTTP_CALLBACK_STATUS_CONNECTION_CLOSED:
+		eprintf("Connection closed\n");
+		break;
+	case WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE:
+		eprintf("%lu bytes available for reading", *((DWORD *)info));
+		break;
+	case WINHTTP_CALLBACK_STATUS_HANDLE_CREATED:
+		eprintf("HINTERNET handle created at 0x%08x\n", info);
+		break;
+	case WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING:
+		eprintf("Handle at 0x%08x terminated\n", info);
+		break;
+	case WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE:
+		eprintf("Response header received\n");
+		break;
+	case WINHTTP_CALLBACK_STATUS_INTERMEDIATE_RESPONSE:
+		eprintf("Received intermediate statrus code from server: %lu\n", *((DWORD *)info));
+		break;
+	case WINHTTP_CALLBACK_STATUS_NAME_RESOLVED:
+		msg = converter.to_bytes(wstring((wchar_t *)info, sz));
+		eprintf("Resolved IP address to %s\n", msg.c_str());
+		break;
+	case WINHTTP_CALLBACK_STATUS_READ_COMPLETE:
+		// The full meaning of this messages depends on who called it (WinHttpReadData vs WinHttpWebSocketReceive)
+		eprintf("Reas completed\n");
+		break;
+	case WINHTTP_CALLBACK_STATUS_RECEIVING_RESPONSE:
+		eprintf("Waiting for server to respond\n");
+		break;
+	case WINHTTP_CALLBACK_STATUS_REDIRECT:
+		msg = converter.to_bytes(wstring((wchar_t *)info, sz));
+		eprintf("Redirecting to: %s\n", msg.c_str());
+		break;
+	case WINHTTP_CALLBACK_STATUS_REQUEST_ERROR:
+		eprintf("Error while sending HTTP request\n");
+		break;
+	case WINHTTP_CALLBACK_STATUS_REQUEST_SENT:
+		eprintf("Sent %lu bytes to server\n", *((DWORD *)info));
+		break;
+	case WINHTTP_CALLBACK_STATUS_RESOLVING_NAME:
+		msg = converter.to_bytes(wstring((wchar_t *)info, sz));
+		eprintf("Resolving IP address for %s\n", msg.c_str());
+		break;
+	case WINHTTP_CALLBACK_STATUS_RESPONSE_RECEIVED:
+		eprintf("Received %lu bytes from server\n", *((DWORD *)info));
+		break;
+	case WINHTTP_CALLBACK_STATUS_SECURE_FAILURE:
+		// This message requires further interpretation
+		_callback_secure_failure(*((DWORD *) info));
+		break;
+	case WINHTTP_CALLBACK_STATUS_SENDING_REQUEST:
+		eprintf("Sending the information request to the server\n");
+		break;
+	case WINHTTP_CALLBACK_STATUS_WRITE_COMPLETE:
+		// The full meaning of this messages depends on who called it (WinHttpSendData vs WinHttpWebSocketReceive)
+		eprintf("Data sent to server\n");
+		break;
+	case WINHTTP_CALLBACK_STATUS_GETPROXYFORURL_COMPLETE:
+		eprintf("Found proxy server for the target URL\n");
+		break;
+	case WINHTTP_CALLBACK_STATUS_CLOSE_COMPLETE:
+		eprintf("Socket closed\n");
+		break;
+	case WINHTTP_CALLBACK_STATUS_SHUTDOWN_COMPLETE:
+		eprintf("Socket shutdown\n");
+		break;
 	}
+
+}
+
+void _callback_secure_failure(DWORD info)
+{
+	eprintf("Errors in SSL/TLS connection:\n");
+	if (info & WINHTTP_CALLBACK_STATUS_FLAG_CERT_REV_FAILED)
+		eprintf(">>> Certification revocation checking has been enabled, but the revocation check failed to verify whether a certificate has been revoked\n");
+	if (info & WINHTTP_CALLBACK_STATUS_FLAG_INVALID_CERT)
+		eprintf(">>> SSL certificate is invalid\n");
+	if (info & WINHTTP_CALLBACK_STATUS_FLAG_CERT_REVOKED)
+		eprintf(">>> SSL certificate was revoked\n");
+	if (info & WINHTTP_CALLBACK_STATUS_FLAG_INVALID_CA)
+		eprintf(">>> The Certificate Authority that generated the server's certificate is not recognized\n");
+	if (info & WINHTTP_CALLBACK_STATUS_FLAG_CERT_CN_INVALID)
+		eprintf(">>> SSL certificate Common Name is incorrect\n");
+	if (info & WINHTTP_CALLBACK_STATUS_FLAG_CERT_DATE_INVALID)
+		eprintf(">>> Server's certificate date is bad, or the certificate has expired\n");
+	if (info & WINHTTP_CALLBACK_STATUS_FLAG_SECURITY_CHANNEL_ERROR)
+		eprintf(">>> Error loading SSL libraries\n");
 }
 
 /*
