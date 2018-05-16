@@ -1,13 +1,48 @@
+/*
+
+Copyright 2018 Intel Corporation
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY INTEL CORPORATION "AS IS" AND ANY EXPRESS
+OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OFLIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
+
 #include <string.h>
 #include <stdio.h>
 #include <openssl/x509.h>
 #include "crypto.h"
 #include "common.h"
 #include "agent.h"
-#ifndef _WIN32
+#ifdef _WIN32
+#include "win32/agent_win32.h"
+#else
 #include "agent_wget.h"
-#endif
 #include "agent_curl.h"
+#endif
 #include "iasrequest.h"
 #include "logfile.h"
 #include "httpparser/response.h"
@@ -20,8 +55,10 @@ using namespace httpparser;
 #include <string>
 #include <exception>
 
-extern char verbose;
-extern char debug;
+extern "C" {
+	extern char verbose;
+	extern char debug;
+};
 
 static string ias_servers[2]= {
     IAS_SERVER_DEVELOPMENT_HOST,
@@ -55,7 +92,7 @@ int IAS_Connection::proxy(const char *server, uint16_t port)
 	try {
 		c_proxy_server= server;
 	}
-	catch (int e) {
+	catch (...) {
 		rv= 0;
 	}
 	c_proxy_port= port;
@@ -82,12 +119,12 @@ string IAS_Connection::proxy_url()
 int IAS_Connection::client_cert(const char *file, const char *certtype)
 {
 	int rv= 1;
-	eprintf("certtype=%s\n", certtype);
+	if (verbose ) eprintf("certtype=%s\n", certtype);
 	try {
 		c_cert_file= file;
 		if ( certtype != NULL ) c_cert_type= certtype;
 	}
-	catch (int e) {
+	catch (...) {
 		rv= 0;
 	}
 	return rv;
@@ -100,7 +137,7 @@ int IAS_Connection::client_key(const char *file, const char *passwd)
 	try {
 		c_key_file= file;
 	}
-	catch (int e) {
+	catch (...) {
 		return 0;
 	}
 
@@ -110,7 +147,7 @@ int IAS_Connection::client_key(const char *file, const char *passwd)
 			c_key_passwd= new unsigned char[c_pwlen];
 			c_xor= new unsigned char[c_pwlen];
 		}
-		catch (int e) { 
+		catch (...) { 
 			if ( c_key_passwd != NULL ) delete[] c_key_passwd;
 			return 0;
 		}
@@ -136,7 +173,7 @@ int IAS_Connection::client_key_passwd(char **passwd, size_t *pwlen)
 	try {
 		*passwd= new char[c_pwlen+1];
 	}
-	catch (int e) {
+	catch (...) {
 		return 0;
 	}
 
@@ -176,9 +213,13 @@ Agent *IAS_Connection::new_agent()
 	Agent *newagent= NULL;
 
 	try {
+#ifdef _WIN32
+		newagent = (Agent *) new AgentWin(this);
+#else
 		newagent= (Agent *) new AgentCurl(this);
+#endif
 	}
-	catch (int e) {
+	catch (...) {
 		return NULL;
 	}
 	if ( newagent->initialize() == 0 ) {
@@ -205,7 +246,6 @@ ias_error_t IAS_Request::sigrl(uint32_t gid, string &sigrl)
 	Response response;
 	char sgid[9];
 	string url= r_conn->base_url();
-	int rv;
 	Agent *agent= r_conn->new_agent();
 
 	snprintf(sgid, 9, "%08x", gid);
@@ -255,8 +295,8 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 	size_t sigsz;
 	ias_error_t status;
 	int rv;
-	unsigned char *sig;
-	EVP_PKEY *pkey;
+	unsigned char *sig= NULL;
+	EVP_PKEY *pkey= NULL;
 	Agent *agent= r_conn->new_agent();
 	
 	try {
@@ -275,7 +315,7 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 		url+= to_string(r_api_version);
 		url+= "/report";
 	}
-	catch (int e) {
+	catch (...) {
 		return IAS_QUERY_FAILED;
 	}
 
@@ -322,7 +362,7 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 	try {
 		certchain= url_decode(certchain);
 	}
-	catch (int e) {
+	catch (...) {
 		eprintf("invalid URL encoding in header X-IASReport-Signing-Certificate\n");
 		return IAS_BAD_CERTIFICATE;
 	}
@@ -382,7 +422,9 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 		eprintf("certificate verification failure\n");
 		status= IAS_BAD_CERTIFICATE;
 		goto cleanup;
-	} else eprintf("+++ certificate chain verified\n", rv);
+	} else {
+		if ( debug ) eprintf("+++ certificate chain verified\n", rv);
+	}
 
 	// The signing cert is valid, so extract and verify the signature
 

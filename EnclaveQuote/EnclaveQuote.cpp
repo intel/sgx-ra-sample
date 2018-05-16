@@ -60,17 +60,6 @@ static const sgx_ec256_public_t def_service_public_key = {
  * WARNING
  *----------------------------------------------------------------------
  *
- * DO NOT USE THIS CODE AS A TEMPLATE FOR IMPLEMENTING REMOTE
- * ATTESTATION. This code short-circuits the RA process in order 
- * to generate an enclave quote directly!
- *
- * The high-level functions provided for remote attestation take
- * care of the low-level details of quote generation for you:
- *
- *   sgx_ra_init()
- *   sgx_ra_get_msg1
- *   sgx_ra_proc_msg2
- *
  * End developers should not normally be calling these functions
  * directly when doing remote attestation: 
  *
@@ -79,6 +68,16 @@ static const sgx_ec256_public_t def_service_public_key = {
  *    sgx_get_quote_size()
  *    sgx_get_report()
  *    sgx_init_quote()
+ * 
+ * These functions short-circuits the RA process in order 
+ * to generate an enclave quote directly!
+ *
+ * The high-level functions provided for remote attestation take
+ * care of the low-level details of quote generation for you:
+ *
+ *   sgx_ra_init()
+ *   sgx_ra_get_msg1
+ *   sgx_ra_proc_msg2
  *
  *----------------------------------------------------------------------
  */

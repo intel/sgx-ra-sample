@@ -8,9 +8,6 @@ enclave {
 	include "sgx_tkey_exchange.h"
 
 	from "sgx_tkey_exchange.edl" import *;
-#ifdef _WIN32
-	from "sgx_tae_service.edl" import *;
-#endif
 
 	trusted {
 #ifndef _WIN32

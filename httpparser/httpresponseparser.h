@@ -3,6 +3,12 @@
  * License: MIT
  */
 
+// Added by JM 
+#if defined(_WIN32) || defined(_WIN64) 
+#define strcasecmp _stricmp 
+#define strncasecmp _strnicmp 
+#endif
+
 #ifndef HTTPPARSER_RESPONSEPARSER_H
 #define HTTPPARSER_RESPONSEPARSER_H
 

@@ -711,7 +711,7 @@ int cert_load_size (X509 **cert, const char *pemdata, size_t sz)
 		goto cleanup;
 	}
 
-	if ( BIO_write(bmem, pemdata, sz) != sz ) {
+	if ( BIO_write(bmem, pemdata, (int) sz) != (int) sz ) {
 		error_type= e_crypto;
 		goto cleanup;
 	}
@@ -728,7 +728,6 @@ cleanup:
 X509_STORE *cert_init_ca(X509 *cert)
 {
 	X509_STORE *store;
-	X509_STORE_CTX *ctx;
 
 	error_type= e_none;
 
@@ -788,7 +787,6 @@ STACK_OF(X509) *cert_stack_build (X509 **certs)
 {
 	X509 **pcert;
 	STACK_OF(X509) *stack;
-	int i;
 
 	error_type= e_none;
 
