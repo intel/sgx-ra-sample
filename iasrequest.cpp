@@ -98,6 +98,8 @@ int IAS_Connection::proxy(const char *server, uint16_t port)
 	}
 	c_proxy_port= port;
 
+	c_proxy_mode = IAS_PROXY_FORCE;
+
 	return rv;
 }
 

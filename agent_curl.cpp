@@ -111,16 +111,16 @@ int AgentCurl::initialize ()
 	// Configure SSL
 	//------------------------------------------------------------
 
-	// In case you need to specify a cert store location. These hardcoded
-	// paths are the defaults.
+	// Specify your certificate stores
 
-/*
 	if ( curl_easy_setopt(curl, CURLOPT_CAINFO,
-		"/etc/ssl/certs/ca-certificates.crt") != CURLE_OK ) return 0;
+		CA_BUNDLE) != CURLE_OK ) return 0;
 
+#ifndef _WIN32
+	// CAPATH isn't used on Windows.
 	if ( curl_easy_setopt(curl, CURLOPT_CAPATH, "/etc/ssl/certs/") != CURLE_OK )
 		 return 0;
-*/
+#endif
 
 	if ( curl_easy_setopt(curl, CURLOPT_SSLCERT,
 		conn->client_cert_file().c_str()) != CURLE_OK ) return 0;

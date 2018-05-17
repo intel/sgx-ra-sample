@@ -328,7 +328,11 @@ int main(int argc, char *argv[])
 
 	if (config.proxy_server != NULL) ias->proxy(config.proxy_server, config.proxy_port);
 
-	/* Set the cert store for this connect */
+	/* 
+	 * Set the cert store for this connection. This is used for verifying the IAS
+	 * signing certificate, not the TLS connection with IAS (the latter is handled
+	 * internally by the HTTP/SSL/TLS stack).
+	 */
 	ias->cert_store(config.store);
 
 	/* Read message 0 and 1, then generate message 2 */
@@ -961,8 +965,8 @@ int get_proxy(char **server, unsigned int *port, const char *url)
 		return 0;
 	}
 
-	memcpy(server, srv.c_str(), srv.length());
-	server[srv.length()] = 0;
+	memcpy(*server, srv.c_str(), srv.length());
+	(*server)[srv.length()] = 0;
 
 	return 1;
 }
