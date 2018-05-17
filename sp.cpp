@@ -71,6 +71,7 @@ using namespace std;
 #include <map>
 #include <string>
 #include <iostream>
+#include <algorithm>
 
 #ifdef _WIN32
 #define strdup(x) _strdup(x)
@@ -88,6 +89,8 @@ typedef struct config_struct {
 	uint16_t quote_type;
 	EVP_PKEY *service_private_key;
 	EVP_PKEY *session_private_key;
+	char *proxy_server;
+	unsigned int proxy_port;
 	unsigned char kdk[16];
 	char *cert_file;
 	char *cert_type[4];
@@ -110,6 +113,7 @@ int get_sigrl (IAS_Connection *ias, sgx_epid_group_id_t gid, char **sigrl,
 	uint32_t *msg2);
 int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 	sgx_ps_sec_prop_desc_t sec_prop);
+int get_proxy(char **server, unsigned int *port, const char *url);
 
 char debug = 0;
 char verbose = 0;
@@ -153,6 +157,7 @@ int main(int argc, char *argv[])
 		{"help",			no_argument, 		0, 'h'},
 		{"key",				required_argument,	0, 'k'},
 		{"linkable",		no_argument,		0, 'l'},
+		{"proxy",			required_argument,	0, 'p'},
 		{"spid",			required_argument,	0, 's'},
 		{"ias-cert-type",	required_argument,	0, 't'},
 		{"verbose",			no_argument,		0, 'v'},
@@ -165,7 +170,7 @@ int main(int argc, char *argv[])
 		int c;
 		int opt_index = 0;
 
-		c = getopt_long(argc, argv, "A:C:K:S:de:hk:lr:s:v", long_opt, &opt_index);
+		c = getopt_long(argc, argv, "A:C:K:S:de:hk:lp:r:s:v", long_opt, &opt_index);
 		if (c == -1) break;
 
 		switch (c) {
@@ -229,6 +234,13 @@ int main(int argc, char *argv[])
 			break;
 		case 'l':
 			config.quote_type = SGX_LINKABLE_SIGNATURE;
+			break;
+		case 'p':
+			if (!get_proxy(&config.proxy_server, &config.proxy_port, optarg)) {
+				eprintf("%s: could not extract proxy info\n", optarg);
+				return 1;
+			}
+			// Break the URL into host and port. This is a simplistic algorithm.
 			break;
 		case 's':
 			if (strlen(optarg) < 32) {
@@ -313,6 +325,8 @@ int main(int argc, char *argv[])
 		eprintf("exception while creating IAS request object\n");
 		return 1;
 	}
+
+	if (config.proxy_server != NULL) ias->proxy(config.proxy_server, config.proxy_port);
 
 	/* Set the cert store for this connect */
 	ias->cert_store(config.store);
@@ -722,7 +736,7 @@ int get_sigrl (IAS_Connection *ias, sgx_epid_group_id_t gid, char **sig_rl,
 	uint32_t *sig_rl_size)
 {
 	IAS_Request *req= NULL;
-	int oops;
+	int oops= 1;
 	string sigrlstr;
 
 	try {
@@ -730,10 +744,13 @@ int get_sigrl (IAS_Connection *ias, sgx_epid_group_id_t gid, char **sig_rl,
 		req= new IAS_Request(ias);
 	}
 	catch (...) {
+		oops = 1;
+	}
+
+	if (oops) {
 		eprintf("Exception while creating IAS request object\n");
 		return 0;
 	}
-
 
 	if ( req->sigrl(*(uint32_t *) gid, sigrlstr) != IAS_OK ) {
 		return 0;
@@ -891,6 +908,63 @@ int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 	}
 
 	return 0;
+}
+
+// Break a URL into server and port. NOTE: This is a simplistic algorithm.
+
+int get_proxy(char **server, unsigned int *port, const char *url)
+{
+	size_t idx1, idx2;
+	string lcurl, proto, srv, sport;
+
+	if (url == NULL) return 0;
+
+	lcurl = string(url);
+	// Make lower case for sanity
+	transform(lcurl.begin(), lcurl.end(), lcurl.begin(), ::tolower);
+
+	idx1= lcurl.find_first_of(":");
+	proto = lcurl.substr(0, idx1);
+	if (proto == "https") *port = 443;
+	else if (proto == "http") *port = 80;
+	else return 0;
+
+	idx1 = lcurl.find_first_not_of("/", idx1 + 1);
+	if (idx1 == string::npos) return 0;
+	
+	idx2 = lcurl.find_first_of(":", idx1);
+	if (idx2 == string::npos) {
+		idx2 = lcurl.find_first_of("/", idx1);
+		if (idx2 == string::npos) srv = lcurl.substr(idx1);
+		else srv = lcurl.substr(idx1, idx2 - idx1);
+	}
+	else {
+		srv= lcurl.substr(idx1, idx2 - idx1);
+		idx1 = idx2+1;
+		idx2 = lcurl.find_first_of("/", idx1);
+
+		if (idx2 == string::npos) sport = lcurl.substr(idx1);
+		else sport = lcurl.substr(idx1, idx2 - idx1);
+
+		try {
+			*port = (unsigned int) ::stoul(sport);
+		}
+		catch (...) {
+			return 0;
+		}
+	}
+
+	try {
+		*server = new char[srv.length()+1];
+	}
+	catch (...) {
+		return 0;
+	}
+
+	memcpy(server, srv.c_str(), srv.length());
+	server[srv.length()] = 0;
+
+	return 1;
 }
 
 #define NNL <<endl<<endl<<

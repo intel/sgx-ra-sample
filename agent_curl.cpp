@@ -6,7 +6,9 @@
 #include "common.h"
 #include "iasrequest.h"
 
-extern char debug;
+extern "C" {
+	extern char debug;
+};
 
 using namespace std;
 using namespace httpparser;

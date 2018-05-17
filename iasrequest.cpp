@@ -38,7 +38,8 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common.h"
 #include "agent.h"
 #ifdef _WIN32
-#include "win32/agent_win32.h"
+//#include "win32/agent_win32.h"
+#include "agent_curl.h"
 #else
 #include "agent_wget.h"
 #include "agent_curl.h"
@@ -213,11 +214,7 @@ Agent *IAS_Connection::new_agent()
 	Agent *newagent= NULL;
 
 	try {
-#ifdef _WIN32
-		newagent = (Agent *) new AgentWin(this);
-#else
 		newagent= (Agent *) new AgentCurl(this);
-#endif
 	}
 	catch (...) {
 		return NULL;

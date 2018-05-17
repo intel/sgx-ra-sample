@@ -1,7 +1,7 @@
 #pragma comment(lib, "Crypt32.lib")
 #pragma comment(lib, "Winhttp.lib")
 
-#include "agent_win32.h"
+//#include "agent_win32.h"
 #include <wincrypt.h>
 #include <Windows.h>
 #include <winhttp.h>
@@ -40,6 +40,8 @@ AgentWin::AgentWin(IAS_Connection *conn_in) : Agent(conn_in)
 
 AgentWin::~AgentWin()
 {
+	DWORD trace = false;
+	WinHttpSetOption(NULL, WINHTTP_OPTION_ENABLETRACING, (LPVOID)&trace, sizeof(trace));
 	if ( ctx != NULL ) CertFreeCertificateContext(ctx);
 	if ( http != NULL) WinHttpCloseHandle(http);
 }
@@ -51,6 +53,7 @@ int AgentWin::initialize()
 	LPCWSTR proxy_bypass = NULL;
 	int status = 0;
 	BYTE *cert= NULL;
+	wstring wproxy;
 
 	// Proxy configuration
 	//-----------------------------------------------------
@@ -60,7 +63,7 @@ int AgentWin::initialize()
 	}
 	else if (conn->proxy_mode() == IAS_PROXY_FORCE) {
 		string proxy = conn->proxy_url();
-		wstring wproxy = wstring(proxy.begin(), proxy.end());
+		wproxy = wstring(proxy.begin(), proxy.end());
 
 		access= WINHTTP_ACCESS_TYPE_NAMED_PROXY;
 		proxy_bypass= WINHTTP_NO_PROXY_BYPASS;
@@ -70,31 +73,17 @@ int AgentWin::initialize()
 	http= WinHttpOpen(USER_AGENT, access, proxy_server, proxy_bypass, 0);
 	if (http == NULL) return 0;
 
-	// Set the client certificate
-	//-----------------------------------------------------
-
-	if (!load_certificate()) return 0;
-
 	// Debugging info
 	//-----------------------------------------------------
 
 	if (debug) {
+		DWORD trace = true;
+		WinHttpSetOption(NULL, WINHTTP_OPTION_ENABLETRACING, (LPVOID) &trace, sizeof(trace));
+
 		callback = WinHttpSetStatusCallback(http,
 			(WINHTTP_STATUS_CALLBACK)_win_http_callback,
 			WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS,
 			NULL);
-	}
-
-
-	// TEMPORARY
-	{
-		unsigned long val = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2;
-		if (WinHttpSetOption(http, WINHTTP_OPTION_SECURE_PROTOCOLS, (LPVOID)&val, sizeof(unsigned long)) == FALSE)
-		{
-			this->perror("WinHttpSetOption: WINHTTP_OPTION_SECURE_PROTOCOLS");
-			return 0;
-		}
-
 	}
 
 	return 1;
@@ -120,6 +109,8 @@ int AgentWin::request(string const &url, string const &postdata,
 	HttpResponseParser parser;
 	HttpResponseParser::ParseResult result;
 	wstring whostname, wuri;
+	bool retry = true;
+	bool security_init = false;
 
 	// How to crack a URL
 	// https://msdn.microsoft.com/EN-US/library/windows/desktop/aa384092(v=vs.85).aspx
@@ -141,7 +132,7 @@ int AgentWin::request(string const &url, string const &postdata,
 	whostname = wstring(urlcomp.lpszHostName, urlcomp.dwHostNameLength);
 	wuri = wstring(urlcomp.lpszUrlPath, urlcomp.dwUrlPathLength);
 
-	hcon = WinHttpConnect(http, whostname.c_str(), urlcomp.nPort, NULL);
+	hcon = WinHttpConnect(http, whostname.c_str(), urlcomp.nPort, 0);
 	if (hcon == NULL) {
 		this->perror("WinHttpConnect");
 		return 0;
@@ -154,29 +145,54 @@ int AgentWin::request(string const &url, string const &postdata,
 		goto error;
 	}
 
+	if (WinHttpSetOption(req, WINHTTP_OPTION_UPGRADE_TO_WEB_SOCKET, NULL, 0) == FALSE) {
+		this->perror("WinHttpSetOption");
+		goto error;
+	}
 
-	// TEMPORARY
-	{
-		unsigned long val = SECURITY_FLAG_IGNORE_CERT_CN_INVALID | SECURITY_FLAG_IGNORE_CERT_DATE_INVALID | SECURITY_FLAG_IGNORE_UNKNOWN_CA;
-		if (WinHttpSetOption(req, WINHTTP_OPTION_SECURITY_FLAGS, (LPVOID)&val, sizeof(unsigned long)) == FALSE)
-		{
-			this->perror("WinHttpSetOption: WINHTTP_OPTION_SECURITY_FLAGS ");
-			goto error;
+// No, really, this is how you have to do things. You can't set the client cert in advance, you have to
+// do it as a result of a ERROR_WINHTTP_SECURE_FAILURE response from WinHttpSendRequest().
+
+	retry = true;
+	while (retry) {
+		retry = false;
+
+//		if (WinHttpSendRequest(req, WINHTTP_NO_ADDITIONAL_HEADERS, 0, (LPVOID)(postdata.length()) ? data : NULL,
+//			(DWORD)postdata.length(), (DWORD)postdata.length(), NULL) == FALSE) {
+		if (WinHttpSendRequest(req, WINHTTP_NO_ADDITIONAL_HEADERS, 0, NULL, 0, 0, NULL) == FALSE) {
+
+			DWORD err = GetLastError();
+
+			if (err == ERROR_WINHTTP_SECURE_FAILURE && !security_init) {
+				// TEMPORARY
+
+				DWORD val = SECURITY_FLAG_IGNORE_CERT_CN_INVALID | SECURITY_FLAG_IGNORE_CERT_DATE_INVALID | SECURITY_FLAG_IGNORE_UNKNOWN_CA | SECURITY_FLAG_IGNORE_CERT_WRONG_USAGE;
+				eprintf("+++ Turning off cert verification\n");
+				if (WinHttpSetOption(req, WINHTTP_OPTION_SECURITY_FLAGS, (LPVOID)&val, sizeof(DWORD)) == FALSE)
+				{
+					this->perror("WinHttpSetOption: WINHTTP_OPTION_SECURITY_FLAGS ");
+					goto error;
+				}
+				security_init = true;
+				retry = true;
+			} else if ( err == ERROR_WINHTTP_CLIENT_AUTH_CERT_NEEDED && ctx != NULL ) {
+
+				// Set the client certificate
+				//-----------------------------------------------------
+
+				if (!load_certificate()) return 0;
+				eprintf("+++ Setting client cert\n");
+				if (WinHttpSetOption(req, WINHTTP_OPTION_CLIENT_CERT_CONTEXT, (LPVOID) ctx, sizeof(CERT_CONTEXT)) == FALSE)
+				{
+					this->perror("WinHttpSetOption: WINHTTP_OPTION_CLIENT_CERT_CONTEXT");
+					goto error;
+				}
+				retry = true;
+			} else {
+				this->perror("WinHttpSendRequest");
+				goto error;
+			}
 		}
-	}
-
-	// Set the client certificate context
-
-	if (WinHttpSetOption(req, WINHTTP_OPTION_CLIENT_CERT_CONTEXT, (LPVOID) ctx, sizeof(CERT_CONTEXT)) == FALSE)
-	{
-		this->perror("WinHttpSetOption: WINHTTP_OPTION_CLIENT_CERT_CONTEXT");
-		goto error;
-	}
-
-	if (WinHttpSendRequest(req, WINHTTP_NO_ADDITIONAL_HEADERS, 0, (LPVOID)(postdata.length()) ? data : NULL,
-		(DWORD)postdata.length(), (DWORD)postdata.length(), NULL) == FALSE) {
-		this->perror("WinHttpSendRequest");
-		goto error;
 	}
 
 	if (WinHttpReceiveResponse(req, NULL) == FALSE) {
@@ -313,7 +329,7 @@ void _win_http_callback(HINTERNET conn, DWORD_PTR ctx, DWORD status, LPVOID info
 		eprintf("Response header received\n");
 		break;
 	case WINHTTP_CALLBACK_STATUS_INTERMEDIATE_RESPONSE:
-		eprintf("Received intermediate statrus code from server: %lu\n", *((DWORD *)info));
+		eprintf("Received intermediate status code from server: %lu\n", *((DWORD *)info));
 		break;
 	case WINHTTP_CALLBACK_STATUS_NAME_RESOLVED:
 		msg = converter.to_bytes(wstring((wchar_t *)info, sz));
@@ -321,7 +337,7 @@ void _win_http_callback(HINTERNET conn, DWORD_PTR ctx, DWORD status, LPVOID info
 		break;
 	case WINHTTP_CALLBACK_STATUS_READ_COMPLETE:
 		// The full meaning of this messages depends on who called it (WinHttpReadData vs WinHttpWebSocketReceive)
-		eprintf("Reas completed\n");
+		eprintf("Read completed\n");
 		break;
 	case WINHTTP_CALLBACK_STATUS_RECEIVING_RESPONSE:
 		eprintf("Waiting for server to respond\n");
@@ -365,25 +381,32 @@ void _win_http_callback(HINTERNET conn, DWORD_PTR ctx, DWORD status, LPVOID info
 		break;
 	}
 
+	{
+		DWORD val = 0;
+		DWORD len;
+		if (WinHttpQueryOption(NULL, WINHTTP_OPTION_EXTENDED_ERROR, (LPVOID)&val, &len) == TRUE ) {
+			if (val) eprintf("+++ WinSock error 0x%08x\n", val);
+		}
+	}
 }
 
 void _callback_secure_failure(DWORD info)
 {
-	eprintf("Errors in SSL/TLS connection:\n");
+	eprintf("Errors in SSL/TLS connection: 0x%08x:\n", info);
 	if (info & WINHTTP_CALLBACK_STATUS_FLAG_CERT_REV_FAILED)
-		eprintf(">>> Certification revocation checking has been enabled, but the revocation check failed to verify whether a certificate has been revoked\n");
+		eprintf("+++                    > Certification revocation checking has been enabled, but the revocation check failed to verify whether a certificate has been revoked\n");
 	if (info & WINHTTP_CALLBACK_STATUS_FLAG_INVALID_CERT)
-		eprintf(">>> SSL certificate is invalid\n");
+		eprintf("+++                    > SSL certificate is invalid\n");
 	if (info & WINHTTP_CALLBACK_STATUS_FLAG_CERT_REVOKED)
-		eprintf(">>> SSL certificate was revoked\n");
+		eprintf("+++                    > SSL certificate was revoked\n");
 	if (info & WINHTTP_CALLBACK_STATUS_FLAG_INVALID_CA)
-		eprintf(">>> The Certificate Authority that generated the server's certificate is not recognized\n");
+		eprintf("+++                    > The Certificate Authority that generated the server's certificate is not recognized\n");
 	if (info & WINHTTP_CALLBACK_STATUS_FLAG_CERT_CN_INVALID)
-		eprintf(">>> SSL certificate Common Name is incorrect\n");
+		eprintf("+++                    > SSL certificate Common Name is incorrect\n");
 	if (info & WINHTTP_CALLBACK_STATUS_FLAG_CERT_DATE_INVALID)
-		eprintf(">>> Server's certificate date is bad, or the certificate has expired\n");
+		eprintf("+++                    > Server's certificate date is bad, or the certificate has expired\n");
 	if (info & WINHTTP_CALLBACK_STATUS_FLAG_SECURITY_CHANNEL_ERROR)
-		eprintf(">>> Error loading SSL libraries\n");
+		eprintf("+++                    > Error loading SSL libraries\n");
 }
 
 /*
