@@ -3,6 +3,7 @@
 #include "httpparser/response.h"
 #include "httpparser/httpresponseparser.h"
 #include "agent_curl.h"
+#include "agent.h"
 #include "common.h"
 #include "iasrequest.h"
 
@@ -113,13 +114,15 @@ int AgentCurl::initialize ()
 
 	// Specify your certificate stores
 
-	if ( curl_easy_setopt(curl, CURLOPT_CAINFO,
-		CA_BUNDLE) != CURLE_OK ) return 0;
+	if ( curl_easy_setopt(curl, CURLOPT_CAINFO, conn->ca_bundle().c_str())
+		!= CURLE_OK ) return 0;
 
 #ifndef _WIN32
+/*
 	// CAPATH isn't used on Windows.
-	if ( curl_easy_setopt(curl, CURLOPT_CAPATH, "/etc/ssl/certs/") != CURLE_OK )
-		 return 0;
+	if ( curl_easy_setopt(curl, CURLOPT_CAPATH, "/etc/ssl/certs/") 
+		!= CURLE_OK ) return 0;
+*/
 #endif
 
 	if ( curl_easy_setopt(curl, CURLOPT_SSLCERT,

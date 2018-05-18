@@ -64,6 +64,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "base64.h"
 #include "iasrequest.h"
 #include "logfile.h"
+#include "settings.h"
 
 using namespace json;
 using namespace std;
@@ -90,12 +91,14 @@ typedef struct config_struct {
 	EVP_PKEY *service_private_key;
 	EVP_PKEY *session_private_key;
 	char *proxy_server;
+	char *ca_bundle;
 	unsigned int proxy_port;
 	unsigned char kdk[16];
 	char *cert_file;
 	char *cert_type[4];
 	X509_STORE *store;
 	X509 *signing_ca;
+	unsigned int apiver= IAS_API_DEF_VERSION;
 } config_t;
 
 Msg4 msg4;
@@ -109,10 +112,11 @@ int process_msg01 (IAS_Connection *ias, sgx_ra_msg2_t *msg2, char **sigrl,
 	config_t *config);
 int process_msg3 (IAS_Connection *ias, ra_msg4_t *msg2, config_t *config);
 
-int get_sigrl (IAS_Connection *ias, sgx_epid_group_id_t gid, char **sigrl,
-	uint32_t *msg2);
-int get_attestation_report(IAS_Connection *ias, const char *b64quote,
-	sgx_ps_sec_prop_desc_t sec_prop);
+int get_sigrl (IAS_Connection *ias, int version, sgx_epid_group_id_t gid,
+	char **sigrl, uint32_t *msg2);
+int get_attestation_report(IAS_Connection *ias, int version,
+	const char *b64quote, sgx_ps_sec_prop_desc_t sec_prop);
+
 int get_proxy(char **server, unsigned int *port, const char *url);
 
 char debug = 0;
@@ -132,21 +136,13 @@ int main(int argc, char *argv[])
 	int oops;
 	IAS_Connection *ias= NULL;
 
-	/* Create a logfile to capture debug output and actual msg data */
+	/* Command line options */
 
-	fplog = create_logfile("sp.log");
-	fprintf(fplog, "Server log started\n");
-
-	memset(&config, 0, sizeof(config));
-#ifdef _WIN32
-	strncpy_s((char *)config.cert_type, 4, "PEM", 3);
-#else
-	strncpy((char *)config.cert_type, "PEM", 3);
-#endif
 	static struct option long_opt[] =
 	{
 		{"ias-signing-cafile",
 							required_argument,	0, 'A'},
+		{"ca-bundle",		required_argument,	0, 'B'},
 		{"ias-cert-file",	required_argument,	0, 'C'},
 		{"key-file",		required_argument,	0, 'K'},
 		{"spid-file",		required_argument,	0, 'S'},
@@ -158,11 +154,26 @@ int main(int argc, char *argv[])
 		{"key",				required_argument,	0, 'k'},
 		{"linkable",		no_argument,		0, 'l'},
 		{"proxy",			required_argument,	0, 'p'},
+		{"api-version",		required_argument,	0, 'r'},
 		{"spid",			required_argument,	0, 's'},
 		{"ias-cert-type",	required_argument,	0, 't'},
 		{"verbose",			no_argument,		0, 'v'},
 		{ 0, 0, 0, 0 }
 	};
+
+	/* Create a logfile to capture debug output and actual msg data */
+
+	fplog = create_logfile("sp.log");
+	fprintf(fplog, "Server log started\n");
+
+	/* Config defaults */
+
+	memset(&config, 0, sizeof(config));
+#ifdef _WIN32
+	strncpy_s((char *)config.cert_type, 4, "PEM", 3);
+#else
+	strncpy((char *)config.cert_type, "PEM", 3);
+#endif
 
 	/* Parse our options */
 
@@ -170,7 +181,7 @@ int main(int argc, char *argv[])
 		int c;
 		int opt_index = 0;
 
-		c = getopt_long(argc, argv, "A:C:K:S:de:hk:lp:r:s:v", long_opt, &opt_index);
+		c = getopt_long(argc, argv, "A:B:C:K:S:de:hk:lp:r:s:v", long_opt, &opt_index);
 		if (c == -1) break;
 
 		switch (c) {
@@ -189,6 +200,14 @@ int main(int argc, char *argv[])
 				return 1;
 			}
 			++flag_ca;
+
+			break;
+		case 'B':
+			config.ca_bundle = strdup(optarg);
+			if (config.ca_bundle == NULL) {
+				perror("strdup");
+				return 1;
+			}
 
 			break;
 		case 'C':
@@ -242,6 +261,16 @@ int main(int argc, char *argv[])
 			}
 			// Break the URL into host and port. This is a simplistic algorithm.
 			break;
+		case 'r':
+			config.apiver= atoi(optarg);
+			if ( config.apiver < IAS_MIN_VERSION || config.apiver >
+				IAS_MAX_VERSION ) {
+
+				eprintf("version must be between %d and %d\n",
+					IAS_MIN_VERSION, IAS_MAX_VERSION);
+				return 1;
+			}
+			break;
 		case 's':
 			if (strlen(optarg) < 32) {
 				eprintf("SPID must be 32-byte hex string\n");
@@ -262,6 +291,16 @@ int main(int argc, char *argv[])
 		case '?':
 		default:
 			usage();
+		}
+	}
+
+	/* Use the default CA bundle unless one is provided */
+
+	if ( config.ca_bundle == NULL ) {
+		config.ca_bundle= strdup(DEFAULT_CA_BUNDLE);
+		if ( config.ca_bundle == NULL ) {
+			perror("strdup");
+			return 1;
 		}
 	}
 
@@ -329,11 +368,17 @@ int main(int argc, char *argv[])
 	if (config.proxy_server != NULL) ias->proxy(config.proxy_server, config.proxy_port);
 
 	/* 
-	 * Set the cert store for this connection. This is used for verifying the IAS
-	 * signing certificate, not the TLS connection with IAS (the latter is handled
-	 * internally by the HTTP/SSL/TLS stack).
+	 * Set the cert store for this connection. This is used for verifying 
+	 * the IAS signing certificate, not the TLS connection with IAS (the 
+	 * latter is handled using config.ca_bundle).
 	 */
 	ias->cert_store(config.store);
+
+	/*
+	 * Set the CA bundle for verifying the IAS server certificate used
+	 * for the TLS session.
+	 */
+	ias->ca_bundle(config.ca_bundle);
 
 	/* Read message 0 and 1, then generate message 2 */
 
@@ -467,7 +512,9 @@ int process_msg3 (IAS_Connection *ias, ra_msg4_t *msg4, config_t *config)
 		edivider();
 	}
 
-	if ( ! get_attestation_report(ias, b64quote, msg3->ps_sec_prop) ) {
+	if ( ! get_attestation_report(ias, config->apiver, b64quote,
+		msg3->ps_sec_prop) ) {
+
 		eprintf("Attestation failed\n");
 	}
 
@@ -638,7 +685,9 @@ int process_msg01 (IAS_Connection *ias, sgx_ra_msg2_t *msg2, char **sigrl,
 
 	/* Get the sigrl */
 
-	if ( ! get_sigrl(ias, msg1->gid, sigrl, &msg2->sig_rl_size) ) {
+	if ( ! get_sigrl(ias, config->apiver, msg1->gid, sigrl,
+		&msg2->sig_rl_size) ) {
+
 		eprintf("could not retrieve the sigrl\n");
 		return 0;
 	}
@@ -736,8 +785,8 @@ int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
 	return 1;
 }
 
-int get_sigrl (IAS_Connection *ias, sgx_epid_group_id_t gid, char **sig_rl,
-	uint32_t *sig_rl_size)
+int get_sigrl (IAS_Connection *ias, int version, sgx_epid_group_id_t gid,
+	char **sig_rl, uint32_t *sig_rl_size)
 {
 	IAS_Request *req= NULL;
 	int oops= 1;
@@ -745,7 +794,7 @@ int get_sigrl (IAS_Connection *ias, sgx_epid_group_id_t gid, char **sig_rl,
 
 	try {
 		oops= 0;
-		req= new IAS_Request(ias);
+		req= new IAS_Request(ias, (uint16_t) version);
 	}
 	catch (...) {
 		oops = 1;
@@ -768,8 +817,8 @@ int get_sigrl (IAS_Connection *ias, sgx_epid_group_id_t gid, char **sig_rl,
 	return 1;
 }
 
-int get_attestation_report(IAS_Connection *ias, const char *b64quote,
-	sgx_ps_sec_prop_desc_t secprop) 
+int get_attestation_report(IAS_Connection *ias, int version,
+	const char *b64quote, sgx_ps_sec_prop_desc_t secprop) 
 {
 	IAS_Request *req = NULL;
 	map<string,string> payload;
@@ -778,7 +827,7 @@ int get_attestation_report(IAS_Connection *ias, const char *b64quote,
 	string content;
 
 	try {
-		req= new IAS_Request(ias);
+		req= new IAS_Request(ias, (uint16_t) version);
 	}
 	catch (...) {
 		eprintf("Exception while creating IAS request object\n");
@@ -981,11 +1030,15 @@ void usage ()
 "  -A, --ias-signing-cafile=FILE" NL
 "                           Specify the IAS Report Signing CA file." NL
 "  -C, --ias-cert-file=FILE Specify the client certificate to use when" NL
-"                             communicating with IAS." NL
+"                             communicating with IAS." NNL
+"One of (required):" NL
 "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte." NL
 "                             ASCII hex string." NL
 "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string." NNL
 "Optional:" NL
+"  -B, --ca-bundle-file=FILE" NL
+"                           Use the CA certificate bundle at FILE (default:" NL
+"                             " << DEFAULT_CA_BUNDLE << ")" NL
 "  -K, --key-file=FILE      The private key file in PEM format (default: use" NL
 "                             hardcoded key). The client must be given the " NL
 "                             corresponding public key. Can't combine with" NL
@@ -998,6 +1051,8 @@ void usage ()
 "  -k, --key=HEXSTRING      The private key as a hex string. See --key-file" NL
 "                             for notes. Can't combine with --key-file." NL
 "  -l, --linkable           Request a linkable quote (default: unlinkable)." NL
+"  -p, --proxy=PROXYURL     Use the proxy server at PROXYURL when contacting IAS." NL
+"  -r, --api-version=N      Use version N of the IAS API (default: " << to_string(IAS_API_DEF_VERSION) << ")" NL
 "  -t, --ias-cert-type=TYPE The client certificate type. Can be PEM (default)" NL
 "                             or P12." NL
 "  -v, --verbose            Be verbose. Print message structure details and the" NL

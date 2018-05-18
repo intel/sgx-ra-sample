@@ -1,6 +1,12 @@
 #ifndef __AGENT_H
 #define __AGENT_H
 
+#ifdef _WIN32
+# define DEFAULT_CA_BUNDLE DEFAULT_CA_BUNDLE_WIN32
+#else
+# define DEFAULT_CA_BUNDLE DEFAULT_CA_BUNDLE_LINUX
+#endif
+
 #include "httpparser/response.h"
 #include "iasrequest.h"
 

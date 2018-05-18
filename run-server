@@ -52,15 +52,15 @@ function run_server {
 		esac
 	done
 
-	CMD="./sp $DEBUG -S $SPID_FILE -C $CERT_FILE -A $SIGN_CA_FILE"
+	CMD="./sp $DEBUG -S $SPID_FILE -C $CERT_FILE -A $SIGN_CA_FILE $@"
 
 	if [ $SOCAT -eq 0 ]
 	then
-		echo "Running: $CMD $@"
-		$CMD $@
+		echo "Running: $CMD"
+		$CMD
 	else
-		echo "Running: socat TCP4-LISTEN:7777,fork,reuseaddr EXEC:\"$CMD $@\",nofork"
-		socat TCP4-LISTEN:7777,fork,reuseaddr EXEC:"$CMD $@",nofork
+		echo "Running: socat TCP4-LISTEN:7777,fork,reuseaddr EXEC:\"$CMD\",nofork"
+		socat TCP4-LISTEN:7777,fork,reuseaddr EXEC:"$CMD",nofork
 	fi
 }
 

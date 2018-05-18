@@ -49,6 +49,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "httpparser/response.h"
 #include "base64.h"
 #include "hexutil.h"
+#include "settings.h"
 
 using namespace std;
 using namespace httpparser;

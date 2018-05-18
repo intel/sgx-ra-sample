@@ -5,6 +5,7 @@
 #include <inttypes.h>
 #include <openssl/x509.h>
 #include "agent.h"
+#include "settings.h"
 
 using namespace std;
 
@@ -28,11 +29,13 @@ using namespace std;
 #define IAS_SERVER_DEVELOPMENT	0
 #define IAS_SERVER_PRODUCTION	1
 
-#define IAS_SERVER_DEVELOPMENT_HOST	"test-as.sgx.trustedservices.intel.com"
-#define IAS_SERVER_PRODUCTION_HOST	"as.sgx.trustedservices.intel.com"
-#define IAS_PORT	443
+/* The IAS development server hostname */
+#define IAS_SERVER_DEVELOPMENT_HOST     "test-as.sgx.trustedservices.intel.com"
 
-#define IAS_API_DEF_VERSION	2
+/* The IAS production server hostname */
+#define IAS_SERVER_PRODUCTION_HOST      "as.sgx.trustedservices.intel.com"
+
+#define IAS_PORT	443
 
 /* Model these roughly after errno */
 
@@ -61,6 +64,7 @@ friend class Agent;
 	string c_cert_file;
 	string c_key_file;
 	string c_cert_type;
+	string c_ca_file;
 	unsigned char *c_key_passwd;	
 	unsigned char *c_xor;
 	size_t c_pwlen;
@@ -93,6 +97,10 @@ public:
 	string client_key_file() { return c_key_file; }
 	int client_key_passwd(char **passwd, size_t *len);
 
+	int ca_bundle(const char *file) { c_ca_file= file; }
+	string ca_bundle() { return c_ca_file; }
+
+	/* Internal cert store for verifying the IAS Signing certificate */
 	void cert_store(X509_STORE *store) { c_store= store; }
 	X509_STORE *cert_store() { return c_store; }
 

@@ -1,16 +1,11 @@
 #ifndef __AGENTCURL__H
 #define __AGENTCURL__H
 
-#ifdef _WIN32
-# define CA_BUNDLE "C:\\Program Files\\cURL\\bin\\curl-ca-bundle.crt"
-#else
-# define CA_BUNDLE "/etc/ssl/certs/ca-certificates.crt"
-#endif
-
 #include <curl/curl.h>
 #include "httpparser/response.h"
 #include "iasrequest.h"
 #include "agent.h"
+#include "settings.h"
 
 using namespace std;
 
