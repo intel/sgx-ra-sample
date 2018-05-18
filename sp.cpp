@@ -98,7 +98,7 @@ typedef struct config_struct {
 	char *cert_type[4];
 	X509_STORE *store;
 	X509 *signing_ca;
-	unsigned int apiver= IAS_API_DEF_VERSION;
+	unsigned int apiver;
 } config_t;
 
 Msg4 msg4;
@@ -174,6 +174,7 @@ int main(int argc, char *argv[])
 #else
 	strncpy((char *)config.cert_type, "PEM", 3);
 #endif
+	config.apiver= IAS_API_DEF_VERSION;
 
 	/* Parse our options */
 
@@ -302,6 +303,8 @@ int main(int argc, char *argv[])
 			perror("strdup");
 			return 1;
 		}
+		if ( debug ) eprintf("+++ Using default CA bundle %s\n",
+			config.ca_bundle);
 	}
 
 	/*
