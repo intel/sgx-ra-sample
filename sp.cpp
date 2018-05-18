@@ -129,6 +129,8 @@ int main(int argc, char *argv[])
 	char flag_cert = 0;
 	char flag_ca = 0;
 	char flag_usage = 0;
+	char flag_noproxy= 0;
+	char flag_prod= 0;
 	char *sigrl = NULL;
 	config_t config;
 	sgx_ra_msg2_t msg2;
@@ -145,6 +147,7 @@ int main(int argc, char *argv[])
 		{"ca-bundle",		required_argument,	0, 'B'},
 		{"ias-cert-file",	required_argument,	0, 'C'},
 		{"key-file",		required_argument,	0, 'K'},
+		{"production",		no_argument,		0, 'P'},
 		{"spid-file",		required_argument,	0, 'S'},
 		{"ias-signing-caname",
 							required_argument,	0, 'a'},
@@ -158,6 +161,7 @@ int main(int argc, char *argv[])
 		{"spid",			required_argument,	0, 's'},
 		{"ias-cert-type",	required_argument,	0, 't'},
 		{"verbose",			no_argument,		0, 'v'},
+		{"no-proxy",		no_argument,		0, 'x'},
 		{ 0, 0, 0, 0 }
 	};
 
@@ -182,7 +186,7 @@ int main(int argc, char *argv[])
 		int c;
 		int opt_index = 0;
 
-		c = getopt_long(argc, argv, "A:B:C:K:S:de:hk:lp:r:s:v", long_opt, &opt_index);
+		c = getopt_long(argc, argv, "A:B:C:K:S:de:hk:lp:r:s:vx", long_opt, &opt_index);
 		if (c == -1) break;
 
 		switch (c) {
@@ -256,6 +260,7 @@ int main(int argc, char *argv[])
 			config.quote_type = SGX_LINKABLE_SIGNATURE;
 			break;
 		case 'p':
+			if ( flag_noproxy ) usage();
 			if (!get_proxy(&config.proxy_server, &config.proxy_port, optarg)) {
 				eprintf("%s: could not extract proxy info\n", optarg);
 				return 1;
@@ -287,6 +292,10 @@ int main(int argc, char *argv[])
 			break;
 		case 'v':
 			verbose = 1;
+			break;
+		case 'x':
+			if ( config.proxy_server != NULL ) usage();
+			flag_noproxy=1;
 			break;
 		case 'h':
 		case '?':
@@ -359,7 +368,10 @@ int main(int argc, char *argv[])
 	/* Initialize our IAS request object */
 
 	try {
-		ias = new IAS_Connection(IAS_SERVER_DEVELOPMENT, 0);
+		ias = new IAS_Connection(
+			(flag_prod) ? IAS_SERVER_PRODUCTION : IAS_SERVER_DEVELOPMENT,
+			0
+		);
 		ias->client_cert(config.cert_file, (char *)config.cert_type);
 	}
 	catch (...) {
@@ -368,7 +380,11 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (config.proxy_server != NULL) ias->proxy(config.proxy_server, config.proxy_port);
+	if ( flag_noproxy ) ias->proxy_mode(IAS_PROXY_NONE);
+	else if (config.proxy_server != NULL) {
+		ias->proxy_mode(IAS_PROXY_FORCE);
+		ias->proxy(config.proxy_server, config.proxy_port);
+	}
 
 	/* 
 	 * Set the cert store for this connection. This is used for verifying 
@@ -1047,6 +1063,7 @@ void usage ()
 "                             hardcoded key). The client must be given the " NL
 "                             corresponding public key. Can't combine with" NL
 "                             --key." NL
+"  -P, --production         Query the production IAS server instead of dev." NL
 "  -d, --debug              Print debug information to stderr." NL
 "  -e, --session-key=HEXSTRING" NL
 "                           Use HEXSTRING for the server's private sesion key." NL
@@ -1055,13 +1072,15 @@ void usage ()
 "  -k, --key=HEXSTRING      The private key as a hex string. See --key-file" NL
 "                             for notes. Can't combine with --key-file." NL
 "  -l, --linkable           Request a linkable quote (default: unlinkable)." NL
-"  -p, --proxy=PROXYURL     Use the proxy server at PROXYURL when contacting IAS." NL
+"  -p, --proxy=PROXYURL     Use the proxy server at PROXYURL when contacting" NL
+"                             IAS. Can't combine with --no-proxy\n" NL
 "  -r, --api-version=N      Use version N of the IAS API (default: " << to_string(IAS_API_DEF_VERSION) << ")" NL
 "  -t, --ias-cert-type=TYPE The client certificate type. Can be PEM (default)" NL
 "                             or P12." NL
 "  -v, --verbose            Be verbose. Print message structure details and the" NL
-"                             results of intermediate operations to stderr." 
-<<endl;
+"                             results of intermediate operations to stderr." NL
+"  -x, --no-proxy           Do not use a proxy (force a direct connection), " NL
+"                             overriding environment." <<endl;
 	::exit(1);
 }
 
