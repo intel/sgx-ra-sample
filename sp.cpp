@@ -376,9 +376,10 @@ int main(int argc, char *argv[])
 
 	/*
 	 * Set the CA bundle for verifying the IAS server certificate used
-	 * for the TLS session.
+	 * for the TLS session. If this isn't set, then the user agent
+	 * will fall back to it's default.
 	 */
-	ias->ca_bundle(config.ca_bundle);
+	if ( strlen(config.ca_bundle) ) ias->ca_bundle(config.ca_bundle);
 
 	/* Read message 0 and 1, then generate message 2 */
 

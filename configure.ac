@@ -32,6 +32,23 @@ AS_IF([test "$openssl" != ""], [
 	AC_SUBST([OPENSSL_LDFLAGS], [-L$openssl/lib])
 ])
 
+dnl Find default CA bundle that works with OpenSSL apps, if possible. 
+ac_cv_default_ca_bundle_auto="not found"
+AC_MSG_CHECKING([CA bundle file])
+trydirs="_/etc/ssl/certs _/etc/pki/tls"
+tryfiles="ca-bundle.crt ca-certificates.crt cert.pem"
+for dir in $trydirs; do
+	for file in $tryfiles; do
+		AS_IF([test -f $dir/$file],
+			[ac_cv_default_ca_bundle_auto=$dir/$file; break 2])
+	done
+done
+AC_MSG_RESULT([$ac_cv_default_ca_bundle_auto])
+AS_IF([ test "$ac_cv_default_ca_bundle_auto" = "not found" ],
+	[ac_cv_default_ca_bundle_auto=""])
+AC_DEFINE_UNQUOTED([DEFAULT_CA_BUNDLE_AUTO], ["$ac_cv_default_ca_bundle_auto"],
+	[Default CA bundle for OpenSSL-based applications])
+
 AC_CONFIG_FILES([
 	Makefile
 	EnclaveQuote/Makefile
