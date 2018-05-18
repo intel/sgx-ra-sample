@@ -35,7 +35,7 @@ AS_IF([test "$openssl" != ""], [
 dnl Find default CA bundle that works with OpenSSL apps, if possible. 
 ac_cv_default_ca_bundle_auto="not found"
 AC_MSG_CHECKING([CA bundle file])
-trydirs="_/etc/ssl/certs _/etc/pki/tls"
+trydirs="/etc/ssl/certs /etc/pki/tls"
 tryfiles="ca-bundle.crt ca-certificates.crt cert.pem"
 for dir in $trydirs; do
 	for file in $tryfiles; do
