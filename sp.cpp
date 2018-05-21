@@ -89,7 +89,6 @@ typedef struct config_struct {
 	sgx_spid_t spid;
 	uint16_t quote_type;
 	EVP_PKEY *service_private_key;
-	EVP_PKEY *session_private_key;
 	char *proxy_server;
 	char *ca_bundle;
 	unsigned int proxy_port;
@@ -149,10 +148,7 @@ int main(int argc, char *argv[])
 		{"key-file",		required_argument,	0, 'K'},
 		{"production",		no_argument,		0, 'P'},
 		{"spid-file",		required_argument,	0, 'S'},
-		{"ias-signing-caname",
-							required_argument,	0, 'a'},
 		{"debug",			required_argument,	0, 'd'},
-		{"session-key",		required_argument,	0, 'e'},
 		{"help",			no_argument, 		0, 'h'},
 		{"key",				required_argument,	0, 'k'},
 		{"linkable",		no_argument,		0, 'l'},
@@ -186,7 +182,7 @@ int main(int argc, char *argv[])
 		int c;
 		int opt_index = 0;
 
-		c = getopt_long(argc, argv, "A:B:C:K:S:de:hk:lp:r:s:vx", long_opt, &opt_index);
+		c = getopt_long(argc, argv, "A:B:C:K:S:dhk:lp:r:s:vx", long_opt, &opt_index);
 		if (c == -1) break;
 
 		switch (c) {
@@ -241,13 +237,6 @@ int main(int argc, char *argv[])
 			break;
 		case 'd':
 			debug = 1;
-			break;
-		case 'e':
-			if (!key_load(&config.session_private_key, optarg, KEY_PRIVATE)) {
-				crypto_perror("key_load");
-				eprintf("%s: could not load session key\n", optarg);
-				return 1;
-			}
 			break;
 		case 'k':
 			if (!key_load(&config.service_private_key, optarg, KEY_PRIVATE)) {
@@ -613,22 +602,15 @@ int process_msg01 (IAS_Connection *ias, sgx_ra_msg2_t *msg2, char **sigrl,
 		edivider();
 	}
 
-	if ( config->session_private_key == NULL ) {
-		/* Generate our session key */
+	/* Generate our session key */
 
-		if ( debug ) eprintf("+++ generating session key Gb\n");
+	if ( debug ) eprintf("+++ generating session key Gb\n");
 
-		Gb= key_generate();
-		if ( Gb == NULL ) {
-			eprintf("Could not create a session key\n");
-			free(msg01);
-			return 0;
-		}
-	} else {
-		/* Use a fixed session key for testing purposes */
-		Gb= config->session_private_key;
-
-		if ( debug ) eprintf("+++ using stated session key Gb\n");
+	Gb= key_generate();
+	if ( Gb == NULL ) {
+		eprintf("Could not create a session key\n");
+		free(msg01);
+		return 0;
 	}
 
 	/*
@@ -1065,10 +1047,6 @@ void usage ()
 "                             --key." NL
 "  -P, --production         Query the production IAS server instead of dev." NL
 "  -d, --debug              Print debug information to stderr." NL
-"  -e, --session-key=HEXSTRING" NL
-"                           Use HEXSTRING for the server's private sesion key." NL
-"                             Creates semi-deterministic sessions for testing" NL
-"                             purposes." NL
 "  -k, --key=HEXSTRING      The private key as a hex string. See --key-file" NL
 "                             for notes. Can't combine with --key-file." NL
 "  -l, --linkable           Request a linkable quote (default: unlinkable)." NL
