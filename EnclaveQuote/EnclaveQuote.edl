@@ -1,0 +1,38 @@
+#ifndef _WIN32
+#include "config.h"
+#endif
+
+enclave {
+	include "sgx_trts.h"
+	include "sgx_utils.h"
+	include "sgx_tkey_exchange.h"
+
+	from "sgx_tkey_exchange.edl" import *;
+
+	trusted {
+#ifndef _WIN32
+		include "config.h"
+#endif
+
+		public sgx_status_t get_report([out] sgx_report_t *report,
+			[in] sgx_target_info_t *target_info);
+
+		public size_t get_pse_manifest_size();
+
+		public sgx_status_t get_pse_manifest([out, count=sz] char *buf, size_t sz);
+
+		public sgx_status_t enclave_ra_init(sgx_ec256_public_t key, int b_pse,
+			[out] sgx_ra_context_t *ctx);
+
+		public sgx_status_t enclave_ra_init_def(int b_pse,
+			[out] sgx_ra_context_t *ctx);
+	};
+
+	untrusted {
+#ifndef _WIN32
+		include "config.h"
+#endif
+	};
+};
+
+

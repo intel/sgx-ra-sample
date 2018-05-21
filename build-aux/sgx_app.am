@@ -1,0 +1,37 @@
+## Intel SGX SDK
+
+SGXSDK=@SGXSDK@
+SGXSDK_BINDIR=@SGXSDK_BINDIR@
+SGXSDK_INCDIR=@SGXSDK_INCDIR@
+SGXSDK_LIBDIR=@SGXSDK_LIBDIR@
+SGX_EDGER8R=$(SGXSDK_BINDIR)/sgx_edger8r
+
+## Intel SGX SSL
+
+SGXSSL=@SGXSSL@
+SGXSSL_BINDIR=@SGXSSL_BINDIR@
+SGXSSL_INCDIR=@SGXSSL_INCDIR@
+SGXSSL_LIBDIR=@SGXSSL_LIBDIR@
+
+if SGX_ENABLED
+## All Intel SGX applications need at least these flags
+
+AM_CPPFLAGS = -I$(SGXSDK_INCDIR)
+AM_LDFLAGS = -L$(SGXSDK_LIBDIR)
+else
+AM_CPPFLAGS = 
+AM_LDFLAGS = 
+endif
+
+## These libraries exist in both hardware and simulation (_sim) form,
+## so they need to be listed as Makefile variables.
+
+SGX_URTS_LIB=@SGX_URTS_LIB@
+SGX_UAE_SERVICE_LIB=@SGX_UAE_SERVICE_LIB@
+
+## Rule to generate untrusted proxy functions from an EDL file.
+
+if SGX_ENABLED
+%_u.h %_u.c: %.edl
+	$(SGX_EDGER8R) --search-path $(SGXSDK_INCDIR) $(SGX_EDGER8R_FLAGS) --untrusted $<
+endif

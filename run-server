@@ -1,0 +1,144 @@
+#! /bin/bash
+#
+
+SPID_FILE="ref_sp/plse-dev.spid"
+CERT_FILE="ref_sp/plse-ias-dev.pem"
+SIGN_CA_FILE="ref_sp/Intel_IAS_SGX_Report_Signing_CA.pem"
+DEBUG="-d -v"
+
+# You shouldn't have to change anything below here
+#======================================================================
+
+# Get our program name
+
+PROG=`basename $0`
+
+function usage_server {
+	echo "usage: $PROG [ -z ] [ -- sp_args ]" >&2
+	echo "  -z      Run in foreground using stdin/stdout" >&2
+	exit 1
+}
+
+function usage_client {
+	echo "usage: $PROG [ -eqz ] [ -s server_hostname ] [ -- quote_args ]" >&2
+	echo "  -e        Print the EPID gid instead of attesting" >&2
+	echo "  -q        Print a quote instead of attesting" >&2
+	echo "  -s HOST   Attest to the service provider on HOST (default: localhost)" >&2
+	echo "  -z        Run in foreground using stdin/stdout" >&2
+	exit 1
+}
+
+function run_server {
+	unset no_proxy
+	unset NO_PROXY
+
+	SOCAT=1
+
+	OPTS=`getopt -o hz -- "$@"`
+	if [ $? -ne 0 ]
+	then
+		usage_server
+	fi
+
+	eval set -- "$OPTS"
+
+	while true
+	do
+		case "$1" in
+		-h) usage_server ;;
+		-z) SOCAT=0 ; shift ;;
+		--) shift ; break ;;
+		*) usage_server ;;
+		esac
+	done
+
+	CMD="./sp $DEBUG -S $SPID_FILE -C $CERT_FILE -A $SIGN_CA_FILE $@"
+
+	if [ $SOCAT -eq 0 ]
+	then
+		echo "Running: $CMD"
+		$CMD
+	else
+		echo "Running: socat TCP4-LISTEN:7777,fork,reuseaddr EXEC:\"$CMD\",nofork"
+		socat TCP4-LISTEN:7777,fork,reuseaddr EXEC:"$CMD",nofork
+	fi
+}
+
+
+function run_client {
+	SOCAT=1
+	HOST=localhost
+
+	OPTS=`getopt -o ehqs:z -- "$@"`
+	if [ $? -ne 0 ]
+	then
+		usage_client
+	fi
+
+	eval set -- "$OPTS"
+
+	MODE=-a
+
+	while true
+	do
+		case "$1" in
+		-e) MODE=-e ; SOCAT=0 ; shift ;;
+		-h) usage_client ;;
+		-s) HOST="$2" ; shift 2 ;;
+		-q) unset MODE ; SOCAT=0 ; shift ;;
+		-z) SOCAT=0 ; shift ;;
+		--) shift ; break ;;
+		*) usage_client ;;
+		esac
+	done
+
+	CMD="./quote $DEBUG -S $SPID_FILE $MODE"
+
+	if [ "$SOCAT" -eq 0 ]
+	then
+		echo "Running $CMD $@"
+		$CMD $@
+	else
+		echo "Running socat TCP4:$HOST:7777 EXEC:\"$CMD $@\",nofork"
+		socat TCP4:$HOST:7777 EXEC:"$CMD $@",nofork
+	fi
+}
+
+# Where is OpenSSL 1.1.x?
+
+OPENSSL_LIB=
+for dir in /opt/openssl/*/lib /opt/openssl/lib /usr/local/lib
+do
+	if [ -d "$dir" ]
+	then
+		if nm $dir/libcrypto.so | grep ECDSA_SIG_set0 > /dev/null 2>&1
+		then
+			OPENSSL_LIB="$dir"
+			break;
+		fi
+	fi
+done
+
+if [ "$OPENSSL_LIB" = "" ]
+then
+	echo "Could not auto-detect openssl v1.1.0 or newer. Make sure LD_LIBRARY_PATH is set" >&2
+else
+	if [ "$LD_LIBRARY_PATH" = "" ]
+	then
+		export LD_LIBRARY_PATH=$OPENSSL_LIB
+	else
+		export LD_LIBRARY_PATH=$OPENSSL_LIB:$LD_LIBRARY_PATH
+	fi
+fi
+
+if [ "$PROG" = "run-client" ]
+then
+	run_client "$@"
+elif [ "$PROG" = "run-server" ]
+then
+	run_server "$@"
+else
+	echo "$PROG: unrecognized instance (expected run-client or run-server)" >&2
+	exit 1
+fi
+

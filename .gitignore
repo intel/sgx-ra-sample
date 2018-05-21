@@ -1,0 +1,17 @@
+aclocal.m4
+compile
+depcomp
+missing
+testing
+configure
+config.h.in
+*.o
+*.so
+autom4te.cache
+Makefile.in
+*/Makefile.in
+EnclaveQuote_u.h
+EnclaveQuote_u.c
+EnclaveQuote/EnclaveQuote_t.h
+EnclaveQuote/EnclaveQuote_t.c
+*.log
