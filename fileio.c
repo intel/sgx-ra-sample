@@ -50,7 +50,7 @@ int from_file (unsigned char *dest, char *file, off_t *len)
 		if ( stat(file, &sb) != 0 ) {
 			fprintf(stderr, "stat: ");
 			perror(file);
-			exit(1);
+			return 0;
 		}
 
 		*len= sb.st_size;

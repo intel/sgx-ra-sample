@@ -13,27 +13,75 @@ AC_CONFIG_HEADERS([config.h])
 
 SGX_INIT()
 
-AC_ARG_WITH([openssl],
-	[AC_HELP_STRING([--with-openssl=DIR], [Specify location of OpenSSL])],
+AC_ARG_WITH([openssldir],
+	[AC_HELP_STRING([--with-openssl=DIR], [Specify location of OpenSSL package])],
 	[openssl=$withval],[])
 
-dnl Don't blindly add -lcrypto to LIBS
-old_LDFLAGS="$LDFLAGS"
-old_LIBS="$LIBS"
-LDFLAGS="$LDFLAGS -L${openssl}/lib"
+AC_ARG_WITH([curldir],
+	[AC_HELP_STRING([--with-curl=DIR], [Specify location of curl package])],
+	[curl=$withval],[])
+
+AC_ARG_ENABLE([agent-libcurl],
+	[AC_HELP_STRING([--disable-agent-libcurl], [Disable the libcurl user agent])],
+	[], [enable_agent_libcurl=yes])
+
+dnl Check for OpenSSL 1.1.0 or later
+dnl ----------------------------------------------------------------------
+AS_IF([test "$openssl" != ""], [
+	old_LDFLAGS="$LDFLAGS"
+	old_LIBS="$LIBS"
+	old_CPPFLAGS="$CPPFLAGS"
+	LDFLAGS="$LDFLAGS -L${openssl}/lib"
+])
+
+AC_CHECK_HEADERS([openssl/evp.h openssl/x509.h openssl/pem.h],,[
+	AC_MSG_ERROR([Need OpenSSL header files])
+])
+
 AC_SEARCH_LIBS([ECDSA_SIG_set0], [crypto], [], [
 	AC_MSG_ERROR([Need OpenSSL v1.1.0 or later])
 ])
-LDFLAGS="$old_LDFLAGS"
-LIBS="$old_LIBS"
-
 AS_IF([test "$openssl" != ""], [
+	LDFLAGS="$old_LDFLAGS"
+	LIBS="$old_LIBS"
+	CPPFLAGS="$old_CPPFLAGS"
 	AC_SUBST([OPENSSL_CPPFLAGS], [-I$openssl/include])
 	AC_SUBST([OPENSSL_LDFLAGS], [-L$openssl/lib])
-	AC_SUBST([OPENSSL_LIB], [${openssl}/lib/libcrypto.a])
+	AC_SUBST([OPENSSL_LIBDIR], [$openssl/lib])
 ])
 
+dnl Is libcurl available?
+dnl ----------------------------------------------------------------------
+AS_IF([test "$enable_agent_libcurl" = "yes"],[
+	AS_IF([test "$curl" != ""], [
+		old_CPPFLAGS="$CPPFLAGS"
+		old_LDFLAGS="$LDFLAGS"
+		old_LIBS="$LIBS"
+		LDFLAGS="$LDFLAGS -L${curl}/lib"
+		CPPFLAGS="$CPPFLAGS -I${curl}/include"
+	])
+	AC_CHECK_HEADER([curl/curl.h], [use_libcurl=1], [use_libcurl=0])
+	AS_IF([test "$use_libcurl" = "1"], [
+		AC_SEARCH_LIBS([curl_easy_init], [curl], [use_libcurl=1],
+			[use_libcurl=0])
+	])
+	AS_IF([test "$curl" != ""], [
+		LDFLAGS="$old_LDFLAGS"
+		LIBS="$old_LIBS"
+		CPPFLAGS="$old_CPPFLAGS"
+	])
+	AS_IF([test "$use_libcurl" = "1"],[
+		AC_DEFINE([AGENT_CURL], [1], [Enable libcurl as a user agent])
+		AC_SUBST([AGENT_CURL_SRC], [agent_curl.cpp])
+		AC_SUBST([CURL_CPPFLAGS], [-I$curl/include])
+		AC_SUBST([CURL_LDFLAGS], [-L$curl/lib])
+		AC_SUBST([CURL_LIBS], [-lcurl])
+	])
+],[use_libcurl=0])
+AM_CONDITIONAL([AGENT_CURL], [test "$use_libcurl" = "1"])
+
 dnl Find default CA bundle that works with OpenSSL apps, if possible. 
+dnl ----------------------------------------------------------------------
 ac_cv_default_ca_bundle_auto="not found"
 AC_MSG_CHECKING([CA bundle file])
 trydirs="/etc/ssl/certs /etc/pki/tls"
@@ -50,10 +98,16 @@ AS_IF([ test "$ac_cv_default_ca_bundle_auto" = "not found" ],
 AC_DEFINE_UNQUOTED([DEFAULT_CA_BUNDLE_AUTO], ["$ac_cv_default_ca_bundle_auto"],
 	[Default CA bundle for OpenSSL-based applications])
 
+dnl Write our configuration
+dnl ----------------------------------------------------------------------
 AC_CONFIG_FILES([
+	run-server:run.in
+	run-client:run.in
 	Makefile
 	EnclaveQuote/Makefile
 ])
 
 AC_OUTPUT
+
+chmod 755 run-server run-client
 

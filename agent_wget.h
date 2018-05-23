@@ -16,6 +16,8 @@ class IAS_Request;
 class AgentWget : protected Agent
 {
 public:
+	static string name;
+
 	AgentWget(IAS_Connection *conn) : Agent(conn) {};
 	int request(string const &url, string const &post, Response &response);
 };

@@ -19,6 +19,8 @@ class AgentCurl : protected Agent
 	size_t header_pos, header_len;
 
 public:
+	static string name;
+
 	AgentCurl(IAS_Connection *conn);
 	~AgentCurl();
 	int initialize();

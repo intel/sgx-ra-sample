@@ -21,6 +21,8 @@ static size_t _write_callback(char *ptr, size_t sz, size_t n, void *data);
 static size_t _read_callback(char *buffer, size_t size, size_t nitems, 
 	void *instream);
 
+string AgentCurl::name= "libcurl";
+
 AgentCurl::AgentCurl (IAS_Connection *conn_in) : Agent(conn_in)
 {
 	curl= NULL;
@@ -62,8 +64,10 @@ int AgentCurl::initialize ()
 	// response headers, as they interfere with parsing the destiantion 
 	// response.
 
+/*
 	if ( curl_easy_setopt(curl, CURLOPT_HTTPPROXYTUNNEL, 1L) !=
 		CURLE_OK ) return 0;
+*/
 
 #ifdef CURL_OPT_SUPPRESS_CONNECT_HEADERS
 	// Suppress the proxy CONNECT headers.
@@ -79,6 +83,9 @@ int AgentCurl::initialize ()
 	if ( curl_easy_setopt(curl, CURLOPT_HEADERDATA, this) != CURLE_OK)
 		return 0;
 #endif
+
+	curl_easy_setopt(curl, CURLOPT_BUFFERSIZE, 102400L);
+	curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
 
 	// Configure proxy
 	//------------------------------------------------------------
@@ -128,25 +135,39 @@ int AgentCurl::initialize ()
 	if ( curl_easy_setopt(curl, CURLOPT_SSLCERT,
 		conn->client_cert_file().c_str()) != CURLE_OK ) return 0;
 
+	eprintf("+++ Setting cert file to %s\n", conn->client_cert_file().c_str());
+
 	if ( curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE,
 		conn->client_cert_type().c_str()) != CURLE_OK ) return 0;
-	if ( curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE, "PEM") != CURLE_OK ) return 0;
 
 	if ( conn->client_key_file() != "" ) {
+		eprintf("+++ Setting client key file to %s\n",
+			conn->client_key_file().c_str());
 		if ( curl_easy_setopt(curl, CURLOPT_SSLKEY, 
 			conn->client_key_file().c_str()) != CURLE_OK ) return 0;
+
+		// Sanity assumption: cert and the key are the same type.
+		if ( curl_easy_setopt(curl, CURLOPT_SSLKEYTYPE,
+			conn->client_cert_type().c_str()) != CURLE_OK ) return 0;
+
 	}
 
 	// Set the password for the key (if any). Note that this method
-	//  allocates passwd so need to free it later.
+	//  allocates passwd so need to wipe it and free it later.
 
 	if ( conn->client_key_passwd(&passwd, &pwlen) == 0 ) return 0;
 	if ( pwlen ) {
+		if ( debug ) {
+			eprintf("+++ client cert key password length = %u\n", pwlen);
+			eprintf("+++ client cert key password is %s\n", passwd);
+		}
 		CURLcode ccode= curl_easy_setopt(curl, CURLOPT_KEYPASSWD, passwd);
+#ifdef _WIN32
+		memset_s(passwd, 0, pwlen);
+#else
+		memset(passwd, 0, pwlen);
+#endif
 		delete[] passwd;
-		if ( ccode != CURLE_OK ) return 0;
-	} else {
-		curl_easy_setopt(curl, CURLOPT_KEYPASSWD, NULL);
 	}
 
 	// Set the write callback.

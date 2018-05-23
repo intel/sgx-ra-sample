@@ -91,9 +91,12 @@ typedef struct config_struct {
 	EVP_PKEY *service_private_key;
 	char *proxy_server;
 	char *ca_bundle;
+	char *user_agent;
+	char *cert_file;
+	char *cert_key_file;
+	char *cert_passwd_file;
 	unsigned int proxy_port;
 	unsigned char kdk[16];
-	char *cert_file;
 	char *cert_type[4];
 	X509_STORE *store;
 	X509 *signing_ca;
@@ -144,11 +147,18 @@ int main(int argc, char *argv[])
 		{"ias-signing-cafile",
 							required_argument,	0, 'A'},
 		{"ca-bundle",		required_argument,	0, 'B'},
-		{"ias-cert-file",	required_argument,	0, 'C'},
-		{"key-file",		required_argument,	0, 'K'},
+		{"ias-cert",		required_argument,	0, 'C'},
+		{"ias-cert-passwd",
+							required_argument,	0, 'E'},
+		{"ias-cert-key",
+							required_argument,	0, 'Y'},
+		{"service-key-file",
+							required_argument,	0, 'K'},
+		{"list-agents",		no_argument,		0, 'G'},
 		{"production",		no_argument,		0, 'P'},
 		{"spid-file",		required_argument,	0, 'S'},
 		{"debug",			required_argument,	0, 'd'},
+		{"user-agent",		required_argument,	0, 'g'},
 		{"help",			no_argument, 		0, 'h'},
 		{"key",				required_argument,	0, 'k'},
 		{"linkable",		no_argument,		0, 'l'},
@@ -182,7 +192,7 @@ int main(int argc, char *argv[])
 		int c;
 		int opt_index = 0;
 
-		c = getopt_long(argc, argv, "A:B:C:K:S:dhk:lp:r:s:vx", long_opt, &opt_index);
+		c = getopt_long(argc, argv, "A:B:C:E:GK:S:Y:dg:hk:lp:r:s:t:vx", long_opt, &opt_index);
 		if (c == -1) break;
 
 		switch (c) {
@@ -220,6 +230,16 @@ int main(int argc, char *argv[])
 			++flag_cert;
 
 			break;
+		case 'E':
+			config.cert_passwd_file = strdup(optarg);
+			if (config.cert_passwd_file == NULL) {
+				perror("strdup");
+				return 1;
+			}
+			break;
+		case 'G':
+			ias_list_agents(stdout);
+			return 1;
 		case 'S':
 			if (!from_hexstring_file((unsigned char *)&config.spid, optarg, 16)) {
 				eprintf("SPID must be 32-byte hex string\n");
@@ -235,8 +255,22 @@ int main(int argc, char *argv[])
 				return 1;
 			}
 			break;
+		case 'Y':
+			config.cert_key_file = strdup(optarg);
+			if (config.cert_key_file == NULL) {
+				perror("strdup");
+				return 1;
+			}
+			break;
 		case 'd':
 			debug = 1;
+			break;
+		case 'g':
+			config.user_agent= strdup(optarg);
+			if ( config.user_agent == NULL ) {
+				perror("malloc");
+				return 1;
+			}
 			break;
 		case 'k':
 			if (!key_load(&config.service_private_key, optarg, KEY_PRIVATE)) {
@@ -278,6 +312,9 @@ int main(int argc, char *argv[])
 			++flag_spid;
 			break;
 		case 't':
+			strncpy((char *) config.cert_type, optarg, 4);
+			if ( debug ) eprintf("+++ cert type set to %s\n",
+				config.cert_type);
 			break;
 		case 'v':
 			verbose = 1;
@@ -361,7 +398,6 @@ int main(int argc, char *argv[])
 			(flag_prod) ? IAS_SERVER_PRODUCTION : IAS_SERVER_DEVELOPMENT,
 			0
 		);
-		ias->client_cert(config.cert_file, (char *)config.cert_type);
 	}
 	catch (...) {
 		oops = 1;
@@ -369,10 +405,75 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	ias->client_cert(config.cert_file, (char *)config.cert_type);
+	if ( config.cert_passwd_file != NULL ) {
+		char *passwd;
+		char *keyfile;
+		off_t sz;
+
+		if ( ! from_file(NULL, config.cert_passwd_file, &sz) ) {
+			eprintf("can't load password from %s\n", 
+				config.cert_passwd_file);
+			return 1;
+		}
+
+		if ( sz > 0 ) {
+			char *cp;
+
+			try {
+				passwd= new char[sz+1];
+			}
+			catch (...) {
+				eprintf("out of memory\n");
+				return 1;
+			}
+
+			if ( ! from_file((unsigned char *) passwd, config.cert_passwd_file,
+			 	&sz) ) {
+
+				eprintf("can't load password from %s\n", 
+					config.cert_passwd_file);
+				return 1;
+			}
+			passwd[sz]= 0;
+
+			// Remove trailing newline or linefeed.
+
+			cp= strchr(passwd, '\n');
+			if ( cp != NULL ) *cp= 0;
+			cp= strchr(passwd, '\r');
+			if ( cp != NULL ) *cp= 0;
+
+			// If a key file isn't specified, assume it's bundled with
+			// the certificate.
+
+			keyfile= (config.cert_key_file == NULL) ? config.cert_file :
+				config.cert_key_file;
+			ias->client_key(keyfile, passwd);
+
+#ifdef _WIN32
+			memset_s(passwd, 0, sz);
+#else
+			// -fno-builtin-memset prevents optimizing this away 
+			memset(passwd, 0, sz);
+#endif
+		}
+	} else if ( config.cert_key_file != NULL ) {
+		// We have a key file but no password.
+		ias->client_key(config.cert_key_file, NULL);
+	}
+
 	if ( flag_noproxy ) ias->proxy_mode(IAS_PROXY_NONE);
 	else if (config.proxy_server != NULL) {
 		ias->proxy_mode(IAS_PROXY_FORCE);
 		ias->proxy(config.proxy_server, config.proxy_port);
+	}
+
+	if ( config.user_agent != NULL ) {
+		if ( ! ias->agent(config.user_agent) ) {
+			eprintf("%s: unknown user agent\n", config.user_agent);
+			return 0;
+		}
 	}
 
 	/* 
@@ -1031,7 +1132,7 @@ void usage ()
 "Required:" NL
 "  -A, --ias-signing-cafile=FILE" NL
 "                           Specify the IAS Report Signing CA file." NL
-"  -C, --ias-cert-file=FILE Specify the client certificate to use when" NL
+"  -C, --ias-cert-file=FILE Specify the IAS client certificate to use when" NL
 "                             communicating with IAS." NNL
 "One of (required):" NL
 "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte." NL
@@ -1041,12 +1142,18 @@ void usage ()
 "  -B, --ca-bundle-file=FILE" NL
 "                           Use the CA certificate bundle at FILE (default:" NL
 "                             " << DEFAULT_CA_BUNDLE << ")" NL
-"  -K, --key-file=FILE      The private key file in PEM format (default: use" NL
-"                             hardcoded key). The client must be given the " NL
-"                             corresponding public key. Can't combine with" NL
-"                             --key." NL
+"  -E, --ias-cert-passwd=FILE" NL
+"                           Use password in FILE for the IAS client" NL
+"                             certificate."
+"  -G, --list-agents        List available user agent names for --user-agent" NL
+"  -K, --service-key-file=FILE" NL
+"                           The private key file for the service in PEM" NL
+"                             format (default: use hardcoded key). The " NL
+"                             client must be given the corresponding public" NL
+"                             key. Can't combine with --key." NL
 "  -P, --production         Query the production IAS server instead of dev." NL
 "  -d, --debug              Print debug information to stderr." NL
+"  -g, --user-agent=NAME    Use NAME as the user agent for contacting IAS." NL
 "  -k, --key=HEXSTRING      The private key as a hex string. See --key-file" NL
 "                             for notes. Can't combine with --key-file." NL
 "  -l, --linkable           Request a linkable quote (default: unlinkable)." NL

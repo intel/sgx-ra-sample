@@ -56,6 +56,8 @@ typedef uint32_t ias_error_t;
 #define IAS_BAD_CERTIFICATE		1001
 #define IAS_BAD_SIGNATURE		1002
 
+void ias_list_agents (FILE *fp);
+
 class Agent;
 
 class IAS_Connection {
@@ -75,12 +77,15 @@ friend class Agent;
 	uint32_t c_flags;
 	X509_STORE *c_store;
 	Agent *c_agent;
+	string c_agent_name;
 
 public:
 	IAS_Connection(int server, uint32_t flags);
 	~IAS_Connection();
 
 	string base_url();
+
+	int agent(const char *agent_name);
 
 	int proxy(const char *server, uint16_t port);
 	void proxy_mode(int mode) { c_proxy_mode= mode; }

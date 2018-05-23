@@ -74,11 +74,16 @@ nodist_client_SOURCES = EnclaveQuote_u.c EnclaveQuote_u.h
 EXTRA_client_DEPENDENCIES = EnclaveQuote.signed.so
 BUILT_SOURCES = EnclaveQuote_u.c EnclaveQuote_u.h
 
-client_LDFLAGS = $(AM_LDFLAGS) @OPENSSL_LDFLAGS@
+client_LDFLAGS= $(AM_LDFLAGS) @OPENSSL_LDFLAGS@
 
 ## sp
 
-sp_SOURCES = sp.cpp agent_wget.cpp agent_curl.cpp iasrequest.cpp $(common)
+sp_SOURCES = sp.cpp agent_wget.cpp iasrequest.cpp $(common)
+if AGENT_CURL
+sp_SOURCES += agent_curl.cpp
+endif
+
+sp_LDFLAGS= $(AM_LDFLAGS) @OPENSSL_LDFLAGS@ @CURL_LDFLAGS@
 
 ## Library flags. At minimum, an Intel SGX application will need:
 ##
@@ -95,8 +100,5 @@ sp_SOURCES = sp.cpp agent_wget.cpp agent_curl.cpp iasrequest.cpp $(common)
 client_LDADD=-l$(SGX_URTS_LIB) -lsgx_ukey_exchange -l$(SGX_UAE_SERVICE_LIB) \
 	-lcrypto -l:libsgx_capable.a -lpthread -ldl
 
-# Statically link to the 1.1.0 build of libcrypto.a to avoid potential 
-# conflicts with the system version of libcrypto.so needed by libcurl.
-
-sp_LDADD=$(OPENSSL_LIB) -lpthread -ldl -lcurl 
+sp_LDADD=-lcrypto @CURL_LIBS@
 

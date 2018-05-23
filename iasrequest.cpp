@@ -31,18 +31,22 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "config.h"
 #include <string.h>
 #include <stdio.h>
+#include <openssl/rand.h>
 #include <openssl/x509.h>
 #include "crypto.h"
 #include "common.h"
 #include "agent.h"
-#ifdef _WIN32
-//#include "win32/agent_win32.h"
-#include "agent_curl.h"
-#else
-#include "agent_wget.h"
-#include "agent_curl.h"
+#ifndef _WIN32
+# define AGENT_WGET 1
+#endif
+#ifdef AGENT_WGET
+# include "agent_wget.h"
+#endif
+#ifdef AGENT_CURL
+# include "agent_curl.h"
 #endif
 #include "iasrequest.h"
 #include "logfile.h"
@@ -69,6 +73,17 @@ static string ias_servers[2]= {
 
 static string url_decode(string str);
 
+void ias_list_agents (FILE *fp)
+{
+	fprintf(fp, "Available user agents:\n");
+#ifdef AGENT_CURL
+	fprintf(fp, "%s\n", AgentCurl::name.c_str());
+#endif
+#ifdef AGENT_WGET
+	fprintf(fp, "%s\n", AgentWget::name.c_str());
+#endif
+}
+
 IAS_Connection::IAS_Connection(int server_idx, uint32_t flags)
 {
 	c_server= ias_servers[server_idx];
@@ -80,12 +95,31 @@ IAS_Connection::IAS_Connection(int server_idx, uint32_t flags)
 	c_server_port= IAS_PORT;
 	c_proxy_mode= IAS_PROXY_AUTO;
 	c_agent= NULL;
+	c_agent_name= "";
 }
 
 IAS_Connection::~IAS_Connection()
 {
 	if ( c_key_passwd != NULL ) delete[] c_key_passwd;
 	if ( c_xor != NULL ) delete[] c_xor;
+}
+
+int IAS_Connection::agent(const char *agent_name)
+{
+#ifdef AGENT_CURL
+	if ( AgentCurl::name == agent_name ) {
+		c_agent_name= agent_name;
+		return 1;
+	}
+#endif
+#ifdef AGENT_WGET
+	if ( AgentWget::name == agent_name ) {
+		c_agent_name= agent_name;
+		return 1;
+	}
+#endif
+
+	return 0;
 }
 
 int IAS_Connection::proxy(const char *server, uint16_t port)
@@ -123,7 +157,6 @@ string IAS_Connection::proxy_url()
 int IAS_Connection::client_cert(const char *file, const char *certtype)
 {
 	int rv= 1;
-	if (verbose ) eprintf("certtype=%s\n", certtype);
 	try {
 		c_cert_file= file;
 		if ( certtype != NULL ) c_cert_type= certtype;
@@ -156,20 +189,28 @@ int IAS_Connection::client_key(const char *file, const char *passwd)
 			return 0;
 		}
 
-		//rand_bytes(c_xor, pwlen);
+		RAND_bytes(c_xor, c_pwlen);
 		for (i= 0; i< c_pwlen; ++i) c_key_passwd[i]=
 			(unsigned char) passwd[i]^c_xor[i];
 	}
 
+	if ( debug ) {
+		eprintf("+++ Password:           %s\n", hexstring(passwd, c_pwlen));
+		eprintf("+++ One-time pad:       %s\n", hexstring(c_xor, c_pwlen));
+		eprintf("+++ Encrypted password: %s\n", hexstring(c_key_passwd,
+			c_pwlen));
+	}
 	return 1;
 }
 
 int IAS_Connection::client_key_passwd(char **passwd, size_t *pwlen)
 {
 	size_t i;
+	char *ch;
+
+	*pwlen= c_pwlen;
 
 	if ( c_pwlen == 0 ) {
-		*pwlen= 0;
 		*passwd= NULL;
 		return 1;
 	}
@@ -181,9 +222,9 @@ int IAS_Connection::client_key_passwd(char **passwd, size_t *pwlen)
 		return 0;
 	}
 
-	for (i= 0; i< c_pwlen; ++i) *passwd[i]=
-		 (char) (c_key_passwd[i] ^ c_xor[i]);
-	 passwd[c_pwlen]= 0;
+	for (i= 0, ch= *passwd; i< c_pwlen; ++i, ++ch) 
+		 *ch= (char) (c_key_passwd[i] ^ c_xor[i]);
+	*ch= 0;
 
 	return 1;
 }
@@ -216,12 +257,53 @@ Agent *IAS_Connection::new_agent()
 {
 	Agent *newagent= NULL;
 
-	try {
-		newagent= (Agent *) new AgentCurl(this);
+	// If we've requested a specific agent, use that one
+
+	if ( c_agent_name.length() ) {
+#ifdef AGENT_CURL
+		if ( c_agent_name == AgentCurl::name ) {
+			try {
+				newagent= (Agent *) new AgentCurl(this);
+			}
+			catch (...) {
+				return NULL;
+			}
+		}
+#endif		
+#ifdef AGENT_WGET
+		if ( c_agent_name == AgentWget::name ) {
+			try {
+				newagent= (Agent *) new AgentWget(this);
+			}
+			catch (...) {
+				return NULL;
+			}
+		}
+#endif
+	} else {
+		// Otherwise, take the first available using this hardcoded
+		// order of preference.
+
+#ifdef AGENT_CURL
+		if ( debug ) eprintf("+++ Trying agent_curl\n");
+		try {
+			newagent= (Agent *) new AgentCurl(this);
+		}
+		catch (...) { newagent= NULL; }
+#endif
+#ifdef AGENT_WGET
+		if ( newagent == NULL ) {
+			if ( debug ) eprintf("+++ Trying agent_wget\n");
+			try {
+				newagent= (Agent *) new AgentWget(this);
+			}
+			catch (...) { newagent= NULL; }
+		}
+#endif
 	}
-	catch (...) {
-		return NULL;
-	}
+
+	if ( newagent == NULL ) return NULL;
+
 	if ( newagent->initialize() == 0 ) {
 		delete newagent;
 		return NULL;

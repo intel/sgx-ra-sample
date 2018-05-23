@@ -21,6 +21,8 @@ static vector<string> wget_args;
 #define WGET_NO_ERROR		0
 #define WGET_SERVER_ERROR	8
 
+string AgentWget::name= "wget";
+
 int AgentWget::request (string const &url, string const &post,
 	 Response &response)
 {
@@ -95,6 +97,12 @@ retry_write:
 		if ( arg != "" ) {
 			arg= "--private-key=" + arg;
 			wget_args.push_back(arg);
+
+			// Sanity assumption: the same type for both cert and key
+			arg= "--private-key-type=";
+			arg+= conn->client_cert_type();
+			wget_args.push_back(arg);
+
 		}
 
 		arg= conn->proxy_server();
