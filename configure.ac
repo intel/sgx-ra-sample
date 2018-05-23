@@ -30,6 +30,7 @@ LIBS="$old_LIBS"
 AS_IF([test "$openssl" != ""], [
 	AC_SUBST([OPENSSL_CPPFLAGS], [-I$openssl/include])
 	AC_SUBST([OPENSSL_LDFLAGS], [-L$openssl/lib])
+	AC_SUBST([OPENSSL_LIB], [${openssl}/lib/libcrypto.a])
 ])
 
 dnl Find default CA bundle that works with OpenSSL apps, if possible. 

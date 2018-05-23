@@ -50,7 +50,6 @@ EnclaveQuote.signed.so: EnclaveQuote/EnclaveQuote.signed.so
 AM_CXXFLAGS = -std=c++11 
 
 AM_CPPFLAGS += -fno-builtin-memset @OPENSSL_CPPFLAGS@
-AM_LDFLAGS += @OPENSSL_LDFLAGS@
 
 ## Additional targets to remove with 'make clean'. You must list
 ## any edger8r generated files here.
@@ -60,7 +59,7 @@ CLEANFILES = EnclaveQuote_u.c EnclaveQuote_u.h EnclaveQuote.edl EnclaveQuote.sig
 
 ## The build target
 
-bin_PROGRAMS = quote sp 
+bin_PROGRAMS = client sp 
 
 ## You can't use $(wildcard ...) with automake so all source files 
 ## have to be explicitly listed.
@@ -68,12 +67,14 @@ bin_PROGRAMS = quote sp
 common = byteorder.c common.cpp crypto.c hexutil.c fileio.c base64.c \
 	msgio.c logfile.c
 
-## quote 
+## client 
 
-quote_SOURCES = quote.cpp sgx_detect_linux.c sgx_stub.c $(common)
-nodist_quote_SOURCES = EnclaveQuote_u.c EnclaveQuote_u.h
-EXTRA_quote_DEPENDENCIES = EnclaveQuote.signed.so
+client_SOURCES = client.cpp sgx_detect_linux.c sgx_stub.c $(common)
+nodist_client_SOURCES = EnclaveQuote_u.c EnclaveQuote_u.h
+EXTRA_client_DEPENDENCIES = EnclaveQuote.signed.so
 BUILT_SOURCES = EnclaveQuote_u.c EnclaveQuote_u.h
+
+client_LDFLAGS = $(AM_LDFLAGS) @OPENSSL_LDFLAGS@
 
 ## sp
 
@@ -91,8 +92,11 @@ sp_SOURCES = sp.cpp agent_wget.cpp agent_curl.cpp iasrequest.cpp $(common)
 ## Use the variables, not the actual library names to ensure these
 ## targets work on simulation builds.
 
-quote_LDADD=-l$(SGX_URTS_LIB) -lsgx_ukey_exchange -l$(SGX_UAE_SERVICE_LIB) \
+client_LDADD=-l$(SGX_URTS_LIB) -lsgx_ukey_exchange -l$(SGX_UAE_SERVICE_LIB) \
 	-lcrypto -l:libsgx_capable.a -lpthread -ldl
 
-sp_LDADD=-lcurl -lcrypto
+# Statically link to the 1.1.0 build of libcrypto.a to avoid potential 
+# conflicts with the system version of libcrypto.so needed by libcurl.
+
+sp_LDADD=$(OPENSSL_LIB) -lpthread -ldl -lcurl 
 
