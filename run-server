@@ -20,7 +20,7 @@ function usage_server {
 }
 
 function usage_client {
-	echo "usage: $PROG [ -eqz ] [ -s server_hostname ] [ -- quote_args ]" >&2
+	echo "usage: $PROG [ -eqz ] [ -s server_hostname ] [ -- client_args ]" >&2
 	echo "  -e        Print the EPID gid instead of attesting" >&2
 	echo "  -q        Print a quote instead of attesting" >&2
 	echo "  -s HOST   Attest to the service provider on HOST (default: localhost)" >&2
@@ -92,7 +92,7 @@ function run_client {
 		esac
 	done
 
-	CMD="./quote $DEBUG -S $SPID_FILE $MODE"
+	CMD="./client $DEBUG -S $SPID_FILE $MODE"
 
 	if [ "$SOCAT" -eq 0 ]
 	then
