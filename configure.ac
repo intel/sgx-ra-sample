@@ -71,10 +71,13 @@ AS_IF([test "$enable_agent_libcurl" = "yes"],[
 		CPPFLAGS="$old_CPPFLAGS"
 	])
 	AS_IF([test "$use_libcurl" = "1"],[
-		AC_DEFINE([AGENT_CURL], [1], [Enable libcurl as a user agent])
+		AC_DEFINE([AGENT_LIBCURL], [1], [Enable libcurl as a user agent])
 		AC_SUBST([AGENT_CURL_SRC], [agent_curl.cpp])
-		AC_SUBST([CURL_CPPFLAGS], [-I$curl/include])
-		AC_SUBST([CURL_LDFLAGS], [-L$curl/lib])
+		if([test "$curl" != ""],[
+			AC_SUBST([CURL_CPPFLAGS], [-I$curl/include])
+			AC_SUBST([CURL_LDFLAGS], [-L$curl/lib])
+			AC_SUBST([CURL_LIBDIR], [$curl/lib])
+		])
 		AC_SUBST([CURL_LIBS], [-lcurl])
 	])
 ],[use_libcurl=0])
