@@ -4,7 +4,7 @@
 SPID_FILE="ref_sp/plse-dev.spid"
 CERT_FILE="ref_sp/plse-ias-dev.pem"
 SIGN_CA_FILE="ref_sp/Intel_IAS_SGX_Report_Signing_CA.pem"
-DEBUG="-d -v"
+#DEBUG="-d -v"
 
 # You shouldn't have to change anything below here
 #======================================================================
