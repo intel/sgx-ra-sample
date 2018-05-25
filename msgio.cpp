@@ -50,7 +50,7 @@ static uint32_t buffer_size = BUFFER_SZ;
 
 MsgIO::MsgIO()
 {
-	bool use_stdio = true;
+	use_stdio = true;
 }
 
 /* Connect to a remote server and port, and use socket IO */

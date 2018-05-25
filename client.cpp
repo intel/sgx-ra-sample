@@ -492,17 +492,17 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	 * amount of time generating keys that won't be used.
 	 */
 
-	dividerWithText(stderr, "Copy/Paste Msg0||Msg1 Below to SP");
-	msgio->send_partial(&msg0_extended_epid_group_id,
-		sizeof(msg0_extended_epid_group_id));
-	msgio->send(&msg1, sizeof(msg1));
-	divider(stderr);
-
 	dividerWithText(fplog, "Msg0||Msg1 ==> SP");
 	fsend_msg_partial(fplog, &msg0_extended_epid_group_id,
 		sizeof(msg0_extended_epid_group_id));
 	fsend_msg(fplog, &msg1, sizeof(msg1));
 	divider(fplog);
+
+	dividerWithText(stderr, "Copy/Paste Msg0||Msg1 Below to SP");
+	msgio->send_partial(&msg0_extended_epid_group_id,
+		sizeof(msg0_extended_epid_group_id));
+	msgio->send(&msg1, sizeof(msg1));
+	divider(stderr);
 
 	fprintf(stderr, "Waiting for msg2...\n");
 
