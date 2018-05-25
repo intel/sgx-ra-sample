@@ -43,7 +43,7 @@ class MsgIO {
 	string wbuffer, rbuffer;
 	char lbuffer[MSGIO_BUFFER_SZ];
 	bool use_stdio;
-	SOCKET s;
+	SOCKET ls, s;
 
 public:
 	MsgIO();
