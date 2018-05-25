@@ -103,21 +103,20 @@ typedef struct config_struct {
 	unsigned int apiver;
 } config_t;
 
-Msg4 msg4;
-
 void usage();
 
 int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
 	config_t *config);
 
-int process_msg01 (IAS_Connection *ias, sgx_ra_msg2_t *msg2, char **sigrl,
+int process_msg01 (MsgIO *msg, IAS_Connection *ias, sgx_ra_msg2_t *msg2,
+	char **sigrl, config_t *config);
+int process_msg3 (MsgIO *msg, IAS_Connection *ias, ra_msg4_t *msg4,
 	config_t *config);
-int process_msg3 (IAS_Connection *ias, ra_msg4_t *msg2, config_t *config);
 
 int get_sigrl (IAS_Connection *ias, int version, sgx_epid_group_id_t gid,
 	char **sigrl, uint32_t *msg2);
 int get_attestation_report(IAS_Connection *ias, int version,
-	const char *b64quote, sgx_ps_sec_prop_desc_t sec_prop);
+	const char *b64quote, sgx_ps_sec_prop_desc_t sec_prop, ra_msg4_t *msg4);
 
 int get_proxy(char **server, unsigned int *port, const char *url);
 
@@ -139,6 +138,7 @@ int main(int argc, char *argv[])
 	ra_msg4_t msg4;
 	int oops;
 	IAS_Connection *ias= NULL;
+	MsgIO *msgio;
 
 	/* Command line options */
 
@@ -330,6 +330,10 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	/* Get our message IO object */
+
+	msgio= new MsgIO();
+
 	/* Use the default CA bundle unless one is provided */
 
 	if ( config.ca_bundle == NULL ) {
@@ -492,7 +496,7 @@ int main(int argc, char *argv[])
 
 	/* Read message 0 and 1, then generate message 2 */
 
-	if ( ! process_msg01(ias, &msg2, &sigrl, &config) ) {
+	if ( ! process_msg01(msgio, ias, &msg2, &sigrl, &config) ) {
 		eprintf("error processing msg1\n");
 		crypto_destroy();
 		return 1;
@@ -512,24 +516,25 @@ int main(int argc, char *argv[])
 	dividerWithText(stderr, "Copy/Paste Msg2 Below to Client");
 	dividerWithText(fplog, "Msg2 (send to Client)");
 
-	send_msg_partial((void *) &msg2, sizeof(sgx_ra_msg2_t));
+	msgio->send_partial((void *) &msg2, sizeof(sgx_ra_msg2_t));
 	fsend_msg_partial(fplog, (void *) &msg2, sizeof(sgx_ra_msg2_t));
 
-	send_msg(&msg2.sig_rl, msg2.sig_rl_size);
+	msgio->send(&msg2.sig_rl, msg2.sig_rl_size);
 	fsend_msg(fplog, &msg2.sig_rl, msg2.sig_rl_size);
 
 	edivider();
 
-	/* Read message 3 */
+	/* Read message 3, and generate message 4 */
 
-	process_msg3(ias, &msg4, &config);
+	process_msg3(msgio, ias, &msg4, &config);
 
 	crypto_destroy();
 
 	return 0;
 }
 
-int process_msg3 (IAS_Connection *ias, ra_msg4_t *msg4, config_t *config)
+int process_msg3 (MsgIO *msgio, IAS_Connection *ias, ra_msg4_t *msg4,
+	config_t *config)
 {
 	sgx_ra_msg3_t *msg3;
 	size_t blen= 0;
@@ -557,7 +562,7 @@ int process_msg3 (IAS_Connection *ias, ra_msg4_t *msg4, config_t *config)
 	 *
 	 */
 
-	rv= read_msg((void **) &msg3, &sz);
+	rv= msgio->read((void **) &msg3, &sz);
 	if ( rv == -1 ) {
 		eprintf("system error reading msg3\n");
 		return 0;
@@ -622,9 +627,24 @@ int process_msg3 (IAS_Connection *ias, ra_msg4_t *msg4, config_t *config)
 		edivider();
 	}
 
-	if ( ! get_attestation_report(ias, config->apiver, b64quote,
-		msg3->ps_sec_prop) ) {
+	if ( get_attestation_report(ias, config->apiver, b64quote,
+		msg3->ps_sec_prop, msg4) ) {
 
+		if ( verbose ) edivider();
+
+		edividerWithText("Copy/Paste Msg4 Below to Client"); 
+
+		/* Serialize the members of the Msg4 structure independently */
+		/* vs. the entire structure as one send_msg() */
+
+		msgio->send_partial(&msg4->status, sizeof(msg4->status));
+		msgio->send(&msg4->platformInfoBlob, sizeof(msg4->platformInfoBlob));
+		fsend_msg_partial(fplog, &msg4->status, sizeof(msg4->status));
+		fsend_msg(fplog, &msg4->platformInfoBlob,
+			sizeof(msg4->platformInfoBlob));
+		edivider();
+
+	} else {
 		eprintf("Attestation failed\n");
 	}
 
@@ -638,8 +658,8 @@ int process_msg3 (IAS_Connection *ias, ra_msg4_t *msg4, config_t *config)
  * the client concatenated together for efficiency (msg0||msg1).
  */
 
-int process_msg01 (IAS_Connection *ias, sgx_ra_msg2_t *msg2, char **sigrl,
-	config_t *config)
+int process_msg01 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg2_t *msg2,
+	char **sigrl, config_t *config)
 {
 	struct msg01_struct {
 		uint32_t msg0_extended_epid_group_id;
@@ -662,7 +682,7 @@ int process_msg01 (IAS_Connection *ias, sgx_ra_msg2_t *msg2, char **sigrl,
 
 	fprintf(stderr, "Waiting for msg0||msg1 on stdin\n");
 
-	rv= read_msg((void **) &msg01, NULL);
+	rv= msgio->read((void **) &msg01, NULL);
 	if ( rv == -1 ) {
 		eprintf("system error reading msg0||msg1\n");
 		return 0;
@@ -921,7 +941,7 @@ int get_sigrl (IAS_Connection *ias, int version, sgx_epid_group_id_t gid,
 }
 
 int get_attestation_report(IAS_Connection *ias, int version,
-	const char *b64quote, sgx_ps_sec_prop_desc_t secprop) 
+	const char *b64quote, sgx_ps_sec_prop_desc_t secprop, ra_msg4_t *msg4) 
 {
 	IAS_Request *req = NULL;
 	map<string,string> payload;
@@ -941,6 +961,8 @@ int get_attestation_report(IAS_Connection *ias, int version,
 	
 	status= req->report(payload, content, messages);
 	if ( status == IAS_OK ) {
+		JSON reportObj = JSON::Load(content);
+
 		if ( verbose ) {
 			edividerWithText("Report Body");
 			eprintf("%s\n", content.c_str());
@@ -956,75 +978,76 @@ int get_attestation_report(IAS_Connection *ias, int version,
 			}
 		}
 
+		if ( verbose ) {
+			edividerWithText("IAS Report - JSON - Required Fields");
+			eprintf("id:\t\t\t%s\n", reportObj["id"].ToString().c_str());
+			eprintf("timestamp:\t\t%s\n",
+				reportObj["timestamp"].ToString().c_str());
+			eprintf("isvEnclaveQuoteStatus:\t%s\n",
+				reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
+			eprintf("isvEnclaveQuoteBody:\t%s\n",
+				reportObj["isvEnclaveQuoteBody"].ToString().c_str());
 
-            JSON reportObj = JSON::Load(content);
+			edividerWithText("IAS Report - JSON - Optional Fields");
 
-            if ( verbose ) {
-                edividerWithText("IAS Report - JSON - Required Fields");
-                eprintf("id:\t\t\t%s\n", reportObj["id"].ToString().c_str());
-                eprintf("timestamp:\t\t%s\n", reportObj["timestamp"].ToString().c_str());
-                eprintf("isvEnclaveQuoteStatus:\t%s\n", reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
-                eprintf("isvEnclaveQuoteBody:\t%s\n", reportObj["isvEnclaveQuoteBody"].ToString().c_str());
-
-                edividerWithText("IAS Report - JSON - Optional Fields");
-
-                eprintf("platformInfoBlob:\t%s\n", reportObj["platformInfoBlob"].ToString().c_str());
-                eprintf("revocationReason:\t%s\n", reportObj["revocationReason"].ToString().c_str());
-                eprintf("pseManifestStatus:\t%s\n", reportObj["pseManifestStatus"].ToString().c_str());
-                eprintf("pseManifestHash:\t%s\n", reportObj["pseManifestHash"].ToString().c_str());
-                eprintf("nonce:\t%s\n", reportObj["nonce"].ToString().c_str());
-                eprintf("epidPseudonym:\t%s\n", reportObj["epidPseudonym"].ToString().c_str());
-                edivider();
-            }
+			eprintf("platformInfoBlob:\t%s\n",
+				reportObj["platformInfoBlob"].ToString().c_str());
+			eprintf("revocationReason:\t%s\n",
+				reportObj["revocationReason"].ToString().c_str());
+			eprintf("pseManifestStatus:\t%s\n",
+				reportObj["pseManifestStatus"].ToString().c_str());
+			eprintf("pseManifestHash:\t%s\n",
+				reportObj["pseManifestHash"].ToString().c_str());
+			eprintf("nonce:\t%s\n", reportObj["nonce"].ToString().c_str());
+			eprintf("epidPseudonym:\t%s\n",
+				reportObj["epidPseudonym"].ToString().c_str());
+			edivider();
+		}
           
-            /* This samples attestion policy is either Trusted in the case of an "OK", 
-             * or a NotTrusted for any other isvEnclaveQuoteStatus value */
-  
-            /* Simply check to see if status is OK, else enclave considered not trusted */
-            memset (&msg4, 0, sizeof (Msg4));
+		/*
+		 * This samples attestion policy is either Trusted in the case of
+		 * an "OK", or a NotTrusted for any other isvEnclaveQuoteStatus
+		 * value.
+ 		 */
+
+		/* Simply check to see if status is OK, else enclave considered 
+		 * not trusted */
+
+		memset(msg4, 0, sizeof(ra_msg4_t));
 
 	    if ( verbose ) edividerWithText("ISV Enclave Trust Status");
 
-            if ( !(reportObj["isvEnclaveQuoteStatus"].ToString().compare("OK"))) {
-                msg4.trustStatus = Trusted;
-		if ( verbose ) eprintf("Enclave TRUSTED\n");
-            }
-            else {
-                msg4.trustStatus = NotTrusted;
-		if ( verbose ) eprintf("Enclave NOT TRUSTED - Reason: %s\n",reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
-            }
+		if ( !(reportObj["isvEnclaveQuoteStatus"].ToString().compare("OK"))) {
+			msg4->status = Trusted;
+			if ( verbose ) eprintf("Enclave TRUSTED\n");
+		} else {
+			msg4->status = NotTrusted;
+			if ( verbose ) eprintf("Enclave NOT TRUSTED - Reason: %s\n",
+				reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
+		}
 
-            /* Check to see if a platformInfoBlob was sent back as part of the response */
-            if (!reportObj["platformInfoBlob"].IsNull()) {
-                if ( verbose ) eprintf("A Platform Info Blob (PIB) was provided by the IAS\n");
+		/* Check to see if a platformInfoBlob was sent back as part of the
+		 * response */
 
-                /* The platformInfoBlob has two parts, a TVL Header (4 bytes), and TLV Payload (variable) */
-                string pibBuff = reportObj["platformInfoBlob"].ToString();
+		if (!reportObj["platformInfoBlob"].IsNull()) {
+			if ( verbose ) eprintf("A Platform Info Blob (PIB) was provided by the IAS\n");
 
-                /* remove the TLV Header (8 base16 chars, ie. 4 bytes) from the PIB Buff. */
-                pibBuff.erase(pibBuff.begin(), pibBuff.begin() + (4*2)); 
+			/* The platformInfoBlob has two parts, a TVL Header (4 bytes),
+			 * and TLV Payload (variable) */
 
-                int ret = from_hexstring ((unsigned char *)(&msg4.platformInfoBlob), 
-                                           pibBuff.c_str(),
-                                           pibBuff.length());
+			string pibBuff = reportObj["platformInfoBlob"].ToString();
 
-            }
-            else {
-		if ( verbose ) eprintf("A Platform Info Blob (PIB) was NOT provided by the IAS\n");
-            }
+			/* remove the TLV Header (8 base16 chars, ie. 4 bytes) from
+			 * the PIB Buff. */
+
+			pibBuff.erase(pibBuff.begin(), pibBuff.begin() + (4*2)); 
+
+			int ret = from_hexstring ((unsigned char *)&msg4->platformInfoBlob, 
+				pibBuff.c_str(), pibBuff.length());
+		} else {
+			if ( verbose ) eprintf("A Platform Info Blob (PIB) was NOT provided by the IAS\n");
+		}
                  
-	    if ( verbose ) edivider();
-
-            edividerWithText("Copy/Paste Msg4 Below to Client"); 
-
-            /* Serialize the members of the Msg4 structure independently */
-            /* vs. the entire structure as one send_msg() */
-	    send_msg_partial(&msg4.trustStatus, sizeof( msg4.trustStatus));
-	    send_msg(&msg4.platformInfoBlob, sizeof( msg4.platformInfoBlob));
-	    fsend_msg_partial(fplog, &msg4.trustStatus, sizeof( msg4.trustStatus));
-	    fsend_msg(fplog, &msg4.platformInfoBlob, sizeof( msg4.platformInfoBlob));
-            edivider();
-
             return 1;
 	}
 
