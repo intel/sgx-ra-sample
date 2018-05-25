@@ -42,14 +42,14 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common.h"
 #include "agent.h"
 #ifdef _WIN32
-# define AGENT_CURL
+# define AGENT_LIBCURL
 #else
 # define AGENT_WGET
 #endif
 #ifdef AGENT_WGET
 # include "agent_wget.h"
 #endif
-#ifdef AGENT_CURL
+#ifdef AGENT_LIBCURL
 # include "agent_curl.h"
 #endif
 #include "iasrequest.h"
@@ -80,7 +80,7 @@ static string url_decode(string str);
 void ias_list_agents (FILE *fp)
 {
 	fprintf(fp, "Available user agents:\n");
-#ifdef AGENT_CURL
+#ifdef AGENT_LIBCURL
 	fprintf(fp, "%s\n", AgentCurl::name.c_str());
 #endif
 #ifdef AGENT_WGET
@@ -110,7 +110,7 @@ IAS_Connection::~IAS_Connection()
 
 int IAS_Connection::agent(const char *agent_name)
 {
-#ifdef AGENT_CURL
+#ifdef AGENT_LIBCURL
 	if ( AgentCurl::name == agent_name ) {
 		c_agent_name= agent_name;
 		return 1;
@@ -264,7 +264,7 @@ Agent *IAS_Connection::new_agent()
 	// If we've requested a specific agent, use that one
 
 	if ( c_agent_name.length() ) {
-#ifdef AGENT_CURL
+#ifdef AGENT_LIBCURL
 		if ( c_agent_name == AgentCurl::name ) {
 			try {
 				newagent= (Agent *) new AgentCurl(this);
@@ -288,7 +288,7 @@ Agent *IAS_Connection::new_agent()
 		// Otherwise, take the first available using this hardcoded
 		// order of preference.
 
-#ifdef AGENT_CURL
+#ifdef AGENT_LIBCURL
 		if ( debug ) eprintf("+++ Trying agent_curl\n");
 		try {
 			newagent= (Agent *) new AgentCurl(this);

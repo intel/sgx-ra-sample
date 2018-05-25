@@ -1201,7 +1201,7 @@ void usage ()
 "                             " << DEFAULT_CA_BUNDLE << ")" NL
 "  -E, --ias-cert-passwd=FILE" NL
 "                           Use password in FILE for the IAS client" NL
-"                             certificate."
+"                             certificate." NL
 "  -G, --list-agents        List available user agent names for --user-agent" NL
 "  -K, --service-key-file=FILE" NL
 "                           The private key file for the service in PEM" NL
