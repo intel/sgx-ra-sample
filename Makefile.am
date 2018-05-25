@@ -59,6 +59,8 @@ CLEANFILES = Enclave_u.c Enclave_u.h Enclave.edl Enclave.signed.so
 
 ## The build target
 
+server: sp
+
 bin_PROGRAMS = client sp 
 
 ## You can't use $(wildcard ...) with automake so all source files 

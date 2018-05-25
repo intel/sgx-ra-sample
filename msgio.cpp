@@ -51,6 +51,8 @@ static uint32_t buffer_size = MSGIO_BUFFER_SZ;
 MsgIO::MsgIO()
 {
 	use_stdio = true;
+	s= -1;
+	ls= -1;
 }
 
 /* Connect to a remote server and port, and use socket IO */
@@ -62,7 +64,6 @@ MsgIO::MsgIO(const char *peer, const char *port)
 #endif
 	int rv, proto;
 	struct addrinfo *addrs, *addr, hints;
-	SOCKET ts;
 
 	use_stdio= false;
 #ifdef _WIN32
@@ -88,26 +89,26 @@ MsgIO::MsgIO(const char *peer, const char *port)
 	for (addr= addrs; addr != NULL; addr= addr->ai_next)
 	{
 		proto= addr->ai_family;
-		ts= socket(addr->ai_family, addr->ai_socktype,
+		s= socket(addr->ai_family, addr->ai_socktype,
 			addr->ai_protocol);
-		if ( ts == -1 ) {
+		if ( s == -1 ) {
 			perror("socket");
 			continue;
 		}
 
 		if ( peer == NULL ) { 	// We're the server
-			if ( bind(ts, addr->ai_addr, addr->ai_addrlen) == 0 ) break;
+			if ( bind(s, addr->ai_addr, addr->ai_addrlen) == 0 ) break;
 		} else {
-			if ( connect(ts, addr->ai_addr, addr->ai_addrlen) == 0 ) break;
+			if ( connect(s, addr->ai_addr, addr->ai_addrlen) == 0 ) break;
 		}
 
 		perror("bind");
-		close(ts);
+		close(s);
 	}
 
 	freeaddrinfo(addrs);
 
-	if ( ts == -1 ) {
+	if ( s == -1 ) {
 		throw std::runtime_error("could not establish socket");
 	}
 
@@ -116,10 +117,14 @@ MsgIO::MsgIO(const char *peer, const char *port)
 		sockaddr cliaddr;
 		socklen_t slen= sizeof(sockaddr);
 
-		setsockopt(ts, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable));
-		setsockopt(ts, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(enable));
-		if ( listen(ts, 5) == -1 ) { // The "traditional" backlog value in UNIX
+		ls= s;
+		s= -1;
+
+		setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable));
+		setsockopt(ls, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(enable));
+		if ( listen(ls, 5) == -1 ) { // The "traditional" backlog value in UNIX
 			perror("listen");
+			close(ls);
 			throw std::runtime_error("could not listen on socket");
 		}
 		
@@ -128,8 +133,9 @@ MsgIO::MsgIO(const char *peer, const char *port)
 
 		eprintf("Listening for connections on port %s\n", port);
 
-		s= accept(ts, &cliaddr, &slen);
+		s= accept(ls, &cliaddr, &slen);
 		if ( s == -1 ) {
+			close(ls);
 			perror("accept");
 			throw std::runtime_error("could not listen on socket");
 		}
@@ -159,12 +165,20 @@ MsgIO::MsgIO(const char *peer, const char *port)
 		eprintf("\n");
 
 	} else { // Client here
-		s= ts;
 	}
 }
 
 MsgIO::~MsgIO()
 {
+	// Shutdown our socket(s)
+	if ( s != -1 ) {
+		shutdown(s, SHUT_RDWR);
+		close(s);
+	}
+	if ( ls != -1 ) {
+		shutdown(ls, SHUT_RDWR);
+		close(ls);
+	}
 }
 
 int MsgIO::read(void **dest, size_t *sz)
