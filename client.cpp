@@ -1,33 +1,17 @@
 /*
 
-Copyright 2017 Intel Corporation
+Copyright 2018 Intel Corporation
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
+This software and the related documents are Intel copyrighted materials,
+and your use of them is governed by the express license under which they
+were provided to you (License). Unless the License provides otherwise,
+you may not use, modify, copy, publish, distribute, disclose or transmit
+this software or the related documents without Intel's prior written
+permission.
 
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
-TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+This software and the related documents are provided as is, with no
+express or implied warranties, other than those that are expressly stated
+in the License.
 
 */
 
@@ -45,7 +29,12 @@ using namespace std;
 #define PSE_SUPPORT 1
 #endif
 
-#include "EnclaveQuote_u.h"
+#ifdef _WIN32
+// *sigh*
+# include "vs/client/Enclave_u.h"
+#else
+# include "Enclave_u.h"
+#endif
 #if !defined(SGX_HW_SIM)&&!defined(_WIN32)
 #include "sgx_stub.h"
 #endif
@@ -95,8 +84,6 @@ typedef struct config_struct {
 	sgx_quote_nonce_t nonce;
 } config_t;
 
-
-
 int file_in_searchpath (const char *file, const char *search, char *fullpath,
 	size_t len);
 
@@ -116,9 +103,9 @@ int do_attestation(sgx_enclave_id_t eid, config_t *config);
 char debug= 0;
 char verbose= 0;
 
-#define MODE_QUOTE 	0x0
+#define MODE_ATTEST 0x0
 #define MODE_EPID 	0x1
-#define MODE_ATTEST	0x2
+#define MODE_QUOTE	0x2
 
 #define OPT_PSE		0x01
 #define OPT_NONCE	0x02
@@ -130,6 +117,12 @@ char verbose= 0;
 #define SET_OPT(x,y)	x|=y
 #define CLEAR_OPT(x,y)	x=x&~y
 #define OPT_ISSET(x,y)	x&y
+
+#ifdef _WIN32
+# define ENCLAVE_NAME "Enclave.signed.dll"
+#else
+# define ENCLAVE_NAME "Enclave.signed.so"
+#endif
 
 int main (int argc, char *argv[])
 {
@@ -167,25 +160,26 @@ int main (int argc, char *argv[])
 
 
 	memset(&config, 0, sizeof(config));
-	config.mode= MODE_QUOTE;
+	config.mode= MODE_ATTEST;
 
 	static struct option long_opt[] =
 	{
-		{"help",		no_argument, 		0, 'h'},
-		{"attest",		no_argument,		0, 'a'},
+		{"help",		no_argument,		0, 'h'},		
 		{"debug",		no_argument,		0, 'd'},
-		{"epid-gid",	        no_argument,		0, 'e'},
+		{"epid-gid",	no_argument,		0, 'e'},
 #ifdef PSE_SUPPORT
-		{"pse-manifest",	no_argument,    	0, 'm'},
+		{"pse-manifest",
+						no_argument,    	0, 'm'},
 #endif
 		{"nonce",		required_argument,	0, 'n'},
-		{"nonce-file",	        required_argument,	0, 'N'},
-		{"rand-nonce",          no_argument,            0, 'r'},
+		{"nonce-file",	required_argument,	0, 'N'},
+		{"rand-nonce",	no_argument,		0, 'r'},
 		{"spid",		required_argument,	0, 's'},
-		{"spid-file",	        required_argument,	0, 'S'},
-		{"linkable",	        no_argument,		0, 'l'},
+		{"spid-file",	required_argument,	0, 'S'},
+		{"linkable",	no_argument,		0, 'l'},
 		{"pubkey",		optional_argument,	0, 'p'},
-		{"pubkey-file",	        optional_argument,	0, 'P'},
+		{"pubkey-file",	required_argument,	0, 'P'},
+		{"quote",		no_argument,		0, 'q'},
 		{"verbose",		no_argument,		0, 'v'},
 		{ 0, 0, 0, 0 }
 	};
@@ -197,7 +191,7 @@ int main (int argc, char *argv[])
 		int opt_index= 0;
 		unsigned char keyin[64];
 
-		c= getopt_long(argc, argv, "N:P:S:adehlmn:p:rs:v", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "N:P:S:dehlmn:p:qrs:v", long_opt, &opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
@@ -237,9 +231,6 @@ int main (int argc, char *argv[])
 			}
 			++have_spid;
 
-			break;
-		case 'a':
-			config.mode= MODE_ATTEST;
 			break;
 		case 'd':
 			debug= 1;
@@ -285,6 +276,9 @@ int main (int argc, char *argv[])
 			SET_OPT(config.flags, OPT_PUBKEY);
 
 			break;
+		case 'q':
+			config.mode = MODE_QUOTE;
+			break;
 		case 'r':
 			for(i= 0; i< 2; ++i) {
 				int retry= 10;
@@ -327,8 +321,6 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 
-
-
 	/* Can we run SGX? */
 
 #ifndef SGX_HW_SIM
@@ -356,19 +348,19 @@ int main (int argc, char *argv[])
 	/* Launch the enclave */
 
 #ifdef _WIN32
-	status = sgx_create_enclave("EnclaveQuote.signed.dll", SGX_DEBUG_FLAG,
+	status = sgx_create_enclave(ENCLAVE_NAME, SGX_DEBUG_FLAG,
 		&token, &updated, &eid, 0);
 	if (status != SGX_SUCCESS) {
-		fprintf(stderr, "sgx_create_enclave: EnclaveQuote.signed.dll: %08x\n",
-			status);
+		fprintf(stderr, "sgx_create_enclave: %s: %08x\n",
+			ENCLAVE_NAME, status);
 		return 1;
 	}
 #else
-	status = sgx_create_enclave_search("EnclaveQuote.signed.so",
+	status = sgx_create_enclave_search(ENCLAVE_NAME,
 		SGX_DEBUG_FLAG, &token, &updated, &eid, 0);
 	if ( status != SGX_SUCCESS ) {
-		fprintf(stderr, "sgx_create_enclave: EnclaveQuote.signed.so: %08x\n",
-			status);
+		fprintf(stderr, "sgx_create_enclave: %s: %08x\n",
+			ENCLAVE_NAME, status);
 		if ( status == SGX_ERROR_ENCLAVE_FILE_ACCESS ) 
 			fprintf(stderr, "Did you forget to set LD_LIBRARY_PATH?\n");
 		return 1;
@@ -387,7 +379,7 @@ int main (int argc, char *argv[])
 	}
 
      
-        close_logfile(fplog);
+	close_logfile(fplog);
 }
 
 int do_attestation (sgx_enclave_id_t eid, config_t *config)
@@ -401,6 +393,12 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	uint32_t flags= config->flags;
 	sgx_ra_context_t ra_ctx= 0xdeadbeef;
 	int rv;
+	MsgIO *msgio;
+	Msg4 *msg4 = NULL;
+	size_t msg4sz = 0;
+	int enclaveTrusted = 1; // Not Trusted
+
+	msgio = new MsgIO();
 
 	/*
 	 * WARNING! Normally, the public key would be hardcoded into the
@@ -494,9 +492,9 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	 */
 
 	dividerWithText(stderr, "Copy/Paste Msg0||Msg1 Below to SP");
-	send_msg_partial(&msg0_extended_epid_group_id,
+	msgio->send_partial(&msg0_extended_epid_group_id,
 		sizeof(msg0_extended_epid_group_id));
-	send_msg(&msg1, sizeof(msg1));
+	msgio->send(&msg1, sizeof(msg1));
 	divider(stderr);
 
 	dividerWithText(fplog, "Msg0||Msg1 ==> SP");
@@ -513,7 +511,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	 * the end. msg2 is malloc'd in readZ_msg do free it when done.
 	 */
 
-	rv= read_msg((void **) &msg2, NULL);
+	rv= msgio->read((void **) &msg2, NULL);
 	if ( rv == 0 ) {
 		fprintf(stderr, "protocol error reading msg2\n");
 		exit(1);
@@ -635,7 +633,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	}
 
 	dividerWithText(stderr, "Copy/Paste Msg3 Below to SP");
-	send_msg(msg3, msg3_sz);
+	msgio->send(msg3, msg3_sz);
 	divider(stderr);
 
 	dividerWithText(fplog, "Msg3 ==> SP");
@@ -647,84 +645,78 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		msg3 = NULL;
 	}
  
-        /* Read Msg4 provided by Service Provider, then process */
-
-        Msg4 *msg4 = NULL;
-        size_t msg4sz = 0;
-        int enclaveTrusted = 1; // Not Trusted
+	/* Read Msg4 provided by Service Provider, then process */
         
-        read_msg((void **)&msg4, &msg4sz);
+	msgio->read((void **)&msg4, &msg4sz);
 
-        edividerWithText("Enclave Trust Status from Service Provider");
+	edividerWithText("Enclave Trust Status from Service Provider");
 
-        if ( msg4->trustStatus == Trusted ) {
-            eprintf("Enclave TRUSTED\n");
-            enclaveTrusted = 0; // Trusted
-        }
-        else if (msg4->trustStatus == NotTrusted ) {
-            eprintf("Enclave NOT TRUSTED\n");
-            enclaveTrusted = 1; // Not Trusted
-        }
-        else {
-            eprintf("Enclave Trust is OTHER\n");
-            enclaveTrusted = 2; // Not Trusted
-        }
+	if ( msg4->trustStatus == Trusted ) {
+		eprintf("Enclave TRUSTED\n");
+		enclaveTrusted = 0; // Trusted
+	}
+	else if (msg4->trustStatus == NotTrusted ) {
+		eprintf("Enclave NOT TRUSTED\n");
+		enclaveTrusted = 1; // Not Trusted
+	}
+	else {
+		eprintf("Enclave Trust is OTHER\n");
+		enclaveTrusted = 2; // Not Trusted
+	}
 
-        /* check to see if we have a PIB by comparing to empty PIB */
-        sgx_platform_info_t emptyPIB;
-        memset(&emptyPIB, 0, sizeof (sgx_platform_info_t));
+	/* check to see if we have a PIB by comparing to empty PIB */
+	sgx_platform_info_t emptyPIB;
+	memset(&emptyPIB, 0, sizeof (sgx_platform_info_t));
 
-        int retPibCmp = memcmp(&emptyPIB, (void *)(&msg4->platformInfoBlob), sizeof (sgx_platform_info_t));
+	int retPibCmp = memcmp(&emptyPIB, (void *)(&msg4->platformInfoBlob), sizeof (sgx_platform_info_t));
 
-        if (retPibCmp == 0 ) {
-            if ( verbose ) eprintf("A Platform Info Blob (PIB) was NOT provided by the IAS\n");
-        }
-        else {
-            if ( verbose ) eprintf("A Platform Info Blob (PIB) was provided by the IAS\n");
+	if (retPibCmp == 0 ) {
+		if ( verbose ) eprintf("A Platform Info Blob (PIB) was NOT provided by the IAS\n");
+	} else {
+		if ( verbose ) eprintf("A Platform Info Blob (PIB) was provided by the IAS\n");
 
-            if ( debug )  {
-                eprintf("+++ PIB: " );
-                print_hexstring(stderr, &msg4->platformInfoBlob, sizeof (sgx_platform_info_t));
-                print_hexstring(fplog, &msg4->platformInfoBlob, sizeof (sgx_platform_info_t));
-                eprintf("\n");
-            }
+		if ( debug )  {
+			eprintf("+++ PIB: " );
+			print_hexstring(stderr, &msg4->platformInfoBlob, sizeof (sgx_platform_info_t));
+			print_hexstring(fplog, &msg4->platformInfoBlob, sizeof (sgx_platform_info_t));
+			eprintf("\n");
+		}
 
-            /* We have a PIB, so check to see if there are actions to take */
-            sgx_update_info_bit_t update_info;
-            sgx_status_t ret = sgx_report_attestation_status(&msg4->platformInfoBlob, 
-                                                             enclaveTrusted, 
-                                                             &update_info);
+		/* We have a PIB, so check to see if there are actions to take */
+		sgx_update_info_bit_t update_info;
+		sgx_status_t ret = sgx_report_attestation_status(&msg4->platformInfoBlob, 
+			enclaveTrusted, &update_info);
 
-            if ( debug )  eprintf("+++ sgx_report_attestation_status ret = 0x%4x\n", ret);
+		if ( debug )  eprintf("+++ sgx_report_attestation_status ret = 0x%4x\n", ret);
 
-             edivider();
+		edivider();
 
-            /* Check to see if there is an update needed */
-            if ( ret == SGX_ERROR_UPDATE_NEEDED ) {
+		/* Check to see if there is an update needed */
+		if ( ret == SGX_ERROR_UPDATE_NEEDED ) {
 
-                edividerWithText("Platform Update Required");
-                eprintf("The following Platform Update(s) are required to bring this\n");
-                eprintf("platform's Trusted Computing Base (TCB) back into compliance:\n");
-                if( update_info.pswUpdate ) {
-                    eprintf("\t* Intel SGX Platform Software needs to be updated to the latest version.\n");
-                }
+			edividerWithText("Platform Update Required");
+			eprintf("The following Platform Update(s) are required to bring this\n");
+			eprintf("platform's Trusted Computing Base (TCB) back into compliance:\n");
+			if( update_info.pswUpdate ) {
+				eprintf("\t* Intel SGX Platform Software needs to be updated to the latest version.\n");
+			}
 
-                if( update_info.csmeFwUpdate ) {
-                    eprintf("\t* The Intel Management Engine Firmware Needs to be Updated.  Contact your OEM for a BIOS Update.\n");
-                }
+			if( update_info.csmeFwUpdate ) {
+				eprintf("\t* The Intel Management Engine Firmware Needs to be Updated.  Contact your OEM for a BIOS Update.\n");
+			}
 
-                if( update_info.ucodeUpdate )  {
-                    eprintf("\t* The CPU Microcode needs to be updated.  Contact your OEM for a platform BIOS Update.\n");
-                }                                           
+			if( update_info.ucodeUpdate )  {
+				eprintf("\t* The CPU Microcode needs to be updated.  Contact your OEM for a platform BIOS Update.\n");
+			}                                           
                 
-                edivider();      
-            }
-        }
+			edivider();      
+		}
+	}
 
-        if ( msg4 ) {
-            free (msg4);
-            msg4 = NULL;
-        }
+	if ( msg4 ) {
+		free (msg4);
+		msg4 = NULL;
+	}
    
 	return 0;
 }

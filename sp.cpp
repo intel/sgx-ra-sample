@@ -452,7 +452,7 @@ int main(int argc, char *argv[])
 			ias->client_key(keyfile, passwd);
 
 #ifdef _WIN32
-			memset_s(passwd, 0, sz);
+			SecureZeroMemory(passwd, sz);
 #else
 			// -fno-builtin-memset prevents optimizing this away 
 			memset(passwd, 0, sz);

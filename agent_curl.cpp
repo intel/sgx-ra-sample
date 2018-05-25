@@ -163,7 +163,7 @@ int AgentCurl::initialize ()
 		}
 		CURLcode ccode= curl_easy_setopt(curl, CURLOPT_KEYPASSWD, passwd);
 #ifdef _WIN32
-		memset_s(passwd, 0, pwlen);
+		SecureZeroMemory(passwd, pwlen);
 #else
 		memset(passwd, 0, pwlen);
 #endif

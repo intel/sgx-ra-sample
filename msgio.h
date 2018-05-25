@@ -1,9 +1,27 @@
+/*
+
+Copyright 2018 Intel Corporation
+
+This software and the related documents are Intel copyrighted materials,
+and your use of them is governed by the express license under which they
+were provided to you (License). Unless the License provides otherwise,
+you may not use, modify, copy, publish, distribute, disclose or transmit
+this software or the related documents without Intel's prior written
+permission.
+
+This software and the related documents are provided as is, with no
+express or implied warranties, other than those that are expressly stated
+in the License.
+
+*/
+
 #ifndef __MSGIO_H
 #define __MSGIO_H
 
 #include <sys/types.h>
 #include <sgx_urts.h>
 #include <stdio.h>
+#include <Winsock2.h>
 
 #define STRUCT_INCLUDES_PSIZE	0
 #define STRUCT_OMITS_PSIZE		1
@@ -12,6 +30,29 @@
 #define BUFFER_SZ	1024*1024
 
 #ifdef __cplusplus
+#include <string>
+using namespace std;
+
+#ifndef _WIN32
+typedef int SOCKET;
+#endif
+
+class MsgIO {
+	string buffer;
+	bool use_stdio;
+	SOCKET sread, swrite;
+
+public:
+	MsgIO();
+	MsgIO(const char *server, uint16_t port);
+	~MsgIO();
+
+	int read(void **dest, size_t *sz);
+
+	void send_partial(void *buf, size_t f_size);
+	void send(void *buf, size_t f_size);
+};
+
 extern "C" {
 #endif
 
@@ -29,5 +70,6 @@ void fsend_msg(FILE *fp, void *buf, size_t f_size);
 #ifdef __cplusplus
 };
 #endif
+
 
 #endif

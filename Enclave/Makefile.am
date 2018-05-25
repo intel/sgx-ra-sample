@@ -52,7 +52,7 @@ SGX_EDGER8R_FLAGS=--search-path ..
 ##
 ##    libexec_PROGRAMS=$(ENCLAVE)
 
-ENCLAVE=EnclaveQuote
+ENCLAVE=Enclave
 ENCLAVE_CONFIG=$(ENCLAVE).config.xml
 ENCLAVE_KEY=$(ENCLAVE)_private.pem
 
@@ -67,14 +67,14 @@ AM_CPPFLAGS += -I..
 ## Additional files to remove with 'make clean'. This list needs
 ## to include your edger8r genreated files.
 
-CLEANFILES+= EnclaveQuote_t.c EnclaveQuote_t.h 
+CLEANFILES+= $(ENCLAVE)_t.c $(ENCLAVE)_t.h 
 
 
 ## Put your sources here. Don't forget to list the _t.c and _t.h 
 ## files. You can't use the $(ENCLAVE) variable in the build
 ## target name (i.e., $(ENCLAVE)_SOURCES will not work).
 
-EnclaveQuote_SOURCES = EnclaveQuote_t.c EnclaveQuote_t.h EnclaveQuote.cpp \
+EnclaveQuote_SOURCES = $(ENCLAVE)_t.c $(ENCLAVE)_t.h $(ENCLAVE).cpp \
 	$(ENCLAVE_KEY) $(ENCLAVE_CONFIG)
 
 

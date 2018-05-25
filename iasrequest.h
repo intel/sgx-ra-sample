@@ -102,7 +102,7 @@ public:
 	string client_key_file() { return c_key_file; }
 	int client_key_passwd(char **passwd, size_t *len);
 
-	int ca_bundle(const char *file) { c_ca_file= file; }
+	void ca_bundle(const char *file) { c_ca_file= file; }
 	string ca_bundle() { return c_ca_file; }
 
 	/* Internal cert store for verifying the IAS Signing certificate */

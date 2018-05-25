@@ -18,90 +18,90 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\agent.h">
+    <ClInclude Include="..\..\agent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\common.h">
+    <ClInclude Include="..\..\agent_curl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\base64.h">
+    <ClInclude Include="..\..\base64.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\byteorder.h">
+    <ClInclude Include="..\..\byteorder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\crypto.h">
+    <ClInclude Include="..\..\common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\fileio.h">
+    <ClInclude Include="..\..\crypto.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\hexutil.h">
+    <ClInclude Include="..\..\fileio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\iasrequest.h">
+    <ClInclude Include="..\..\hexutil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\logfile.h">
+    <ClInclude Include="..\..\httpparser\httpresponseparser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\protocol.h">
+    <ClInclude Include="..\..\httpparser\response.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\msgio.h">
+    <ClInclude Include="..\..\iasrequest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\json.hpp">
+    <ClInclude Include="..\..\json.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\httpparser\httpresponseparser.h">
+    <ClInclude Include="..\..\logfile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\httpparser\response.h">
+    <ClInclude Include="..\..\msgio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\win32\getopt.h">
+    <ClInclude Include="..\..\protocol.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\agent_curl.h">
+    <ClInclude Include="..\..\win32\getopt.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\base64.c">
+    <ClCompile Include="..\..\agent_curl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\byteorder.c">
+    <ClCompile Include="..\..\base64.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\common.cpp">
+    <ClCompile Include="..\..\byteorder.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\crypto.c">
+    <ClCompile Include="..\..\common.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\fileio.c">
+    <ClCompile Include="..\..\crypto.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\hexutil.c">
+    <ClCompile Include="..\..\fileio.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\iasrequest.cpp">
+    <ClCompile Include="..\..\hexutil.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\logfile.c">
+    <ClCompile Include="..\..\iasrequest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\msgio.c">
+    <ClCompile Include="..\..\logfile.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\sp.cpp">
+    <ClCompile Include="..\..\msgio.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\win32\getopt.c">
+    <ClCompile Include="..\..\sp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\agent_curl.cpp">
+    <ClCompile Include="..\..\win32\getopt.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

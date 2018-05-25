@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sgx-quote-creator", "sgx-quote-creator.vcxproj", "{B3A2EB36-46B7-4E03-8F5B-0A0789E65B81}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "quote", "client.vcxproj", "{B3A2EB36-46B7-4E03-8F5B-0A0789E65B81}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EnclaveQuote", "EnclaveQuote\EnclaveQuote.vcxproj", "{70F098CB-CB16-46DC-883D-E556EB19DE45}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Enclave", "..\..\Enclave\Enclave.vcxproj", "{AF56EBDD-7212-481E-82AE-665F56A665FB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,22 +35,22 @@ Global
 		{B3A2EB36-46B7-4E03-8F5B-0A0789E65B81}.Simulation|x64.Build.0 = Simulation|x64
 		{B3A2EB36-46B7-4E03-8F5B-0A0789E65B81}.Simulation|x86.ActiveCfg = Simulation|Win32
 		{B3A2EB36-46B7-4E03-8F5B-0A0789E65B81}.Simulation|x86.Build.0 = Simulation|Win32
-		{70F098CB-CB16-46DC-883D-E556EB19DE45}.Debug|x64.ActiveCfg = Debug|x64
-		{70F098CB-CB16-46DC-883D-E556EB19DE45}.Debug|x64.Build.0 = Debug|x64
-		{70F098CB-CB16-46DC-883D-E556EB19DE45}.Debug|x86.ActiveCfg = Debug|Win32
-		{70F098CB-CB16-46DC-883D-E556EB19DE45}.Debug|x86.Build.0 = Debug|Win32
-		{70F098CB-CB16-46DC-883D-E556EB19DE45}.Prerelease|x64.ActiveCfg = Prerelease|x64
-		{70F098CB-CB16-46DC-883D-E556EB19DE45}.Prerelease|x64.Build.0 = Prerelease|x64
-		{70F098CB-CB16-46DC-883D-E556EB19DE45}.Prerelease|x86.ActiveCfg = Prerelease|Win32
-		{70F098CB-CB16-46DC-883D-E556EB19DE45}.Prerelease|x86.Build.0 = Prerelease|Win32
-		{70F098CB-CB16-46DC-883D-E556EB19DE45}.Release|x64.ActiveCfg = Release|x64
-		{70F098CB-CB16-46DC-883D-E556EB19DE45}.Release|x64.Build.0 = Release|x64
-		{70F098CB-CB16-46DC-883D-E556EB19DE45}.Release|x86.ActiveCfg = Release|Win32
-		{70F098CB-CB16-46DC-883D-E556EB19DE45}.Release|x86.Build.0 = Release|Win32
-		{70F098CB-CB16-46DC-883D-E556EB19DE45}.Simulation|x64.ActiveCfg = Simulation|x64
-		{70F098CB-CB16-46DC-883D-E556EB19DE45}.Simulation|x64.Build.0 = Simulation|x64
-		{70F098CB-CB16-46DC-883D-E556EB19DE45}.Simulation|x86.ActiveCfg = Simulation|Win32
-		{70F098CB-CB16-46DC-883D-E556EB19DE45}.Simulation|x86.Build.0 = Simulation|Win32
+		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Debug|x64.ActiveCfg = Debug|x64
+		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Debug|x64.Build.0 = Debug|x64
+		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Debug|x86.ActiveCfg = Debug|Win32
+		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Debug|x86.Build.0 = Debug|Win32
+		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Prerelease|x64.ActiveCfg = Prerelease|x64
+		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Prerelease|x64.Build.0 = Prerelease|x64
+		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Prerelease|x86.ActiveCfg = Prerelease|Win32
+		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Prerelease|x86.Build.0 = Prerelease|Win32
+		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Release|x64.ActiveCfg = Release|x64
+		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Release|x64.Build.0 = Release|x64
+		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Release|x86.ActiveCfg = Release|Win32
+		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Release|x86.Build.0 = Release|Win32
+		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Simulation|x64.ActiveCfg = Simulation|x64
+		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Simulation|x64.Build.0 = Simulation|x64
+		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Simulation|x86.ActiveCfg = Simulation|Win32
+		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Simulation|x86.Build.0 = Simulation|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

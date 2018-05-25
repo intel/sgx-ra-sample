@@ -31,7 +31,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef _WIN32
 #include "config.h"
+#endif
 #include <string.h>
 #include <stdio.h>
 #include <openssl/rand.h>
@@ -39,8 +41,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "crypto.h"
 #include "common.h"
 #include "agent.h"
-#ifndef _WIN32
-# define AGENT_WGET 1
+#ifdef _WIN32
+# define AGENT_CURL
+#else
+# define AGENT_WGET
 #endif
 #ifdef AGENT_WGET
 # include "agent_wget.h"
@@ -189,7 +193,7 @@ int IAS_Connection::client_key(const char *file, const char *passwd)
 			return 0;
 		}
 
-		RAND_bytes(c_xor, c_pwlen);
+		RAND_bytes(c_xor, (int) c_pwlen);
 		for (i= 0; i< c_pwlen; ++i) c_key_passwd[i]=
 			(unsigned char) passwd[i]^c_xor[i];
 	}

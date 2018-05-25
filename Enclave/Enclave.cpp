@@ -1,40 +1,24 @@
 /*
 
-Copyright 2017 Intel Corporation
+Copyright 2018 Intel Corporation
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
+This software and the related documents are Intel copyrighted materials,
+and your use of them is governed by the express license under which they
+were provided to you (License). Unless the License provides otherwise,
+you may not use, modify, copy, publish, distribute, disclose or transmit
+this software or the related documents without Intel's prior written
+permission.
 
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
-TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+This software and the related documents are provided as is, with no
+express or implied warranties, other than those that are expressly stated
+in the License.
 
 */
 
 #ifndef _WIN32
 #include "../config.h"
 #endif
-#include "EnclaveQuote_t.h"
+#include "Enclave_t.h"
 #include <string.h>
 #include <sgx_utils.h>
 #include <sgx_tae_service.h>
@@ -61,15 +45,15 @@ static const sgx_ec256_public_t def_service_public_key = {
  *----------------------------------------------------------------------
  *
  * End developers should not normally be calling these functions
- * directly when doing remote attestation: 
+ * directly when doing remote attestation:
  *
  *    sgx_get_ps_sec_prop()
  *    sgx_get_quote()
  *    sgx_get_quote_size()
  *    sgx_get_report()
  *    sgx_init_quote()
- * 
- * These functions short-circuits the RA process in order 
+ *
+ * These functions short-circuits the RA process in order
  * to generate an enclave quote directly!
  *
  * The high-level functions provided for remote attestation take
@@ -127,7 +111,7 @@ sgx_status_t get_pse_manifest(char *buf, size_t sz)
 	return status;
 }
 
-sgx_status_t enclave_ra_init(sgx_ec256_public_t key, int b_pse, 
+sgx_status_t enclave_ra_init(sgx_ec256_public_t key, int b_pse,
 	sgx_ra_context_t *ctx)
 {
 	sgx_status_t status= sgx_ra_init(&key, b_pse, ctx);
