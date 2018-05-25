@@ -517,7 +517,12 @@ int main(int argc, char *argv[])
 	if ( flag_stdio ) {
 		msgio= new MsgIO();
 	} else {
-		msgio= new MsgIO(NULL, (port == NULL) ? DEFAULT_PORT : port);
+		try {
+			msgio= new MsgIO(NULL, (port == NULL) ? DEFAULT_PORT : port);
+		}
+		catch(...) {
+			return 1;
+		}
 	}
 
 	/* Read message 0 and 1, then generate message 2 */

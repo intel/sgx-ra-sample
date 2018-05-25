@@ -180,6 +180,8 @@ int MsgIO::read(void **dest, size_t *sz)
 	 * newline.
 	 */
 
+	if ( sz ) *sz= 0;
+
 	while (repeat) {
 again:
 		bread= recv(s, lbuffer, sizeof(lbuffer), 0);
@@ -204,7 +206,7 @@ again:
 				eprintf("read odd byte count %zu\n", idx);
 				return 0;
 			}
-			if ( sz != NULL ) *sz= idx/2;
+			if ( sz != NULL ) *sz+= idx/2;
 
 			*dest= (char *) malloc(idx/2);
 			if ( *dest == NULL ) {
