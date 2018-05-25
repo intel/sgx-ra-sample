@@ -30,17 +30,17 @@ using namespace std;
 #define STRUCT_INCLUDES_PSIZE	0
 #define STRUCT_OMITS_PSIZE		1
 
-/* A 1MB buffer should be sufficient for demo purposes */
-#define BUFFER_SZ	1024*1024
-
 #ifndef _WIN32
 typedef int SOCKET;
 #endif
+
+#define MSGIO_BUFFER_SZ   1024*1024
 
 class MsgIO {
 	string buffer;
 	bool use_stdio;
 	SOCKET sread, swrite;
+	char buffer[MSGIO_BUFFER_SZ];
 
 public:
 	MsgIO();

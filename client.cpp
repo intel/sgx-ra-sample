@@ -83,6 +83,8 @@ typedef struct config_struct {
 	sgx_spid_t spid;
 	sgx_ec256_public_t pubkey;
 	sgx_quote_nonce_t nonce;
+	char *server;
+	char *port;
 } config_t;
 
 int file_in_searchpath (const char *file, const char *search, char *fullpath,
@@ -136,6 +138,7 @@ int main (int argc, char *argv[])
 	uint32_t i;
 	EVP_PKEY *service_public_key= NULL;
 	char have_spid= 0;
+	char flag_stdio= 0;
 
 	/* Create a logfile to capture debug output and actual msg data */
 	fplog = create_logfile("client.log");
@@ -182,6 +185,7 @@ int main (int argc, char *argv[])
 		{"pubkey-file",	required_argument,	0, 'P'},
 		{"quote",		no_argument,		0, 'q'},
 		{"verbose",		no_argument,		0, 'v'},
+		{"stdio",		no_argument,		0, 'z'},
 		{ 0, 0, 0, 0 }
 	};
 
@@ -310,10 +314,37 @@ int main (int argc, char *argv[])
 		case 'v':
 			verbose= 1;
 			break;
+		case 'z':
+			flag_stdio= 1;
+			break;
 		case 'h':
 		case '?':
 		default:
 			usage();
+		}
+	}
+
+	argc-= optind;
+	if ( argc > 1 ) usage();
+
+	/* Remaining argument is host[:port] */
+
+	if ( flag_stdio && argc ) {
+		usage();
+	} else if ( argc ) {
+		char *cp;
+
+		config.server= strdup(argv[optind]);
+		if ( config.server == NULL ) {
+			perror("malloc");
+			return 1;
+		}
+		
+		/* If there's a : then we have a port, too */
+		cp= strchr(config.server, ':');
+		if ( cp != NULL ) {
+			*cp++= '\0';
+			config.port= cp;
 		}
 	}
 
