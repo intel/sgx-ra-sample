@@ -1222,7 +1222,10 @@ void usage ()
 "  -v, --verbose            Be verbose. Print message structure details and the" NL
 "                             results of intermediate operations to stderr." NL
 "  -x, --no-proxy           Do not use a proxy (force a direct connection), " NL
-"                             overriding environment." <<endl;
+"                             overriding environment." NL
+"  -z  --stdio              Read from stdin and write to stdout instead of" NL
+"                             running as a network server." <<endl;
+
 	::exit(1);
 }
 

@@ -1057,7 +1057,7 @@ int file_in_searchpath (const char *file, const char *search, char *fullpath,
 
 void usage () 
 {
-	fprintf(stderr, "usage: quote [ options ]\n\n");
+	fprintf(stderr, "usage: client [ options ] host[:port]\n\n");
 	fprintf(stderr, "Required:\n");
 	fprintf(stderr, "  -N, --nonce-file=FILE    Set a nonce from a file containing a 32-byte\n");
 	fprintf(stderr, "                             ASCII hex string\n");
@@ -1078,6 +1078,8 @@ void usage ()
 	fprintf(stderr, "  -r                       Generate a nonce using RDRAND\n");
 	fprintf(stderr, "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string\n");
 	fprintf(stderr, "  -v, --verbose			Print decoded RA messages to stderr\n");
+	fprintf(stderr, "  -z                       Read from stdin and write to stdout instead\n");
+	fprintf(stderr, "                             conneting to a server.\n");
 	fprintf(stderr, "\nOne of --spid OR --spid-file is required for generating a quote or doing\nremote attestation.\n");
 	exit(1);
 }
