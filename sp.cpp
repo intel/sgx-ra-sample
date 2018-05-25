@@ -132,6 +132,7 @@ int main(int argc, char *argv[])
 	char flag_usage = 0;
 	char flag_noproxy= 0;
 	char flag_prod= 0;
+	char flag_stdio= 0;
 	char *sigrl = NULL;
 	config_t config;
 	sgx_ra_msg2_t msg2;
@@ -139,6 +140,7 @@ int main(int argc, char *argv[])
 	int oops;
 	IAS_Connection *ias= NULL;
 	MsgIO *msgio;
+	char *port= NULL;
 
 	/* Command line options */
 
@@ -168,6 +170,7 @@ int main(int argc, char *argv[])
 		{"ias-cert-type",	required_argument,	0, 't'},
 		{"verbose",			no_argument,		0, 'v'},
 		{"no-proxy",		no_argument,		0, 'x'},
+		{"stdio",			no_argument,		0, 'z'},
 		{ 0, 0, 0, 0 }
 	};
 
@@ -192,7 +195,7 @@ int main(int argc, char *argv[])
 		int c;
 		int opt_index = 0;
 
-		c = getopt_long(argc, argv, "A:B:C:E:GK:S:Y:dg:hk:lp:r:s:t:vx", long_opt, &opt_index);
+		c = getopt_long(argc, argv, "A:B:C:E:GK:S:Y:dg:hk:lp:r:s:t:vxz", long_opt, &opt_index);
 		if (c == -1) break;
 
 		switch (c) {
@@ -323,6 +326,9 @@ int main(int argc, char *argv[])
 			if ( config.proxy_server != NULL ) usage();
 			flag_noproxy=1;
 			break;
+		case 'z':
+			flag_stdio= 1;
+			break;
 		case 'h':
 		case '?':
 		default:
@@ -330,9 +336,18 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	/* Get our message IO object */
+	/* There should be 0 or 1 aguments left on the command line */
 
-	msgio= new MsgIO();
+	argc-= optind;
+	if ( argc > 1 ) usage();
+
+	/* The remaining argument, if present, is the port number. */
+
+	if ( flag_stdio && argc ) {
+		usage();
+	} else if ( argc ) {
+		port= argv[optind];
+	}
 
 	/* Use the default CA bundle unless one is provided */
 
@@ -493,6 +508,17 @@ int main(int argc, char *argv[])
 	 * will fall back to it's default.
 	 */
 	if ( strlen(config.ca_bundle) ) ias->ca_bundle(config.ca_bundle);
+
+	/* 
+	 * Get our message IO object. If we're running in server mode,
+	 * we'll block here.
+	 */
+	
+	if ( flag_stdio ) {
+		msgio= new MsgIO();
+	} else {
+		msgio= new MsgIO(NULL, (port == NULL) ? DEFAULT_PORT : port);
+	}
 
 	/* Read message 0 and 1, then generate message 2 */
 
@@ -1151,7 +1177,7 @@ int get_proxy(char **server, unsigned int *port, const char *url)
 
 void usage () 
 {
-	cerr << "usage: sp [ options ] " NL
+	cerr << "usage: sp [ options ] [ port ]" NL
 "Required:" NL
 "  -A, --ias-signing-cafile=FILE" NL
 "                           Specify the IAS Report Signing CA file." NL

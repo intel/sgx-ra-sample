@@ -30,6 +30,11 @@ using namespace std;
 #define STRUCT_INCLUDES_PSIZE	0
 #define STRUCT_OMITS_PSIZE		1
 
+/* A 1MB buffer should be sufficient for demo purposes */
+#define MSGIO_BUFFER_SZ	1024*1024
+
+#define DEFAULT_PORT	"7777"		// A C string for getaddrinfo()
+
 #ifndef _WIN32
 typedef int SOCKET;
 #endif
@@ -37,14 +42,14 @@ typedef int SOCKET;
 #define MSGIO_BUFFER_SZ   1024*1024
 
 class MsgIO {
-	string buffer;
+	string wbuffer, rbuffer;
+	char lbuffer[MSGIO_BUFFER_SZ];
 	bool use_stdio;
-	SOCKET sread, swrite;
-	char buffer[MSGIO_BUFFER_SZ];
+	SOCKET s;
 
 public:
 	MsgIO();
-	MsgIO(const char *server, uint16_t port);
+	MsgIO(const char *server, const char *port);
 	~MsgIO();
 
 	int read(void **dest, size_t *sz);

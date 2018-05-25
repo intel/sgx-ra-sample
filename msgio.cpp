@@ -19,6 +19,8 @@ in the License.
 #include <stdlib.h>
 #include <string.h>
 #include <sgx_urts.h>
+#include <arpa/inet.h>
+#include <sys/select.h>
 #ifdef _WIN32
 # include <Windows.h>
 # include <winsock2.h>
@@ -41,10 +43,8 @@ in the License.
 
 using namespace std;
 
-#define BUFFER_SZ	1024*1024
-
 static char *buffer = NULL;
-static uint32_t buffer_size = BUFFER_SZ;
+static uint32_t buffer_size = MSGIO_BUFFER_SZ;
 
 /* With no arguments, we read/write to stdin/stdout using stdio */
 
@@ -55,14 +55,16 @@ MsgIO::MsgIO()
 
 /* Connect to a remote server and port, and use socket IO */
 
-MsgIO::MsgIO(const char *server, uint16_t port)
+MsgIO::MsgIO(const char *peer, const char *port)
 {
 #ifdef _WIN32
 	WSADATA wsa;
 #endif
-	int rv;
-	struct addrinfo *ainfo, hints;
+	int rv, proto;
+	struct addrinfo *addrs, *addr, hints;
+	SOCKET ts;
 
+	use_stdio= false;
 #ifdef _WIN32
 	rv = WSAStartup(MAKEWORD(2, 2), &wsa);
 	if (rv != 0) {
@@ -70,7 +72,6 @@ MsgIO::MsgIO(const char *server, uint16_t port)
 		throw std::runtime_error("WSAStartup failed");
 	}
 #endif
-	/* Listening socket */
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;
@@ -78,16 +79,86 @@ MsgIO::MsgIO(const char *server, uint16_t port)
 	hints.ai_flags = AI_PASSIVE;
 	hints.ai_protocol = IPPROTO_TCP;
 
-	rv= getaddrinfo(NULL, server, &hints, &ainfo);
+	rv= getaddrinfo(peer, port, &hints, &addrs);
 	if (rv != 0) {		
 		eprintf("getaddrinfo: %s\n", gai_strerror(rv));
 		throw std::runtime_error("getaddrinfo failed");
 	}
-	
-	/* Sending socket */
-#ifdef _WIN32
 
-#endif
+	for (addr= addrs; addr != NULL; addr= addr->ai_next)
+	{
+		proto= addr->ai_family;
+		ts= socket(addr->ai_family, addr->ai_socktype,
+			addr->ai_protocol);
+		if ( ts == -1 ) {
+			perror("socket");
+			continue;
+		}
+
+		if ( peer == NULL ) { 	// We're the server
+			if ( bind(ts, addr->ai_addr, addr->ai_addrlen) == 0 ) break;
+		} else {
+			if ( connect(ts, addr->ai_addr, addr->ai_addrlen) == 0 ) break;
+		}
+
+		perror("bind");
+		close(ts);
+	}
+
+	freeaddrinfo(addrs);
+
+	if ( ts == -1 ) {
+		throw std::runtime_error("could not establish socket");
+	}
+
+	if ( peer == NULL ) {	// Server here. Create our listening socket.
+		int enable= 1;
+		sockaddr cliaddr;
+		socklen_t slen= sizeof(sockaddr);
+
+		setsockopt(ts, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable));
+		setsockopt(ts, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(enable));
+		if ( listen(ts, 5) == -1 ) { // The "traditional" backlog value in UNIX
+			perror("listen");
+			throw std::runtime_error("could not listen on socket");
+		}
+		
+		// We have a very simple server: it will block until we get a 
+		// connection.
+
+		eprintf("Listening for connections on port %s\n", port);
+
+		s= accept(ts, &cliaddr, &slen);
+		if ( s == -1 ) {
+			perror("accept");
+			throw std::runtime_error("could not listen on socket");
+		}
+
+		eprintf("Connected: ");
+
+		// A client has connected.
+
+		if ( proto == AF_INET ) {
+			char clihost[INET_ADDRSTRLEN];
+			struct sockaddr_in *saddr= (struct sockaddr_in *) &cliaddr;
+
+			if ( inet_ntop(proto, &(saddr->sin_addr), clihost,
+				sizeof(clihost)) != NULL ) {
+
+				eprintf("%s", clihost);
+			} else eprintf("(could not translate network address)\n");
+		} else if ( proto == AF_INET6 ) {
+			char clihost[INET6_ADDRSTRLEN];
+
+			if ( inet_ntop(proto, (struct sockaddr_in6 *) &cliaddr, clihost,
+				sizeof(clihost)) != NULL ) {
+
+				eprintf("%s", clihost);
+			} else eprintf("(could not translate network address)\n");
+		}
+		eprintf("\n");
+
+	}
 }
 
 MsgIO::~MsgIO()
@@ -96,14 +167,87 @@ MsgIO::~MsgIO()
 
 int MsgIO::read(void **dest, size_t *sz)
 {
+	ssize_t bread= 0;
+	bool repeat= true;
+	int ws;
+
 	if (use_stdio) return read_msg(dest, sz);
+
+	/* 
+	 * We don't know how many bytes are coming, so read until we find a
+	 * newline.
+	 */
+
+	while (repeat) {
+again:
+		bread= recv(s, lbuffer, sizeof(lbuffer), 0);
+		if ( bread == -1 ) {
+			if ( errno == EINTR ) goto again;
+			perror("recv");
+			return -1;
+		}
+		if ( bread > 0 ) {
+			size_t idx;
+
+			rbuffer.append(lbuffer, bread);
+			idx= rbuffer.find("\r\n");
+			if ( idx == string::npos ) {
+				idx= rbuffer.find('\n');
+				if ( idx == string::npos ) continue;
+				ws= 1;
+			} else ws= 2;
+
+			if ( idx == 0 ) return 1;
+			else if ( idx %2 ) {
+				eprintf("read odd byte count %zu\n", idx);
+				return 0;
+			}
+			if ( sz != NULL ) *sz= idx/2;
+
+			*dest= (char *) malloc(idx/2);
+			if ( *dest == NULL ) {
+				perror("malloc");
+				return -1;
+			}
+
+			from_hexstring((unsigned char *) *dest, rbuffer.c_str(), idx/2);
+			rbuffer.erase(0, idx+ws);
+
+			return 1;
+		} else return 0;
+	}
+	
+	return -1;
 }
 
 void MsgIO::send(void *src, size_t sz)
 {
+	ssize_t bsent;
+	size_t len;
+
 	if (use_stdio) {
 		send_msg(src, sz);
 		return;
+	}
+
+	wbuffer.append(hexstring(src, sz));
+	wbuffer.append("\n");
+
+	while ( len= wbuffer.length() ) {
+again:
+		bsent= ::send(s, wbuffer.c_str(), len, 0);
+		if ( bsent == -1 ) {
+			if (errno == EINTR) goto again;
+			perror("send");
+			return;
+		}
+
+		if ( bsent == len ) {
+			wbuffer.clear();
+			return;
+		}
+		
+		wbuffer.erase(0, bsent);
 	}
 }
 
@@ -113,6 +257,8 @@ void MsgIO::send_partial(void *src, size_t sz)
 		send_msg_partial(src, sz);
 		return;
 	}
+
+	wbuffer.append(hexstring(src, sz));
 }
 
 /*
@@ -132,6 +278,8 @@ void MsgIO::send_partial(void *src, size_t sz)
 *
 */
 
+
+/* Note that these were written back when this was pure C */
 
 int read_msg(void **dest, size_t *sz)
 {
@@ -171,7 +319,7 @@ int read_msg(void **dest, size_t *sz)
 			--bread;	/* Discard the newline */
 		}
 		else {
-			buffer_size += BUFFER_SZ;
+			buffer_size += MSGIO_BUFFER_SZ;
 			buffer = (char *) realloc(buffer, buffer_size);
 			if (buffer == NULL) return -1;
 		}
