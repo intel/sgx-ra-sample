@@ -193,6 +193,7 @@ again:
 		if ( bread > 0 ) {
 			size_t idx;
 
+			if ( debug ) eprintf("+++ read %ld bytes from socket\n", bread);
 			rbuffer.append(lbuffer, bread);
 			idx= rbuffer.find("\r\n");
 			if ( idx == string::npos ) {
@@ -206,7 +207,7 @@ again:
 				eprintf("read odd byte count %zu\n", idx);
 				return 0;
 			}
-			if ( sz != NULL ) *sz+= idx/2;
+			if ( sz != NULL ) *sz= idx;
 
 			*dest= (char *) malloc(idx/2);
 			if ( *dest == NULL ) {

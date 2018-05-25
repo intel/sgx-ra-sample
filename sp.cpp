@@ -661,8 +661,6 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, ra_msg4_t *msg4,
 		edivider();
 	}
 
-	return 0;
-
 	if ( get_attestation_report(ias, config->apiver, b64quote,
 		msg3->ps_sec_prop, msg4) ) {
 
