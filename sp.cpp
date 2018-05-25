@@ -607,6 +607,9 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, ra_msg4_t *msg4,
 	 * Total message size is sz/2 since the income message is in base16.
 	 */
 	quote_sz = (uint32_t)((sz / 2) - sizeof(sgx_ra_msg3_t));
+	if ( debug ) {
+		eprintf("+++ quote_sz= %lu bytes\n", quote_sz);
+	}
 
 	/* Encode the report body as base64 */
 
@@ -652,6 +655,8 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, ra_msg4_t *msg4,
 		eprintf("\n");
 		edivider();
 	}
+
+	return 0;
 
 	if ( get_attestation_report(ias, config->apiver, b64quote,
 		msg3->ps_sec_prop, msg4) ) {
