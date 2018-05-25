@@ -434,8 +434,13 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	if ( config->server == NULL ) {
 		msgio = new MsgIO();
 	} else {
-		msgio = new MsgIO(config->server, (config->port == NULL) ?
-			DEFAULT_PORT : config->port);
+		try {
+			msgio = new MsgIO(config->server, (config->port == NULL) ?
+				DEFAULT_PORT : config->port);
+		}
+		catch(...) {
+			exit(1);
+		}
 	}
 
 	/*
