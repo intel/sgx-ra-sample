@@ -82,8 +82,8 @@ struct Response {
 	// Case-insensitive string comparison - JM
 	bool is_equal_ncase(std::string a, std::string b) const
 	{
-		transform(a.begin(), a.end(), a.begin(), toupper);
-		transform(b.begin(), b.end(), b.begin(), toupper);
+		transform(a.begin(), a.end(), a.begin(), ::toupper);
+		transform(b.begin(), b.end(), b.begin(), ::toupper);
 		return ( a == b );
 	}
 

@@ -24,15 +24,22 @@ in the License.
 # include <winsock2.h>
 # include <ws2tcpip.h>
 
-#pragma comment(lib, "Ws2_32.lib")
-#pragma comment(lib, "Mswsock.lib")
-#pragma comment(lib, "AdvApi32.lib")
+# pragma comment(lib, "Ws2_32.lib")
+# pragma comment(lib, "Mswsock.lib")
+# pragma comment(lib, "AdvApi32.lib")
 #else
+# include <sys/socket.h>
+# include <netdb.h>
 # include <unistd.h>
 #endif
+#include <exception>
+#include <stdexcept>
+#include <string>
 #include "hexutil.h"
 #include "msgio.h"
 #include "common.h"
+
+using namespace std;
 
 #define BUFFER_SZ	1024*1024
 
@@ -74,7 +81,7 @@ MsgIO::MsgIO(const char *server, uint16_t port)
 	rv= getaddrinfo(NULL, server, &hints, &ainfo);
 	if (rv != 0) {		
 		eprintf("getaddrinfo: %s\n", gai_strerror(rv));
-		throw std::runtime_error(gai_strerror(rv));
+		throw std::runtime_error("getaddrinfo failed");
 	}
 	
 	/* Sending socket */

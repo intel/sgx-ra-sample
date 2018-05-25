@@ -23,23 +23,6 @@ in the License.
 #include <stdio.h>
 #include "sgx_quote.h"
 
-/*
- * Define a structure to be used to transfer the
- * Attestation Status from Server to client
- * and include the Platform Info Blob in base16 format
- */
-
-typedef enum {
-	Trusted = 0,
-		NotTrusted
-	} TrustStatus;
-
-struct Msg4 {
-	TrustStatus trustStatus;
-	sgx_platform_info_t platformInfoBlob;
-};
-    
-
 #if defined(__cplusplus)
 extern "C" {
 #endif

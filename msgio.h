@@ -21,17 +21,17 @@ in the License.
 #include <sys/types.h>
 #include <sgx_urts.h>
 #include <stdio.h>
+#ifdef WIN32
 #include <Winsock2.h>
+#endif
+#include <string>
+using namespace std;
 
 #define STRUCT_INCLUDES_PSIZE	0
 #define STRUCT_OMITS_PSIZE		1
 
 /* A 1MB buffer should be sufficient for demo purposes */
 #define BUFFER_SZ	1024*1024
-
-#ifdef __cplusplus
-#include <string>
-using namespace std;
 
 #ifndef _WIN32
 typedef int SOCKET;
@@ -53,6 +53,7 @@ public:
 	void send(void *buf, size_t f_size);
 };
 
+#ifdef __cplusplus
 extern "C" {
 #endif
 

@@ -74,7 +74,7 @@ CLEANFILES+= $(ENCLAVE)_t.c $(ENCLAVE)_t.h
 ## files. You can't use the $(ENCLAVE) variable in the build
 ## target name (i.e., $(ENCLAVE)_SOURCES will not work).
 
-EnclaveQuote_SOURCES = $(ENCLAVE)_t.c $(ENCLAVE)_t.h $(ENCLAVE).cpp \
+Enclave_SOURCES = Enclave_t.c Enclave_t.h Enclave.cpp \
 	$(ENCLAVE_KEY) $(ENCLAVE_CONFIG)
 
 
@@ -94,7 +94,7 @@ EnclaveQuote_SOURCES = $(ENCLAVE)_t.c $(ENCLAVE)_t.h $(ENCLAVE).cpp \
 ## of the definition to make sure you pick up the right linker flags
 ## and SGX trusted libraries.
 
-EnclaveQuote_LDADD = @SGX_ENCLAVE_LDADD@
+Enclave_LDADD = @SGX_ENCLAVE_LDADD@
 
 
 ## Place any additional trusted libraries that your enclave may need in

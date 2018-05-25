@@ -26,7 +26,7 @@ include $(top_srcdir)/build-aux/sgx_app.am
 ##   SGX_UAE_SERVICE_LIB
 ##   SGX_EDGER8R
 
-SUBDIRS = EnclaveQuote 
+SUBDIRS = Enclave 
 
 ## Supply additional flags to edger8r here. 
 ##
@@ -35,10 +35,10 @@ SUBDIRS = EnclaveQuote
 
 ## Needed to make our pattern rule work
 
-EnclaveQuote.edl: EnclaveQuote/EnclaveQuote.edl
+Enclave.edl: Enclave/Enclave.edl
 	ln -s $?
 
-EnclaveQuote.signed.so: EnclaveQuote/EnclaveQuote.signed.so
+Enclave.signed.so: Enclave/Enclave.signed.so
 	ln -s $?
 
 
@@ -54,7 +54,7 @@ AM_CPPFLAGS += -fno-builtin-memset @OPENSSL_CPPFLAGS@
 ## Additional targets to remove with 'make clean'. You must list
 ## any edger8r generated files here.
 
-CLEANFILES = EnclaveQuote_u.c EnclaveQuote_u.h EnclaveQuote.edl EnclaveQuote.signed.so
+CLEANFILES = Enclave_u.c Enclave_u.h Enclave.edl Enclave.signed.so
 
 
 ## The build target
@@ -65,14 +65,14 @@ bin_PROGRAMS = client sp
 ## have to be explicitly listed.
 
 common = byteorder.c common.cpp crypto.c hexutil.c fileio.c base64.c \
-	msgio.c logfile.c
+	msgio.cpp logfile.c
 
 ## client 
 
 client_SOURCES = client.cpp sgx_detect_linux.c sgx_stub.c $(common)
-nodist_client_SOURCES = EnclaveQuote_u.c EnclaveQuote_u.h
-EXTRA_client_DEPENDENCIES = EnclaveQuote.signed.so
-BUILT_SOURCES = EnclaveQuote_u.c EnclaveQuote_u.h
+nodist_client_SOURCES = Enclave_u.c Enclave_u.h
+EXTRA_client_DEPENDENCIES = Enclave.signed.so
+BUILT_SOURCES = Enclave_u.c Enclave_u.h
 
 client_LDFLAGS= $(AM_LDFLAGS) @OPENSSL_LDFLAGS@
 

@@ -107,7 +107,7 @@ AC_CONFIG_FILES([
 	run-server:run.in
 	run-client:run.in
 	Makefile
-	EnclaveQuote/Makefile
+	Enclave/Makefile
 ],[chmod -f 755 run-client run-server])
 
 AC_OUTPUT

@@ -56,6 +56,7 @@ using namespace std;
 #include <sgx_ukey_exchange.h>
 #include <string>
 #include "common.h"
+#include "protocol.h"
 #include "sgx_detect.h"
 #include "hexutil.h"
 #include "fileio.h"
@@ -388,13 +389,13 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	sgx_ra_msg1_t msg1;
 	sgx_ra_msg2_t *msg2 = NULL;
 	sgx_ra_msg3_t *msg3 = NULL;
+	ra_msg4_t *msg4 = NULL;
 	uint32_t msg0_extended_epid_group_id = 0;
 	uint32_t msg3_sz;
 	uint32_t flags= config->flags;
 	sgx_ra_context_t ra_ctx= 0xdeadbeef;
 	int rv;
 	MsgIO *msgio;
-	Msg4 *msg4 = NULL;
 	size_t msg4sz = 0;
 	int enclaveTrusted = 1; // Not Trusted
 
@@ -651,11 +652,11 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	edividerWithText("Enclave Trust Status from Service Provider");
 
-	if ( msg4->trustStatus == Trusted ) {
+	if ( msg4->status == Trusted ) {
 		eprintf("Enclave TRUSTED\n");
 		enclaveTrusted = 0; // Trusted
 	}
-	else if (msg4->trustStatus == NotTrusted ) {
+	else if (msg4->status == NotTrusted ) {
 		eprintf("Enclave NOT TRUSTED\n");
 		enclaveTrusted = 1; // Not Trusted
 	}
