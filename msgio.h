@@ -39,8 +39,6 @@ using namespace std;
 typedef int SOCKET;
 #endif
 
-#define MSGIO_BUFFER_SZ   1024*1024
-
 class MsgIO {
 	string wbuffer, rbuffer;
 	char lbuffer[MSGIO_BUFFER_SZ];
