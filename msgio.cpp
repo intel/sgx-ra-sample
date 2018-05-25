@@ -76,7 +76,7 @@ MsgIO::MsgIO(const char *peer, const char *port)
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE;
+	if ( peer == NULL ) hints.ai_flags = AI_PASSIVE;
 	hints.ai_protocol = IPPROTO_TCP;
 
 	rv= getaddrinfo(peer, port, &hints, &addrs);
@@ -158,6 +158,8 @@ MsgIO::MsgIO(const char *peer, const char *port)
 		}
 		eprintf("\n");
 
+	} else { // Client here
+		s= ts;
 	}
 }
 

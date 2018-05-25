@@ -196,7 +196,8 @@ int main (int argc, char *argv[])
 		int opt_index= 0;
 		unsigned char keyin[64];
 
-		c= getopt_long(argc, argv, "N:P:S:dehlmn:p:qrs:v", long_opt, &opt_index);
+		c= getopt_long(argc, argv, "N:P:S:dehlmn:p:qrs:vz", long_opt,
+			&opt_index);
 		if ( c == -1 ) break;
 
 		switch(c) {
@@ -329,9 +330,9 @@ int main (int argc, char *argv[])
 
 	/* Remaining argument is host[:port] */
 
-	if ( flag_stdio && argc ) {
-		usage();
-	} else if ( argc ) {
+	if ( flag_stdio && argc ) usage();
+	else if ( !flag_stdio && ! argc ) usage();
+	else if ( argc ) {
 		char *cp;
 
 		config.server= strdup(argv[optind]);
@@ -430,7 +431,12 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	size_t msg4sz = 0;
 	int enclaveTrusted = 1; // Not Trusted
 
-	msgio = new MsgIO();
+	if ( config->server == NULL ) {
+		msgio = new MsgIO();
+	} else {
+		msgio = new MsgIO(config->server, (config->port == NULL) ?
+			DEFAULT_PORT : config->port);
+	}
 
 	/*
 	 * WARNING! Normally, the public key would be hardcoded into the
