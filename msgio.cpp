@@ -212,6 +212,13 @@ again:
 				return -1;
 			}
 
+			if (debug) {
+				edividerWithText("read buffer");
+				fwrite(rbuffer.c_str(), 1, idx, stdout);
+				printf("\n");
+				edivider();
+			}
+
 			from_hexstring((unsigned char *) *dest, rbuffer.c_str(), idx/2);
 			rbuffer.erase(0, idx+ws);
 
@@ -243,6 +250,7 @@ again:
 			perror("send");
 			return;
 		}
+		fwrite(wbuffer.c_str(), 1, bsent, stdout);
 
 		if ( bsent == len ) {
 			wbuffer.clear();
