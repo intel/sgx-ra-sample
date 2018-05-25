@@ -53,10 +53,10 @@ AS_IF([test "$openssl" != ""], [
 dnl Is libcurl available?
 dnl ----------------------------------------------------------------------
 AS_IF([test "$enable_agent_libcurl" = "yes"],[
+	old_LIBS="$LIBS"
 	AS_IF([test "$curl" != ""], [
 		old_CPPFLAGS="$CPPFLAGS"
 		old_LDFLAGS="$LDFLAGS"
-		old_LIBS="$LIBS"
 		LDFLAGS="$LDFLAGS -L${curl}/lib"
 		CPPFLAGS="$CPPFLAGS -I${curl}/include"
 	])
@@ -67,9 +67,9 @@ AS_IF([test "$enable_agent_libcurl" = "yes"],[
 	])
 	AS_IF([test "$curl" != ""], [
 		LDFLAGS="$old_LDFLAGS"
-		LIBS="$old_LIBS"
 		CPPFLAGS="$old_CPPFLAGS"
 	])
+	LIBS="$old_LIBS"
 	AS_IF([test "$use_libcurl" = "1"],[
 		AC_DEFINE([AGENT_LIBCURL], [1], [Enable libcurl as a user agent])
 		AC_SUBST([AGENT_CURL_SRC], [agent_curl.cpp])
@@ -108,9 +108,7 @@ AC_CONFIG_FILES([
 	run-client:run.in
 	Makefile
 	EnclaveQuote/Makefile
-])
+],[chmod -f 755 run-client run-server])
 
 AC_OUTPUT
-
-chmod 755 run-server run-client
 
