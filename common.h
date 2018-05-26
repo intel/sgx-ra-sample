@@ -21,7 +21,6 @@ in the License.
 /* Help keep our console messages clean and organzied */
 
 #include <stdio.h>
-#include "sgx_quote.h"
 
 #if defined(__cplusplus)
 extern "C" {

@@ -15,21 +15,27 @@ in the License.
 
 */
 
+#ifdef _WIN32
+# ifndef WIN32_LEAN_AND_MEAN
+#  define WIN32_LEAN_AND_MEAN
+# endif
+
+# include <WinSock2.h>
+# include <WS2tcpip.h>
+
+typedef DWORD ssize_t;
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sgx_urts.h>
-#include <arpa/inet.h>
-#include <sys/select.h>
 #ifdef _WIN32
-# include <Windows.h>
-# include <winsock2.h>
-# include <ws2tcpip.h>
-
 # pragma comment(lib, "Ws2_32.lib")
 # pragma comment(lib, "Mswsock.lib")
 # pragma comment(lib, "AdvApi32.lib")
 #else
+# include <arpa/inet.h>
 # include <sys/socket.h>
 # include <netdb.h>
 # include <unistd.h>
@@ -97,13 +103,27 @@ MsgIO::MsgIO(const char *peer, const char *port)
 		}
 
 		if ( peer == NULL ) { 	// We're the server
-			if ( bind(s, addr->ai_addr, addr->ai_addrlen) == 0 ) break;
+			if ( bind(s, addr->ai_addr, (int) addr->ai_addrlen) == 0 ) break;
+#ifdef _WIN32
+			eprintf("bind: failed on error %ld\n", WSAGetLastError());
+#else
+			perror("bind");
+#endif
 		} else {
-			if ( connect(s, addr->ai_addr, addr->ai_addrlen) == 0 ) break;
+			if ( connect(s, addr->ai_addr, (int) addr->ai_addrlen) == 0 ) break;
+#ifdef _WIN32
+			eprintf("connect: failed on error %ld\n", WSAGetLastError());
+#else
+			perror("connect");
+#endif
 		}
 
-		perror("bind");
+#ifdef _WIN32
+		closesocket(s);
+#else
 		close(s);
+#endif
+		s = -1;
 	}
 
 	freeaddrinfo(addrs);
@@ -120,11 +140,17 @@ MsgIO::MsgIO(const char *peer, const char *port)
 		ls= s;
 		s= -1;
 
-		setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable));
+		setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, (char *) &enable, sizeof(enable));
+#ifdef SO_REUSEPORT
 		setsockopt(ls, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(enable));
+#endif
 		if ( listen(ls, 5) == -1 ) { // The "traditional" backlog value in UNIX
 			perror("listen");
+#ifdef _WIN32
+			closesocket(ls);
+#else
 			close(ls);
+#endif
 			throw std::runtime_error("could not listen on socket");
 		}
 		
@@ -135,7 +161,11 @@ MsgIO::MsgIO(const char *peer, const char *port)
 
 		s= accept(ls, &cliaddr, &slen);
 		if ( s == -1 ) {
+#ifdef _WIN32
+			closesocket(ls);
+#else
 			close(ls);
+#endif
 			perror("accept");
 			throw std::runtime_error("could not listen on socket");
 		}
@@ -172,12 +202,22 @@ MsgIO::~MsgIO()
 {
 	// Shutdown our socket(s)
 	if ( s != -1 ) {
+#ifdef _WIN32
+		shutdown(s, 2);
+		closesocket(s);
+#else
 		shutdown(s, SHUT_RDWR);
 		close(s);
+#endif
 	}
 	if ( ls != -1 ) {
+#ifdef _WIN32
+		shutdown(ls, 2);
+		closesocket(ls);
+#else
 		shutdown(ls, SHUT_RDWR);
 		close(ls);
+#endif
 	}
 }
 
@@ -261,7 +301,7 @@ void MsgIO::send(void *src, size_t sz)
 
 	while ( len= wbuffer.length() ) {
 again:
-		bsent= ::send(s, wbuffer.c_str(), len, 0);
+		bsent= ::send(s, wbuffer.c_str(), (int) len, 0);
 		if ( bsent == -1 ) {
 			if (errno == EINTR) goto again;
 			perror("send");

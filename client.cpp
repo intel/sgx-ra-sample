@@ -20,6 +20,9 @@ using namespace std;
 
 #ifdef _WIN32
 #pragma comment(lib, "crypt32.lib")
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 #else
 #include "config.h"
 #endif
@@ -46,6 +49,7 @@ using namespace std;
 #include <sys/stat.h>
 #ifdef _WIN32
 #include <intrin.h>
+#include <wincrypt.h>
 #include "win32/getopt.h"
 #else
 #include <openssl/evp.h>
@@ -334,8 +338,11 @@ int main (int argc, char *argv[])
 	else if ( !flag_stdio && ! argc ) usage();
 	else if ( argc ) {
 		char *cp;
-
+#ifdef _WIN32
+		config.server = _strdup(argv[optind]);
+#else
 		config.server= strdup(argv[optind]);
+#endif
 		if ( config.server == NULL ) {
 			perror("malloc");
 			return 1;
