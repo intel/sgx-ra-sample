@@ -347,6 +347,12 @@ int main(int argc, char *argv[])
 		usage();
 	} else if ( argc ) {
 		port= argv[optind];
+	} else {
+		port= strdup(DEFAULT_PORT);
+		if ( port == NULL ) {
+			perror("strdup");
+			return 1;
+		}
 	}
 
 	/* Use the default CA bundle unless one is provided */
@@ -580,7 +586,7 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, ra_msg4_t *msg4,
 	 * so we should end up with sizeof(msg)*2 bytes.
 	 */
 
-	fprintf(stderr, "Waiting for msg3 on stdin\n");
+	fprintf(stderr, "Waiting for msg3\n");
 
 	/*
 	 * Read message 3
@@ -714,7 +720,7 @@ int process_msg01 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg2_t *msg2,
 	 * so we should end up with sizeof(msg)*2 bytes.
 	 */
 
-	fprintf(stderr, "Waiting for msg0||msg1 on stdin\n");
+	fprintf(stderr, "Waiting for msg0||msg1\n");
 
 	rv= msgio->read((void **) &msg01, NULL);
 	if ( rv == -1 ) {

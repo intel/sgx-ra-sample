@@ -135,7 +135,8 @@ int AgentCurl::initialize ()
 	if ( curl_easy_setopt(curl, CURLOPT_SSLCERT,
 		conn->client_cert_file().c_str()) != CURLE_OK ) return 0;
 
-	eprintf("+++ Setting cert file to %s\n", conn->client_cert_file().c_str());
+	if ( debug )  eprintf("+++ Setting cert file to %s\n",
+		conn->client_cert_file().c_str());
 
 	if ( curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE,
 		conn->client_cert_type().c_str()) != CURLE_OK ) return 0;

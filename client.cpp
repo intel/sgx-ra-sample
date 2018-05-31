@@ -71,8 +71,10 @@ using namespace std;
 
 #define MAX_LEN 80
 
-#ifndef WIN32
-#define _rdrand64_step(x) ({ unsigned char err; asm volatile("rdrand %0; setc %1":"=r"(*x), "=qm"(err)); err; })
+#ifdef _WIN32
+# define strdup(x) _strdup(x)
+#else
+# define _rdrand64_step(x) ({ unsigned char err; asm volatile("rdrand %0; setc %1":"=r"(*x), "=qm"(err)); err; })
 #endif
 
 #ifdef __x86_64__
@@ -335,14 +337,17 @@ int main (int argc, char *argv[])
 	/* Remaining argument is host[:port] */
 
 	if ( flag_stdio && argc ) usage();
-	else if ( !flag_stdio && ! argc ) usage();
-	else if ( argc ) {
+	else if ( !flag_stdio && ! argc ) {
+		// Default to localhost
+		config.server= strdup("localhost");
+		if ( config.server == NULL ) {
+			perror("malloc");
+			return 1;
+		}
+	} else if ( argc ) {
 		char *cp;
-#ifdef _WIN32
-		config.server = _strdup(argv[optind]);
-#else
+
 		config.server= strdup(argv[optind]);
-#endif
 		if ( config.server == NULL ) {
 			perror("malloc");
 			return 1;
@@ -553,7 +558,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	msgio->send(&msg1, sizeof(msg1));
 	divider(stderr);
 
-	fprintf(stderr, "Waiting for msg2...\n");
+	fprintf(stderr, "Waiting for msg2\n");
 
 	/* Read msg2 
 	 *
@@ -1069,11 +1074,12 @@ int file_in_searchpath (const char *file, const char *search, char *fullpath,
 
 void usage () 
 {
-	fprintf(stderr, "usage: client [ options ] host[:port]\n\n");
+	fprintf(stderr, "usage: client [ options ] [ host[:port] ]\n\n");
 	fprintf(stderr, "Required:\n");
 	fprintf(stderr, "  -N, --nonce-file=FILE    Set a nonce from a file containing a 32-byte\n");
 	fprintf(stderr, "                             ASCII hex string\n");
-	fprintf(stderr, "  -P, --pubkey-file=FILE   File containing the public key of the service provider.\n");
+	fprintf(stderr, "  -P, --pubkey-file=FILE   File containing the public key of the service\n");
+	fprintf(stderr, "                             provider.\n");
 	fprintf(stderr, "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte\n");
 	fprintf(stderr, "                             ASCII hex string\n");
 	fprintf(stderr, "  -a, --attest             Perform an attestation via stdout and stdin.\n");
@@ -1085,11 +1091,12 @@ void usage ()
 	fprintf(stderr, "  -m, --pse-manifest       Include the PSE manifest in the quote\n");
 #endif
 	fprintf(stderr, "  -n, --nonce=HEXSTRING    Set a nonce from a 32-byte ASCII hex string\n");
-	fprintf(stderr, "  -p, --pubkey=HEXSTRING   Specify the public key of the service provider as an\n");
-	fprintf(stderr, "                              ASCII hex string instead of using the default.\n");
+	fprintf(stderr, "  -p, --pubkey=HEXSTRING   Specify the public key of the service provider\n");
+	fprintf(stderr, "                             as an ASCII hex string instead of using the\n");
+	fprintf(stderr, "                             default.\n");
 	fprintf(stderr, "  -r                       Generate a nonce using RDRAND\n");
 	fprintf(stderr, "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string\n");
-	fprintf(stderr, "  -v, --verbose			Print decoded RA messages to stderr\n");
+	fprintf(stderr, "  -v, --verbose            Print decoded RA messages to stderr\n");
 	fprintf(stderr, "  -z                       Read from stdin and write to stdout instead\n");
 	fprintf(stderr, "                             conneting to a server.\n");
 	fprintf(stderr, "\nOne of --spid OR --spid-file is required for generating a quote or doing\nremote attestation.\n");

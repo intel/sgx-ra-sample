@@ -104,18 +104,8 @@ MsgIO::MsgIO(const char *peer, const char *port)
 
 		if ( peer == NULL ) { 	// We're the server
 			if ( bind(s, addr->ai_addr, (int) addr->ai_addrlen) == 0 ) break;
-#ifdef _WIN32
-			eprintf("bind: failed on error %ld\n", WSAGetLastError());
-#else
-			perror("bind");
-#endif
 		} else {
 			if ( connect(s, addr->ai_addr, (int) addr->ai_addrlen) == 0 ) break;
-#ifdef _WIN32
-			eprintf("connect: failed on error %ld\n", WSAGetLastError());
-#else
-			perror("connect");
-#endif
 		}
 
 #ifdef _WIN32
@@ -129,6 +119,20 @@ MsgIO::MsgIO(const char *peer, const char *port)
 	freeaddrinfo(addrs);
 
 	if ( s == -1 ) {
+		if ( peer == NULL ) {
+#ifdef _WIN32
+			eprintf("bind: failed on error %ld\n", WSAGetLastError());
+#else
+			perror("bind");
+#endif
+		} else {
+			eprintf("%s: ", peer);
+#ifdef _WIN32
+			eprintf("connect: failed on error %ld\n", WSAGetLastError());
+#else
+			perror("connect");
+#endif
+		}
 		throw std::runtime_error("could not establish socket");
 	}
 

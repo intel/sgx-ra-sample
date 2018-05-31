@@ -1,0 +1,53 @@
+#! /bin/bash
+#
+
+SPID_FILE="ref_sp/plse-dev.spid"
+CERT_FILE="ref_sp/plse-ias-dev.pem"
+SIGN_CA_FILE="ref_sp/Intel_IAS_SGX_Report_Signing_CA.pem"
+DEBUG="-d -v"
+
+# You shouldn't have to change anything below here
+#======================================================================
+
+# Get our program name
+
+PROG=`basename $0`
+
+# Where is OpenSSL 1.1.x?
+
+OPENSSL_LIBDIR=/opt/openssl/1.1.0h/lib
+if [ "$OPENSSL_LIBDIR" = "" ]
+then
+	echo "Could not auto-detect openssl v1.1.0 or newer. Make sure LD_LIBRARY_PATH is set" >&2
+else
+	if [ "$LD_LIBRARY_PATH" = "" ]
+	then
+		export LD_LIBRARY_PATH=$OPENSSL_LIBDIR
+	else
+		export LD_LIBRARY_PATH=$OPENSSL_LIBDIR:$LD_LIBRARY_PATH
+	fi
+fi
+
+# Do we need to add curl's libdir?
+CURL_LIBDIR=
+if [ "$CURL_LIBDIR" != "" ]
+then
+	if [ "$LD_LIBRARY_PATH" = "" ]
+	then
+		export LD_LIBRARY_PATH=$OPENSSL_LIBDIR
+	else
+		export LD_LIBRARY_PATH=$OPENSSL_LIBDIR:$LD_LIBRARY_PATH
+	fi
+fi
+
+if [ "$PROG" = "run-client" ]
+then
+	./client -S $SPID_FILE "$@"
+elif [ "$PROG" = "run-server" ]
+then
+	./sp "$@"
+else
+	echo "$PROG: unrecognized instance (expected run-client or run-server)" >&2
+	exit 1
+fi
+
