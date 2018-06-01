@@ -2,6 +2,10 @@
 #
 # Use Bourne Shell style syntax for this file.
 
+#======================================================================
+# Global options
+#======================================================================
+
 # Set to non-zero to query the production IAS instead of development.
 # Note that the SPID and certificate are different for production
 # and development, so if you change this you'll need to change them,
@@ -16,10 +20,30 @@ SPID=928A6B0E3CDDAD56EB3BADAA3B63F71F
 
 
 # Set to a non-zero value if this SPID is associated with linkable 
-# quotes. If you cahnge this, you'll need to change SPID, too.
+# quotes. If you change this, you'll need to change SPID and
+# IAS_CLIENT_CERT_FILE, too.
 
 LINKABLE=0
 
+
+#======================================================================
+# Client options
+#======================================================================
+
+# Set to non-zero to have the client generate a random nonce.
+
+RANDOM_NONCE=0
+
+# Set to non-zero to have the client generate a platform manifest.
+# This requires a PSE session, and thus support for platform
+# services.
+
+USE_PLATFORM_SERVICES=0
+
+
+#======================================================================
+# Service provider (server) options
+#======================================================================
 
 # Your IAS client certificate file.
 
@@ -37,10 +61,21 @@ IAS_CLIENT_CERT_KEY_PASSWORD_FILE=
 IAS_REPORT_SIGNING_CA_FILE=ref_sp/Intel_IAS_SGX_Report_Signing_CA.pem
 
 
-# Set to non-zero to have the client generate a random nonce.
+# Set to the URL for your proxy server to force the use of a proxy
+# when communicating with IAS (overriding any environment variables).
 
-RANDOM_NONCE=0
+IAS_PROXY_URL=http://proxy-us.intel.com:911/
 
+
+# Set to non-zero to disable the use of a proxy server and force a
+# direct connection when communicating with IAS (overriding any
+# environment variables).
+
+IAS_DISABLE_PROXY=0
+
+#======================================================================
+# Debugging options
+#======================================================================
 
 # Set to non-zero for verbose output
 

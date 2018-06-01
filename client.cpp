@@ -27,11 +27,6 @@ using namespace std;
 #include "config.h"
 #endif
 
-#define PSE_SUPPORT 1
-#if(defined(_WIN32)||defined(SGX_HW_SIM))
-#define PSE_SUPPORT 1
-#endif
-
 #ifdef _WIN32
 // *sigh*
 # include "vs/client/Enclave_u.h"
@@ -177,10 +172,8 @@ int main (int argc, char *argv[])
 		{"help",		no_argument,		0, 'h'},		
 		{"debug",		no_argument,		0, 'd'},
 		{"epid-gid",	no_argument,		0, 'e'},
-#ifdef PSE_SUPPORT
 		{"pse-manifest",
 						no_argument,    	0, 'm'},
-#endif
 		{"nonce",		required_argument,	0, 'n'},
 		{"nonce-file",	required_argument,	0, 'N'},
 		{"rand-nonce",	no_argument,		0, 'r'},
@@ -253,11 +246,9 @@ int main (int argc, char *argv[])
 		case 'l':
 			SET_OPT(config.flags, OPT_LINK);
 			break;
-#ifdef PSE_SUPPORT
 		case 'm':
 			SET_OPT(config.flags, OPT_PSE);
 			break;
-#endif
 		case 'n':
 			if ( strlen(optarg) < 32 ) {
 				fprintf(stderr, "nonce must be 32-byte hex string\n");
@@ -817,11 +808,9 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 	uint32_t sz= 0;
 	uint32_t flags= config->flags;
 	sgx_quote_sign_type_t linkable= SGX_UNLINKABLE_SIGNATURE;
-#ifdef PSE_SUPPORT
 	sgx_ps_cap_t ps_cap;
 	char *pse_manifest = NULL;
 	size_t pse_manifest_sz;
-#endif
 #ifdef _WIN32
 	LPTSTR b64quote = NULL;
 	DWORD sz_b64quote = 0;
@@ -829,15 +818,12 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 	DWORD sz_b64manifest = 0;
 #else
 	char  *b64quote= NULL;
-# ifdef PSE_SUPPORT
 	char *b64manifest = NULL;
-# endif
 #endif
 
  	if (OPT_ISSET(flags, OPT_LINK)) linkable= SGX_LINKABLE_SIGNATURE;
 
 	/* Platform services info */
-#ifdef PSE_SUPPORT
 	if (OPT_ISSET(flags, OPT_PSE)) {
 		status = sgx_get_ps_cap(&ps_cap);
 		if (status != SGX_SUCCESS) {
@@ -866,7 +852,6 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 			return 1;
 		}
 	}
-#endif
 
 	/* Get our quote */
 
@@ -933,7 +918,6 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 		fprintf(stderr, "CryptBinaryToString: could not get Base64 encoded quote length\n");
 		return 1;
 	}
-#ifdef PSE_SUPPORT
 
 	if (OPT_ISSET(flags, OPT_PSE)) {
 		if (CryptBinaryToString((BYTE *)pse_manifest, (uint32_t)(pse_manifest_sz), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL, &sz_b64manifest) == FALSE) {
@@ -947,15 +931,13 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 			return 1;
 		}
 	}
-#endif //PSE_SUPPORT
 
 #else
 	b64quote= base64_encode((char *) quote, sz);
-#ifdef PSE_SUPPORT
+
 	if (OPT_ISSET(flags, OPT_PSE)) {
 		b64manifest= base64_encode((char *) pse_manifest, pse_manifest_sz);
 	}
-# endif
 #endif
 
 	printf("{\n");
@@ -965,11 +947,10 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 		print_hexstring(stdout, &config->nonce, 16);
 		printf("\"");
 	}
-#ifdef PSE_SUPPORT
+
 	if (OPT_ISSET(flags, OPT_PSE)) {
 		printf(",\n\"pseManifest\":\"%s\"", b64manifest);	
 	}
-#endif
 	printf("\n}\n");
 
 #ifdef SGX_HW_SIM
@@ -1087,9 +1068,7 @@ void usage ()
 	fprintf(stderr, "  -d, --debug              Show debugging information\n");
 	fprintf(stderr, "  -e, --epid-gid           Get the EPID Group ID instead of a quote\n");
 	fprintf(stderr, "  -l, --linkable           Specify a linkable quote (default: unlinkable)\n");
-#ifdef PSE_SUPPORT
 	fprintf(stderr, "  -m, --pse-manifest       Include the PSE manifest in the quote\n");
-#endif
 	fprintf(stderr, "  -n, --nonce=HEXSTRING    Set a nonce from a 32-byte ASCII hex string\n");
 	fprintf(stderr, "  -p, --pubkey=HEXSTRING   Specify the public key of the service provider\n");
 	fprintf(stderr, "                             as an ASCII hex string instead of using the\n");

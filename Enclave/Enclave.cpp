@@ -79,18 +79,13 @@ sgx_status_t get_report(sgx_report_t *report, sgx_target_info_t *target_info)
 
 size_t get_pse_manifest_size ()
 {
-#if defined(_WIN32)||defined(SGX_HW_SIM)
 	return sizeof(sgx_ps_sec_prop_desc_t);
-#else
-	return 0;
-#endif
 }
 
 sgx_status_t get_pse_manifest(char *buf, size_t sz)
 {
 	sgx_status_t status= SGX_ERROR_SERVICE_UNAVAILABLE;
 
-#if defined(_WIN32)||defined(SGX_HW_SIM)
 	sgx_ps_sec_prop_desc_t ps_sec_prop_desc;
 	int retries= 5;
 
@@ -106,7 +101,6 @@ sgx_status_t get_pse_manifest(char *buf, size_t sz)
 	memcpy(buf, &ps_sec_prop_desc, sizeof(ps_sec_prop_desc));
 
 	sgx_close_pse_session();
-#endif
 
 	return status;
 }
