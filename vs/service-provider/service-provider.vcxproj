@@ -94,6 +94,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>COPY settings.cmd $(OutDir)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -110,6 +113,9 @@
       <AdditionalLibraryDirectories>C:\Program Files\cURL\lib;C:\OpenSSL-Win64\lib\VC\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libcrypto64MDd.lib;%(AdditionalDependencies);libcurl.lib</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>COPY settings.cmd $(OutDir)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -127,6 +133,9 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>COPY settings.cmd $(OutDir)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -147,8 +156,15 @@
       <AdditionalLibraryDirectories>C:\Program Files\cURL\lib;C:\OpenSSL-Win64\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libcrypto.lib;%(AdditionalDependencies);libcurl.lib</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>COPY settings.cmd $(OutDir)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <Text Include="settings.cmd">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+    </Text>
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
@@ -179,9 +195,12 @@
     <ClCompile Include="..\..\hexutil.c" />
     <ClCompile Include="..\..\iasrequest.cpp" />
     <ClCompile Include="..\..\logfile.c" />
-    <ClCompile Include="..\..\msgio.c" />
+    <ClCompile Include="..\..\msgio.cpp" />
     <ClCompile Include="..\..\sp.cpp" />
     <ClCompile Include="..\..\win32\getopt.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="run-server.cmd" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

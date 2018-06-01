@@ -1,0 +1,93 @@
+::======================================================================
+:: Global options
+::======================================================================
+
+:: Set to non-zero to query the production IAS instead of development.
+:: Note that the SPID and certificate are different for production
+:: and development, so if you change this you'll need to change them,
+:: too.
+
+SET RA_QUERY_IAS_PRODUCTION=0
+
+
+:: Your Service Provider ID. This should be a 32-character hex string.
+
+SET RA_SPID=928A6B0E3CDDAD56EB3BADAA3B63F71F
+
+
+:: Set to a non-zero value if this SPID is associated with linkable 
+:: quotes. If you change this, you'll need to change SPID and
+:: IAS_CLIENT_CERT_FILE, too.
+
+SET RA_LINKABLE=0
+
+
+::======================================================================
+:: Client options
+::======================================================================
+
+:: Set to non-zero to have the client generate a random nonce.
+
+SET RA_RANDOM_NONCE=0
+
+
+:: Set to non-zero to have the client generate a platform manifest.
+:: This requires a PSE session, and thus support for platform
+:: services.
+
+SET RA_USE_PLATFORM_SERVICES=0
+
+
+::======================================================================
+:: Service provider (server) options
+::======================================================================
+
+
+:: Your IAS client certificate file.
+
+SET RA_IAS_CLIENT_CERT_FILE=ref_sp/plse-ias-dev.pem
+
+
+:: Your IAS client certificate type. This defaults to PEM if you leave
+:: it blank. Can be either PEM or P12.
+
+SET RA_IAS_CLIENT_CERT_TYPE=PEM
+
+
+:: If your IAS client certificate's key is encrypted, put the password
+:: in a file, and place the filename here.
+
+SET RA_IAS_CLIENT_CERT_KEY_PASSWORD_FILE=
+
+
+:: The Intel IAS SGX Report Signing CA file.
+
+SET RA_IAS_REPORT_SIGNING_CA_FILE=ref_sp/Intel_IAS_SGX_Report_Signing_CA.pem
+
+
+:: Set to the URL for your proxy server to force the use of a proxy
+:: when communicating with IAS (overriding any environment variables).
+
+SET RA_IAS_PROXY_URL=http://proxy-us.intel.com:911/
+
+
+:: Set to non-zero to disable the use of a proxy server and force a
+:: direct connection when communicating with IAS (overriding any
+:: environment variables).
+
+SET RA_IAS_DISABLE_PROXY=0
+
+
+::======================================================================
+:: Debugging options
+::======================================================================
+
+:: Set to non-zero for verbose output
+
+SET RA_VERBOSE=1
+
+
+:: Set to non-zero for debugging output
+
+SET RA_DEBUG=0
+

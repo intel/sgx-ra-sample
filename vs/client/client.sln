@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "quote", "client.vcxproj", "{B3A2EB36-46B7-4E03-8F5B-0A0789E65B81}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "client", "client.vcxproj", "{B3A2EB36-46B7-4E03-8F5B-0A0789E65B81}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Enclave", "..\..\Enclave\Enclave.vcxproj", "{AF56EBDD-7212-481E-82AE-665F56A665FB}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sp", "..\service-provider\service-provider.vcxproj", "{05B93347-E5F8-4F3E-BA53-58F48C526597}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,6 +53,22 @@ Global
 		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Simulation|x64.Build.0 = Simulation|x64
 		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Simulation|x86.ActiveCfg = Simulation|Win32
 		{AF56EBDD-7212-481E-82AE-665F56A665FB}.Simulation|x86.Build.0 = Simulation|Win32
+		{05B93347-E5F8-4F3E-BA53-58F48C526597}.Debug|x64.ActiveCfg = Debug|x64
+		{05B93347-E5F8-4F3E-BA53-58F48C526597}.Debug|x64.Build.0 = Debug|x64
+		{05B93347-E5F8-4F3E-BA53-58F48C526597}.Debug|x86.ActiveCfg = Debug|Win32
+		{05B93347-E5F8-4F3E-BA53-58F48C526597}.Debug|x86.Build.0 = Debug|Win32
+		{05B93347-E5F8-4F3E-BA53-58F48C526597}.Prerelease|x64.ActiveCfg = Release|x64
+		{05B93347-E5F8-4F3E-BA53-58F48C526597}.Prerelease|x64.Build.0 = Release|x64
+		{05B93347-E5F8-4F3E-BA53-58F48C526597}.Prerelease|x86.ActiveCfg = Release|Win32
+		{05B93347-E5F8-4F3E-BA53-58F48C526597}.Prerelease|x86.Build.0 = Release|Win32
+		{05B93347-E5F8-4F3E-BA53-58F48C526597}.Release|x64.ActiveCfg = Release|x64
+		{05B93347-E5F8-4F3E-BA53-58F48C526597}.Release|x64.Build.0 = Release|x64
+		{05B93347-E5F8-4F3E-BA53-58F48C526597}.Release|x86.ActiveCfg = Release|Win32
+		{05B93347-E5F8-4F3E-BA53-58F48C526597}.Release|x86.Build.0 = Release|Win32
+		{05B93347-E5F8-4F3E-BA53-58F48C526597}.Simulation|x64.ActiveCfg = Release|x64
+		{05B93347-E5F8-4F3E-BA53-58F48C526597}.Simulation|x64.Build.0 = Release|x64
+		{05B93347-E5F8-4F3E-BA53-58F48C526597}.Simulation|x86.ActiveCfg = Release|Win32
+		{05B93347-E5F8-4F3E-BA53-58F48C526597}.Simulation|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

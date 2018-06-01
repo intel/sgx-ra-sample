@@ -78,6 +78,8 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="client.bat" />
+    <None Include="run-client.cmd">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
