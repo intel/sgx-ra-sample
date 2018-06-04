@@ -78,8 +78,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="run-client.cmd">
-      <Filter>Source Files</Filter>
-    </None>
+    <None Include="..\run-client.cmd" />
+    <None Include="..\settings.cmd" />
   </ItemGroup>
 </Project>

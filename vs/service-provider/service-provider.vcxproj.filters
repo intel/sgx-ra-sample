@@ -15,10 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
-    <Text Include="settings.cmd" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\..\agent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -107,6 +103,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="run-server.cmd" />
+    <None Include="..\run-server.cmd" />
+    <None Include="..\settings.cmd" />
   </ItemGroup>
 </Project>
