@@ -135,8 +135,6 @@ int main(int argc, char *argv[])
 	char flag_stdio= 0;
 	char *sigrl = NULL;
 	config_t config;
-	sgx_ra_msg2_t msg2;
-	ra_msg4_t msg4;
 	int oops;
 	IAS_Connection *ias= NULL;
 	MsgIO *msgio;
@@ -515,10 +513,7 @@ int main(int argc, char *argv[])
 	 */
 	if ( strlen(config.ca_bundle) ) ias->ca_bundle(config.ca_bundle);
 
-	/* 
-	 * Get our message IO object. If we're running in server mode,
-	 * we'll block here.
-	 */
+	/* Get our message IO object. */
 	
 	if ( flag_stdio ) {
 		msgio= new MsgIO();
@@ -531,39 +526,48 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	/* Read message 0 and 1, then generate message 2 */
+ 	/* If we're running in server mode, we'll block here.  */
 
-	if ( ! process_msg01(msgio, ias, &msg2, &sigrl, &config) ) {
-		eprintf("error processing msg1\n");
-		crypto_destroy();
-		return 1;
+	while ( msgio->server_loop() ) {
+		sgx_ra_msg2_t msg2;
+		ra_msg4_t msg4;
+
+		/* Read message 0 and 1, then generate message 2 */
+
+		if ( ! process_msg01(msgio, ias, &msg2, &sigrl, &config) ) {
+			eprintf("error processing msg1\n");
+			crypto_destroy();
+			return 1;
+		}
+
+		/* Send message 2 */
+
+		/*
+	 	* sgx_ra_msg2_t is a struct with a flexible array member at the
+	 	* end (defined as uint8_t sig_rl[]). We could go to all the 
+	 	* trouble of building a byte array large enough to hold the
+	 	* entire struct and then cast it as (sgx_ra_msg2_t) but that's
+	 	* a lot of work for no gain when we can just send the fixed 
+	 	* portion and the array portion by hand.
+	 	*/
+
+		dividerWithText(stderr, "Copy/Paste Msg2 Below to Client");
+		dividerWithText(fplog, "Msg2 (send to Client)");
+
+		msgio->send_partial((void *) &msg2, sizeof(sgx_ra_msg2_t));
+		fsend_msg_partial(fplog, (void *) &msg2, sizeof(sgx_ra_msg2_t));
+
+		msgio->send(&msg2.sig_rl, msg2.sig_rl_size);
+		fsend_msg(fplog, &msg2.sig_rl, msg2.sig_rl_size);
+
+		edivider();
+
+		/* Read message 3, and generate message 4 */
+
+		process_msg3(msgio, ias, &msg4, &config);
+
+		msgio->disconnect();
 	}
-
-	/* Send message 2 */
-
-	/*
-	 * sgx_ra_msg2_t is a struct with a flexible array member at the
-	 * end (defined as uint8_t sig_rl[]). We could go to all the 
-	 * trouble of building a byte array large enough to hold the
-	 * entire struct and then cast it as (sgx_ra_msg2_t) but that's
-	 * a lot of work for no gain when we can just send the fixed 
-	 * portion and the array portion by hand.
-	 */
-
-	dividerWithText(stderr, "Copy/Paste Msg2 Below to Client");
-	dividerWithText(fplog, "Msg2 (send to Client)");
-
-	msgio->send_partial((void *) &msg2, sizeof(sgx_ra_msg2_t));
-	fsend_msg_partial(fplog, (void *) &msg2, sizeof(sgx_ra_msg2_t));
-
-	msgio->send(&msg2.sig_rl, msg2.sig_rl_size);
-	fsend_msg(fplog, &msg2.sig_rl, msg2.sig_rl_size);
-
-	edivider();
-
-	/* Read message 3, and generate message 4 */
-
-	process_msg3(msgio, ias, &msg4, &config);
 
 	crypto_destroy();
 

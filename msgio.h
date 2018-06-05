@@ -54,6 +54,9 @@ public:
 	MsgIO(const char *server, const char *port);
 	~MsgIO();
 
+	int server_loop();
+	void disconnect();
+
 	int read(void **dest, size_t *sz);
 
 	void send_partial(void *buf, size_t f_size);

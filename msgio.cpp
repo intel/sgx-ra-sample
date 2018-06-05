@@ -138,14 +138,8 @@ MsgIO::MsgIO(const char *peer, const char *port)
 
 	if ( peer == NULL ) {	// Server here. Create our listening socket.
 		int enable= 1;
-#ifdef WIN32
-		SOCKADDR_IN cliaddr;
-#else
-		sockaddr_in cliaddr;
-#endif
-		socklen_t slen = sizeof(cliaddr);
-		ls= s;
-		s= -1;
+		ls= s;				// Use 'ls' to refer to the listening socket
+		s= -1;				// and 's' as the session socket.
 
 		setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, (char *) &enable, sizeof(enable));
 #ifdef SO_REUSEPORT
@@ -165,46 +159,6 @@ MsgIO::MsgIO(const char *peer, const char *port)
 		// connection.
 
 		eprintf("Listening for connections on port %s\n", port);
-
-		//s= accept(ls, &cliaddr, &slen);
-		s = accept(ls, NULL, 0);
-#ifdef _WIN32
-		if (s == INVALID_SOCKET) {
-			closesocket(ls);
-			eprintf("accept: %d\n", WSAGetLastError());
-#else
-		if (s == -1) {
-			close(ls);
-			perror("accept");
-#endif
-
-			throw std::runtime_error("could not listen on socket");
-		}
-
-		eprintf("Connection from");
-
-		// A client has connected.
-
-		if ( proto == AF_INET ) {
-			char clihost[INET_ADDRSTRLEN];
-			memset(clihost, 0, sizeof(clihost));
-
-			if ( inet_ntop(proto, &cliaddr.sin_addr, clihost, sizeof(clihost)) != NULL ) {
-
-				eprintf(": ipv4: %s", clihost);
-			} else eprintf("(could not translate network address)\n");
-		} else if ( proto == AF_INET6 ) {
-			char clihost[INET6_ADDRSTRLEN];
-			struct sockaddr_in6 *sa = (sockaddr_in6 *) &cliaddr;
-			memset(clihost, 0, sizeof(clihost));
-
-			if ( inet_ntop(proto, &sa->sin6_addr, clihost, sizeof(clihost)) != NULL ) {
-
-				eprintf(": ipv6: %s", clihost);
-			} else eprintf("(could not translate network address)\n");
-		}
-		eprintf("\n");
-
 	} else { // Client here
 	}
 }
@@ -221,6 +175,7 @@ MsgIO::~MsgIO()
 		close(s);
 #endif
 	}
+
 	if ( ls != -1 ) {
 #ifdef _WIN32
 		shutdown(ls, 2);
@@ -228,6 +183,84 @@ MsgIO::~MsgIO()
 #else
 		shutdown(ls, SHUT_RDWR);
 		close(ls);
+#endif
+	}
+}
+
+int MsgIO::server_loop ()
+{
+	int proto;
+#ifdef WIN32
+	SOCKADDR_IN cliaddr;
+#else
+	sockaddr_in cliaddr;
+#endif
+	socklen_t slen = sizeof(cliaddr);
+
+	if ( use_stdio ) return 1;
+
+	// This will block until we get a client.
+
+	printf("Waiting for a client to connect...\n");
+	fflush(stdout);
+
+	s= accept(ls, (sockaddr *) &cliaddr, &slen);
+#ifdef _WIN32
+	if (s == INVALID_SOCKET) {
+		closesocket(ls);
+		eprintf("accept: %d\n", WSAGetLastError());
+#else
+	if (s == -1) {
+		close(ls);
+		perror("accept");
+#endif
+
+		return 0;
+	}
+
+	proto= cliaddr.sin_family;
+
+	eprintf("Connection from");
+
+	// A client has connected.
+
+	if ( proto == AF_INET ) {
+		char clihost[INET_ADDRSTRLEN];
+		memset(clihost, 0, sizeof(clihost));
+
+		if ( inet_ntop(proto, &cliaddr.sin_addr, clihost,
+			sizeof(clihost)) != NULL ) {
+
+			eprintf(": ipv4: %s", clihost);
+		} else eprintf("(could not translate network address)\n");
+	} else if ( proto == AF_INET6 ) {
+		char clihost[INET6_ADDRSTRLEN];
+		struct sockaddr_in6 *sa = (sockaddr_in6 *) &cliaddr;
+		memset(clihost, 0, sizeof(clihost));
+
+		if ( inet_ntop(proto, &sa->sin6_addr, clihost,
+		sizeof(clihost)) != NULL ) {
+
+			eprintf(": ipv6: %s", clihost);
+		} else eprintf("(could not translate network address)\n");
+	}
+
+	eprintf("\n");
+
+	return 1;
+}
+
+void MsgIO::disconnect ()
+{
+	if ( use_stdio ) return;
+
+	if ( s != -1 ) {
+#ifdef _WIN32
+		shutdown(s, 2);
+		closesocket(s);
+#else
+		shutdown(s, SHUT_RDWR);
+		close(s);
 #endif
 	}
 }
