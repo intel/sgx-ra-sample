@@ -48,19 +48,19 @@ SET RA_USE_PLATFORM_SERVICES=0
 
 :: Your IAS client certificate file.
 
-SET RA_IAS_CLIENT_CERT_FILE="..\..\..\ref_sp\plse-ias-dev.pem"
+SET RA_IAS_CLIENT_CERT_FILE="..\..\..\ref_sp\ias-dev.pfx"
 
 
 :: Your IAS client certificate type. This defaults to PEM if you leave
 :: it blank. Can be either PEM or P12.
 
-SET RA_IAS_CLIENT_CERT_TYPE=
+SET RA_IAS_CLIENT_CERT_TYPE=P12
 
 
 :: If your IAS client certificate's key is encrypted, put the password
 :: in a file, and set the filename here.
 
-SET RA_IAS_CLIENT_CERT_KEY_PASSWORD_FILE=
+SET RA_IAS_CLIENT_CERT_KEY_PASSWORD_FILE="..\..\..\ref_sp\ias-dev.txt"
 
 
 :: The path to the Intel IAS SGX Report Signing CA file.
