@@ -45,19 +45,24 @@ USE_PLATFORM_SERVICES=0
 
 # Your IAS client certificate file.
 
-IAS_CLIENT_CERT_FILE=ref_sp/plse-ias-dev.pfx
+IAS_CLIENT_CERT_FILE=ref_sp/ias-dev.crt
+
+
+# Your IAS client key file
+
+IAS_CLIENT_KEY_FILE=ref_sp/ias-dev.key
 
 
 # Your IAS client certificate type. This defaults to PEM if you leave
 # it blank. Can be either PEM or P12.
 
-IAS_CLIENT_CERT_TYPE=P12
+IAS_CLIENT_CERT_TYPE=PEM
 
 
 # If your IAS client certificate's key is encrypted, put the password
 # in a file, and place the filename here.
 
-IAS_CLIENT_CERT_KEY_PASSWORD_FILE=ref_sp/plse-ias-dev.txt
+IAS_CLIENT_CERT_KEY_PASSWORD_FILE=ref_sp/ias-dev.txt
 
 
 # The Intel IAS SGX Report Signing CA file.

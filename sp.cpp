@@ -150,14 +150,14 @@ int main(int argc, char *argv[])
 		{"ias-cert",		required_argument,	0, 'C'},
 		{"ias-cert-passwd",
 							required_argument,	0, 'E'},
-		{"ias-cert-key",
-							required_argument,	0, 'Y'},
+		{"list-agents",		no_argument,		0, 'G'},
 		{"service-key-file",
 							required_argument,	0, 'K'},
-		{"list-agents",		no_argument,		0, 'G'},
 		{"production",		no_argument,		0, 'P'},
 		{"spid-file",		required_argument,	0, 'S'},
-		{"debug",			required_argument,	0, 'd'},
+		{"ias-cert-key",
+							required_argument,	0, 'Y'},
+		{"debug",			no_argument,		0, 'd'},
 		{"user-agent",		required_argument,	0, 'g'},
 		{"help",			no_argument, 		0, 'h'},
 		{"key",				required_argument,	0, 'k'},
@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
 		int c;
 		int opt_index = 0;
 
-		c = getopt_long(argc, argv, "A:B:C:E:GK:S:Y:dg:hk:lp:r:s:t:vxz", long_opt, &opt_index);
+		c = getopt_long(argc, argv, "A:B:C:E:GK:PS:Y:dg:hk:lp:r:s:t:vxz", long_opt, &opt_index);
 		if (c == -1) break;
 
 		switch (c) {
@@ -334,7 +334,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	/* There should be 0 or 1 aguments left on the command line */
+	/* We should have zero or one command-line argument remaining */
 
 	argc-= optind;
 	if ( argc > 1 ) usage();
@@ -472,6 +472,7 @@ int main(int argc, char *argv[])
 
 			keyfile= (config.cert_key_file == NULL) ? config.cert_file :
 				config.cert_key_file;
+			if ( debug ) eprintf("+++ using cert key file %s\n", keyfile);
 			ias->client_key(keyfile, passwd);
 
 #ifdef _WIN32
@@ -1219,6 +1220,7 @@ void usage ()
 "                             client must be given the corresponding public" NL
 "                             key. Can't combine with --key." NL
 "  -P, --production         Query the production IAS server instead of dev." NL
+"  -Y, --ias-cert-key=FILE  The private key file for the IAS client certificate." NL
 "  -d, --debug              Print debug information to stderr." NL
 "  -g, --user-agent=NAME    Use NAME as the user agent for contacting IAS." NL
 "  -k, --key=HEXSTRING      The private key as a hex string. See --key-file" NL

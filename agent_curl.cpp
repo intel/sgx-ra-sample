@@ -60,15 +60,6 @@ int AgentCurl::initialize ()
 	// Include the server response headers
 	if ( curl_easy_setopt(curl, CURLOPT_HEADER, 1L) != CURLE_OK ) return 0;
 
-	// If we use a proxy, tunnel through it so we don't get the proxy
-	// response headers, as they interfere with parsing the destiantion 
-	// response.
-
-/*
-	if ( curl_easy_setopt(curl, CURLOPT_HTTPPROXYTUNNEL, 1L) !=
-		CURLE_OK ) return 0;
-*/
-
 #ifdef CURL_OPT_SUPPRESS_CONNECT_HEADERS
 	// Suppress the proxy CONNECT headers.
 	if ( curl_easy_setopt(curl, CURLOPT_SUPPRESS_CONNECT_HEADERS, 1L) !=
@@ -123,14 +114,6 @@ int AgentCurl::initialize ()
 
 	if ( curl_easy_setopt(curl, CURLOPT_CAINFO, conn->ca_bundle().c_str())
 		!= CURLE_OK ) return 0;
-
-#ifndef _WIN32
-/*
-	// CAPATH isn't used on Windows.
-	if ( curl_easy_setopt(curl, CURLOPT_CAPATH, "/etc/ssl/certs/") 
-		!= CURLE_OK ) return 0;
-*/
-#endif
 
 	if ( curl_easy_setopt(curl, CURLOPT_SSLCERT,
 		conn->client_cert_file().c_str()) != CURLE_OK ) return 0;
@@ -209,21 +192,6 @@ int AgentCurl::request(string const &url, string const &postdata,
 
 		if ( curl_easy_setopt(curl, CURLOPT_POSTFIELDS, 
 			postdata.c_str()) != CURLE_OK ) return 0;
-
-/*
-		if ( curl_easy_setopt(curl, CURLOPT_POST, 1L) != CURLE_OK )
-			return 0;
-
-		// Set the read/write callbacks. The read callbacks are for
-		// sending data (curl reads from us) and the write 
-		// callbacks are the server responses (written to us).
-
-		if ( curl_easy_setopt(curl, CURLOPT_READFUNCTION, _read_callback) 
-			!= CURLE_OK ) return 0;
-
-		if ( curl_easy_setopt(curl, CURLOPT_READDATA, &bp) != CURLE_OK )
-			return 0;
-*/
 
 	} 
 

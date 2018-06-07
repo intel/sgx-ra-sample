@@ -50,7 +50,7 @@ void edividerWithText (const char *text)
 
 void dividerWithText (FILE *fd, const char *text)
 {
-    fprintf(fd, "\n%s\n", LINE_HEADER(text));
+	fprintf(fd, "\n%s\n", LINE_HEADER(text));
 }
 
 void edivider ()
@@ -61,7 +61,7 @@ void edivider ()
 
 void divider (FILE * fd)
 {
-    fprintf(fd, "%s\n", LINE_COMPLETE);
+	fprintf(fd, "%s\n", LINE_COMPLETE);
 }
 
 int eprintf (const char *format, ...)

@@ -35,7 +35,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <inttypes.h>
 #include "byteorder.h"
 
-/* Reverse the bytes in an array. Can do this in-place (src == dest) */
+/*
+ * Reverse the bytes in an array. Can do this in-place (src == dest)
+ * but any other overlapping gives undefined behavior so don't do it.
+ */
 
 void reverse_bytes(void *dest, void *src, size_t len)
 {

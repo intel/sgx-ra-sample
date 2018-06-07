@@ -155,12 +155,12 @@ int main (int argc, char *argv[])
 	localtime_s(&lt, &timeT);
 #endif
 	fprintf(fplog, "%4d-%02d-%02d %02d:%02d:%02d\n", 
-                           lt.tm_year + 1900, 
-                           lt.tm_mon + 1, 
-                           lt.tm_mday,  
-                           lt.tm_hour, 
-                           lt.tm_min, 
-                           lt.tm_sec);
+		lt.tm_year + 1900, 
+		lt.tm_mon + 1, 
+		lt.tm_mday,  
+		lt.tm_hour, 
+		lt.tm_min, 
+		lt.tm_sec);
 	divider(fplog);
 
 

@@ -66,6 +66,14 @@ static const sgx_ec256_public_t def_service_public_key = {
  *----------------------------------------------------------------------
  */
 
+/*
+ * This doesn't really need to be a C++ source file, but a bug in 
+ * 2.1.3 and earlier implementations of the SGX SDK left a stray
+ * C++ symbol in libsgx_tkey_exchange.so so it won't link without
+ * a C++ compiler. Just making the source C++ was the easiest way
+ * to deal with that.
+ */
+
 sgx_status_t get_report(sgx_report_t *report, sgx_target_info_t *target_info)
 {
 #ifdef SGX_HW_SIM

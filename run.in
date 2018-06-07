@@ -67,6 +67,10 @@ fi
 
 # Optional service provider/server settings
 
+if [ "$IAS_CLIENT_KEY_FILE" != "" ]; then
+	sp_cert_key="--ias-cert-key=$IAS_CLIENT_KEY_FILE"
+fi
+
 if [ "$IAS_CLIENT_CERT_KEY_PASSWORD_FILE" != "" ]; then
 	sp_cert_passwd="--ias-cert-passwd=$IAS_CLIENT_CERT_KEY_PASSWORD_FILE"
 fi
@@ -108,10 +112,10 @@ then
 elif [ "$PROG" = "run-server" ]
 then
 	./sp \
-		-s $SPID "$@" \
+		-s $SPID \
 		-A "$IAS_REPORT_SIGNING_CA_FILE" \
 		-C "$IAS_CLIENT_CERT_FILE" \
-		$sp_noproxy $sp_proxy $sp_cert_passwd $sp_cert_type \
+		$sp_cert_key $sp_noproxy $sp_proxy $sp_cert_passwd $sp_cert_type \
 		$flag_linkable $flag_debug $flag_verbose \
 		"$@" 
 else
