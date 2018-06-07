@@ -57,6 +57,13 @@ SET RA_IAS_CLIENT_CERT_FILE="..\..\..\ref_sp\ias-dev.pfx"
 SET RA_IAS_CLIENT_CERT_TYPE=P12
 
 
+:: If your IAS client certificate's key is separate from your 
+:: certificate, set the filename here. Otherwise, leave it 
+:: blank.
+
+SET RA_IAS_CLIENT_CERT_KEY_FILE=""
+
+
 :: If your IAS client certificate's key is encrypted, put the password
 :: in a file, and set the filename here.
 
