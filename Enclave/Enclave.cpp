@@ -40,6 +40,8 @@ static const sgx_ec256_public_t def_service_public_key = {
 
 };
 
+#define PSE_RETRIES	5	/* Arbitrary. Not too long, not too short. */
+
 /*----------------------------------------------------------------------
  * WARNING
  *----------------------------------------------------------------------
@@ -92,10 +94,9 @@ size_t get_pse_manifest_size ()
 
 sgx_status_t get_pse_manifest(char *buf, size_t sz)
 {
-	sgx_status_t status= SGX_ERROR_SERVICE_UNAVAILABLE;
-
 	sgx_ps_sec_prop_desc_t ps_sec_prop_desc;
-	int retries= 5;
+	sgx_status_t status= SGX_ERROR_SERVICE_UNAVAILABLE;
+	int retries= PSE_RETRIES;
 
 	do {
 		status= sgx_create_pse_session();
@@ -114,14 +115,41 @@ sgx_status_t get_pse_manifest(char *buf, size_t sz)
 }
 
 sgx_status_t enclave_ra_init(sgx_ec256_public_t key, int b_pse,
-	sgx_ra_context_t *ctx)
+	sgx_ra_context_t *ctx, sgx_status_t *pse_status)
 {
-	sgx_status_t status= sgx_ra_init(&key, b_pse, ctx);
-	return status;
+	sgx_status_t ra_status;
+
+	/*
+	 * If we want platform services, we must create a PSE session 
+	 * before calling sgx_ra_init()
+	 */
+
+	if ( b_pse ) {
+		int retries= PSE_RETRIES;
+		do {
+			*pse_status= sgx_create_pse_session();
+			if ( *pse_status != SGX_SUCCESS ) return SGX_ERROR_UNEXPECTED;
+		} while (*pse_status == SGX_ERROR_BUSY && retries--);
+		if ( *pse_status != SGX_SUCCESS ) return SGX_ERROR_UNEXPECTED;
+	}
+
+	ra_status= sgx_ra_init(&key, b_pse, ctx);
+
+	if ( b_pse ) {
+		int retries= PSE_RETRIES;
+		do {
+			*pse_status= sgx_create_pse_session();
+			if ( *pse_status != SGX_SUCCESS ) return SGX_ERROR_UNEXPECTED;
+		} while (*pse_status == SGX_ERROR_BUSY && retries--);
+		if ( *pse_status != SGX_SUCCESS ) return SGX_ERROR_UNEXPECTED;
+	}
+
+	return ra_status;
 }
 
-sgx_status_t enclave_ra_init_def(int b_pse, sgx_ra_context_t *ctx)
+sgx_status_t enclave_ra_init_def(int b_pse, sgx_ra_context_t *ctx,
+	sgx_status_t *pse_status)
 {
-	return enclave_ra_init(def_service_public_key, b_pse, ctx);
+	return enclave_ra_init(def_service_public_key, b_pse, ctx, pse_status);
 }
 

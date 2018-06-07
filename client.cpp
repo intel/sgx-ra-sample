@@ -420,7 +420,7 @@ int main (int argc, char *argv[])
 
 int do_attestation (sgx_enclave_id_t eid, config_t *config)
 {
-	sgx_status_t status, sgxrv;
+	sgx_status_t status, sgxrv, pse_status;
 	sgx_ra_msg1_t msg1;
 	sgx_ra_msg2_t *msg2 = NULL;
 	sgx_ra_msg3_t *msg3 = NULL;
@@ -433,6 +433,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	MsgIO *msgio;
 	size_t msg4sz = 0;
 	int enclaveTrusted = 1; // Not Trusted
+	int b_pse= OPT_ISSET(flags, OPT_PSE);
 
 	if ( config->server == NULL ) {
 		msgio = new MsgIO();
@@ -451,7 +452,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	 * enclave, not passed in as a parameter. Hardcoding prevents
 	 * the enclave using an unauthorized key.
 	 *
-	 * This is diagnostic/test application, however, so we need
+	 * This is diagnostic/test application, however, so we have
 	 * the flexibility of a dynamically assigned key.
 	 */
 
@@ -459,15 +460,29 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	if ( OPT_ISSET(flags, OPT_PUBKEY) ) {
 		if ( debug ) fprintf(stderr, "+++ using supplied public key\n");
-		status= enclave_ra_init(eid, &sgxrv, config->pubkey, 0, &ra_ctx);
+		status= enclave_ra_init(eid, &sgxrv, config->pubkey, b_pse,
+			&ra_ctx, &pse_status);
 	} else {
 		if ( debug ) fprintf(stderr, "+++ using default public key\n");
-		status= enclave_ra_init_def(eid, &sgxrv, 0, &ra_ctx);
+		status= enclave_ra_init_def(eid, &sgxrv, b_pse, &ra_ctx,
+			&pse_status);
 	}
+
+	/* Did the ECALL succeed? */
 	if ( status != SGX_SUCCESS ) {
 		fprintf(stderr, "enclave_ra_init: %08x\n", status);
 		return 1;
 	}
+
+	/* If we asked for a PSE session, did that succeed? */
+	if (b_pse) {
+		if ( pse_status != SGX_SUCCESS ) {
+			fprintf(stderr, "pse_session: %08x\n", sgxrv);
+			return 1;
+		}
+	}
+
+	/* Did sgx_ra_init() succeed? */
 	if ( sgxrv != SGX_SUCCESS ) {
 		fprintf(stderr, "sgx_ra_init: %08x\n", sgxrv);
 		return 1;
