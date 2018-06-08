@@ -35,6 +35,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "sgx_stub.h"
 #include "sgx_detect.h"
 
+#ifndef NULL
+#define NULL 0
+#endif
+
 int sgx_support = SGX_SUPPORT_UNKNOWN;
 
 int get_sgx_support()
@@ -80,5 +84,16 @@ int get_sgx_support()
 
 	return sgx_support;
 #endif
+}
+
+int get_quote_size (sgx_status_t *status, uint32_t *qsz)
+{
+	/* These stub functions abort if something goes horribly wrong */
+
+	if ( have_sgx_calc_quote_size() ) *status= sgx_calc_quote_size(NULL,
+		 0, qsz);
+	else *status= sgx_get_quote_size(NULL, qsz);
+
+	return 1;
 }
 

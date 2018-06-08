@@ -40,6 +40,7 @@ extern "C" {
 #endif
 
 	int have_sgx_psw();
+	int have_sgx_calc_quote_size();
 
 #ifdef __cplusplus
 };

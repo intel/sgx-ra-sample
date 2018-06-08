@@ -130,6 +130,20 @@ int have_sgx_psw()
 	) ? 0 : 1;
 }
 
+int have_sgx_calc_quote_size()
+{
+	/* Look for sgx_calc_quote_size() */
+
+	if ( l_sgx_calc_quote_size == 0 ) {
+		if ( h_libsgx_uae_service == 0 ) _load_libsgx_uae_service();
+		*(void **)(&p_sgx_calc_quote_size)=
+			_load_symbol(h_libsgx_uae_service,
+			"sgx_calc_quote_size",
+			&l_sgx_calc_quote_size);
+	}
+
+	return ( l_sgx_calc_quote_size == 1 );
+}
 
 sgx_status_t sgx_get_whitelist(uint8_t *p_whitelist, uint32_t whitelist_size)
 {
