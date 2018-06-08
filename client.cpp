@@ -894,9 +894,15 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 		return 1;
 	}
 
-	status= sgx_calc_quote_size(NULL, 0, &sz);
+	// sgx_get_quote_size() has been deprecated, but our PSW may be too old
+	// so use a wrapper function.
+
+	if (! get_quote_size(&status, &sz)) {
+		fprintf(stderr, "PSW missing sgx_get_quote_size() and sgx_calc_quote_size()\n");
+		return 1;
+	}
 	if ( status != SGX_SUCCESS ) {
-		fprintf(stderr, "sgx_calc_quote_size: %08x\n", status);
+		fprintf(stderr, "SGX error while getting quote size: %08x\n", status);
 		return 1;
 	}
 

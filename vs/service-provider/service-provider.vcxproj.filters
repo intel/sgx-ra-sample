@@ -106,4 +106,7 @@
     <None Include="..\run-server.cmd" />
     <None Include="..\settings.cmd" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\README.txt" />
+  </ItemGroup>
 </Project>

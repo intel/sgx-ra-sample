@@ -17,6 +17,8 @@ in the License.
 
 #pragma once
 
+#include <sgx_urts.h>
+
 #define SGX_SUPPORT_UNKNOWN			0x00000000
 #define SGX_SUPPORT_NO				0x80000000
 #define SGX_SUPPORT_YES				0x00000001
@@ -29,6 +31,7 @@ extern "C" {
 #endif
 
 int get_sgx_support();
+int get_quote_size(sgx_status_t *status, uint32_t *quote_size);
 
 #ifdef __cplusplus
 }
