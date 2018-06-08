@@ -817,9 +817,9 @@ int process_msg01 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg2_t *msg2,
 	 * A      = Gb || SPID || TYPE || KDF-ID || SigSP(Gb, Ga) 
 	 *          (64 + 16 + 2 + 2 + 64 = 148 bytes)
 	 * Ga     = Client enclave's session key
-	 *          (64 bytes)
+	 *          (32 bytes)
 	 * Gb     = Service Provider's session key
-	 *          (64 bytes)
+	 *          (32 bytes)
 	 * SPID   = The Service Provider ID, issued by Intel to the vendor
 	 *          (16 bytes)
 	 * TYPE   = Quote type (0= linkable, 1= linkable)
@@ -840,7 +840,7 @@ int process_msg01 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg2_t *msg2,
 	 *
 	 * For SigRL, send:
 	 *
-	 *  SigRL_size || SigRL_contensts
+	 *  SigRL_size || SigRL_contents
 	 *
 	 * where sigRL_size is a 32-bit uint (4 bytes). This matches the
 	 * structure definition in sgx_ra_msg2_t
