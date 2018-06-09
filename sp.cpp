@@ -108,13 +108,16 @@ void usage();
 int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
 	config_t *config);
 
-int process_msg01 (MsgIO *msg, IAS_Connection *ias, sgx_ra_msg2_t *msg2,
-	char **sigrl, config_t *config);
-int process_msg3 (MsgIO *msg, IAS_Connection *ias, ra_msg4_t *msg4,
-	config_t *config);
+int process_msg01 (MsgIO *msg, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
+	sgx_ra_msg2_t *msg2, char **sigrl, config_t *config,
+	 unsigned char smk[16]);
+
+int process_msg3 (MsgIO *msg, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
+	ra_msg4_t *msg4, config_t *config, unsigned char smk[16]);
 
 int get_sigrl (IAS_Connection *ias, int version, sgx_epid_group_id_t gid,
 	char **sigrl, uint32_t *msg2);
+
 int get_attestation_report(IAS_Connection *ias, int version,
 	const char *b64quote, sgx_ps_sec_prop_desc_t sec_prop, ra_msg4_t *msg4);
 
@@ -530,15 +533,16 @@ int main(int argc, char *argv[])
  	/* If we're running in server mode, we'll block here.  */
 
 	while ( msgio->server_loop() ) {
+		sgx_ra_msg1_t msg1;
 		sgx_ra_msg2_t msg2;
 		ra_msg4_t msg4;
+		unsigned char smk[16];
 
 		/* Read message 0 and 1, then generate message 2 */
 
-		if ( ! process_msg01(msgio, ias, &msg2, &sigrl, &config) ) {
+		if ( ! process_msg01(msgio, ias, &msg1, &msg2, &sigrl, &config, smk) ) {
 			eprintf("error processing msg1\n");
-			crypto_destroy();
-			return 1;
+			goto disconnect;
 		}
 
 		/* Send message 2 */
@@ -565,8 +569,12 @@ int main(int argc, char *argv[])
 
 		/* Read message 3, and generate message 4 */
 
-		process_msg3(msgio, ias, &msg4, &config);
+		if ( ! process_msg3(msgio, ias, &msg1, &msg4, &config, smk) ) {
+			eprintf("error processing msg3\n");
+			goto disconnect;
+		}
 
+disconnect:
 		msgio->disconnect();
 	}
 
@@ -575,8 +583,8 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-int process_msg3 (MsgIO *msgio, IAS_Connection *ias, ra_msg4_t *msg4,
-	config_t *config)
+int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
+	ra_msg4_t *msg4, config_t *config, unsigned char smk[16])
 {
 	sgx_ra_msg3_t *msg3;
 	size_t blen= 0;
@@ -585,6 +593,7 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, ra_msg4_t *msg4,
 	uint32_t quote_sz;
 	char *buffer= NULL;
 	char *b64quote;
+	sgx_mac_t vrfymac;
 
 	/*
 	 * Read our incoming message. We're using base16 encoding/hex strings
@@ -625,6 +634,39 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, ra_msg4_t *msg4,
 	quote_sz = (uint32_t)((sz / 2) - sizeof(sgx_ra_msg3_t));
 	if ( debug ) {
 		eprintf("+++ quote_sz= %lu bytes\n", quote_sz);
+	}
+
+	/* Make sure Ga matches msg1 */
+
+	if ( debug ) {
+		eprintf("+++ Verifying msg3.g_a matches msg1.g_a\n");
+		eprintf("msg1.g_a.gx = %s\n",
+			hexstring(msg3->g_a.gx, sizeof(msg1->g_a.gx)));
+		eprintf("msg1.g_a.gy = %s\n",
+			hexstring(&msg3->g_a.gy, sizeof(msg1->g_a.gy)));
+		eprintf("msg3.g_a.gx = %s\n",
+			hexstring(msg3->g_a.gx, sizeof(msg3->g_a.gx)));
+		eprintf("msg3.g_a.gy = %s\n",
+			hexstring(&msg3->g_a.gy, sizeof(msg3->g_a.gy)));
+	}
+	if ( CRYPTO_memcmp(&msg3->g_a, &msg1->g_a, sizeof(sgx_ec256_public_t)) ) {
+		eprintf("msg1.g_a and mgs3.g_a keys don't match\n");
+		return 0;
+	}
+
+	/* Validate the MAC of M */
+
+	cmac128(smk, (unsigned char *) &msg3->g_a,
+		sizeof(sgx_ra_msg3_t)-sizeof(sgx_mac_t)+quote_sz,
+		(unsigned char *) vrfymac);
+	if ( debug ) {
+		eprintf("+++ Validating MACsmk(M)\n");
+		eprintf("msg3.mac   = %s\n", hexstring(msg3->mac, sizeof(sgx_mac_t)));
+		eprintf("calculated = %s\n", hexstring(vrfymac, sizeof(sgx_mac_t)));
+	}
+	if ( CRYPTO_memcmp(msg3->mac, vrfymac, sizeof(sgx_mac_t)) ) {
+		eprintf("Failed to verify msg3 MAC\n");
+		return 0;
 	}
 
 	/* Encode the report body as base64 */
@@ -703,17 +745,16 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, ra_msg4_t *msg4,
  * the client concatenated together for efficiency (msg0||msg1).
  */
 
-int process_msg01 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg2_t *msg2,
-	char **sigrl, config_t *config)
+int process_msg01 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
+	sgx_ra_msg2_t *msg2, char **sigrl, config_t *config, unsigned char smk[16])
 {
 	struct msg01_struct {
 		uint32_t msg0_extended_epid_group_id;
 		sgx_ra_msg1_t msg1;
 	} *msg01;
-	sgx_ra_msg1_t *msg1;
 	size_t blen= 0;
 	char *buffer= NULL;
-	unsigned char smk[16], gb_ga[128];
+	unsigned char gb_ga[128];
 	unsigned char digest[32], r[32], s[32];
 	EVP_PKEY *Gb;
 	int rv;
@@ -755,7 +796,8 @@ int process_msg01 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg2_t *msg2,
 		return 0;
 	}
 
-	msg1= &msg01->msg1;	
+	// Pass msg1 back to the pointer in the caller func
+	memcpy(msg1, &msg01->msg1, sizeof(sgx_ra_msg1_t));
 
 	if ( verbose ) {
 		edividerWithText("Msg1 Details (from Client)");
