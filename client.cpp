@@ -758,19 +758,21 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 			edividerWithText("Platform Update Required");
 			eprintf("The following Platform Update(s) are required to bring this\n");
-			eprintf("platform's Trusted Computing Base (TCB) back into compliance:\n");
+			eprintf("platform's Trusted Computing Base (TCB) back into compliance:\n\n");
 			if( update_info.pswUpdate ) {
-				eprintf("\t* Intel SGX Platform Software needs to be updated to the latest version.\n");
+				eprintf("  * Intel SGX Platform Software needs to be updated to the latest version.\n");
 			}
 
 			if( update_info.csmeFwUpdate ) {
-				eprintf("\t* The Intel Management Engine Firmware Needs to be Updated.  Contact your OEM for a BIOS Update.\n");
+				eprintf("  * The Intel Management Engine Firmware Needs to be Updated.  Contact your\n");
+				eprintf("    OEM for a BIOS Update.\n");
 			}
 
 			if( update_info.ucodeUpdate )  {
-				eprintf("\t* The CPU Microcode needs to be updated.  Contact your OEM for a platform BIOS Update.\n");
+				eprintf("  * The CPU Microcode needs to be updated.  Contact your OEM for a platform\n");
+				eprintf("    BIOS Update.\n");
 			}                                           
-                
+			eprintf("\n");
 			edivider();      
 		}
 	}

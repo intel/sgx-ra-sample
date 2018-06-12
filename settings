@@ -48,21 +48,34 @@ USE_PLATFORM_SERVICES=0
 IAS_CLIENT_CERT_FILE=ref_sp/ias-dev.crt
 
 
-# Your IAS client key file
+# Your IAS client key file.
 
-IAS_CLIENT_KEY_FILE=ref_sp/ias-dev.key
+# IAS_CLIENT_KEY_FILE=ref_sp/ias-dev.key
+
+# Note that curl+NSS (Centos 7.3) can only use a 3-des encrypted key
+# or an unencrypted key.
+#
+IAS_CLIENT_KEY_FILE=ref_sp/ias-dev.key_3des
+
+# If using wget as your user agent, you have to use an unencrypted key.
+# Otherwise, wget will prompt you for the prigve key password every time
+# (there's no command line option to send the password or a password 
+# file path).
+#
+# IAS_CLIENT_KEY_FILE=ref_sp/ias-dev.key_noenc
+
+
+# If your IAS client certificate's key is encrypted, put the password
+# in a file, and place the filename here. If you aren't using a password
+# then comment this out.
+
+IAS_CLIENT_CERT_KEY_PASSWORD_FILE=ref_sp/ias-dev.txt
 
 
 # Your IAS client certificate type. This defaults to PEM if you leave
 # it blank. Can be either PEM or P12.
 
 IAS_CLIENT_CERT_TYPE=PEM
-
-
-# If your IAS client certificate's key is encrypted, put the password
-# in a file, and place the filename here.
-
-IAS_CLIENT_CERT_KEY_PASSWORD_FILE=ref_sp/ias-dev.txt
 
 
 # The Intel IAS SGX Report Signing CA file.
