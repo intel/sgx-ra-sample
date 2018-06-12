@@ -35,26 +35,6 @@ typedef sgx_status_t(SGXAPI *fp_sgx_calc_quote_size_t)(const uint8_t *p_sig_rl, 
 
 int is_psw_installed();
 
-int get_quote_size(sgx_status_t *status, uint32_t *qsz)
-{
-	fp_sgx_get_quote_size_t fp_sgx_get_quote_size = NULL;
-	fp_sgx_calc_quote_size_t fp_sgx_calc_quote_size = NULL;
-
-	// Does our PSW have the newer sgx_calc_quote_size?
-
-	fp_sgx_calc_quote_size = (fp_sgx_calc_quote_size_t)GetProcAddress(h_service, "sgx_calc_quote_size");
-	if (fp_sgx_calc_quote_size == NULL) {
-		// Then fall back to sgx_get_quote_size
-		fp_sgx_get_quote_size= (fp_sgx_get_quote_size_t)GetProcAddress(h_service, "sgx_get_quote_size");
-		if (fp_sgx_get_quote_size == NULL) return 0;
-		*status= fp_sgx_get_quote_size(NULL, qsz);
-	} else {
-		*status= fp_sgx_calc_quote_size(NULL, 0, qsz);
-	}
-
-	return 1;
-}
-
 int get_sgx_support()
 {
 	fp_sgx_enable_device_t fp_sgx_enable_device = NULL;

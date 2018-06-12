@@ -63,6 +63,7 @@ using namespace std;
 #include "crypto.h"
 #include "msgio.h"
 #include "logfile.h"
+#include "quote_size.h"
 
 #define MAX_LEN 80
 
@@ -806,6 +807,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
  *    sgx_get_ps_sec_prop()
  *    sgx_get_quote()
  *    sgx_get_quote_size()
+ *    sgx_calc_quote_size()
  *    sgx_get_report()
  *    sgx_init_quote()
  *

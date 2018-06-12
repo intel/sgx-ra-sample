@@ -33,14 +33,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __SGX_STUB_H
 #define __SGX_STUB_H
 
-#include "config.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 	int have_sgx_psw();
-	int have_sgx_calc_quote_size();
+
+	void *get_sgx_ufunction(const char *name); /* Returns func pointer */
 
 #ifdef __cplusplus
 };

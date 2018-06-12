@@ -86,14 +86,3 @@ int get_sgx_support()
 #endif
 }
 
-int get_quote_size (sgx_status_t *status, uint32_t *qsz)
-{
-	/* These stub functions abort if something goes horribly wrong */
-
-	if ( have_sgx_calc_quote_size() ) *status= sgx_calc_quote_size(NULL,
-		 0, qsz);
-	else *status= sgx_get_quote_size(NULL, qsz);
-
-	return 1;
-}
-

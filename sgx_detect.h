@@ -31,7 +31,6 @@ extern "C" {
 #endif
 
 int get_sgx_support();
-int get_quote_size(sgx_status_t *status, uint32_t *quote_size);
 
 #ifdef __cplusplus
 }

@@ -85,8 +85,6 @@ sgx_status_t get_report(sgx_report_t *report, sgx_target_info_t *target_info)
 #endif
 }
 
-/* Platform services are not supported on Linux */
-
 size_t get_pse_manifest_size ()
 {
 	return sizeof(sgx_ps_sec_prop_desc_t);
