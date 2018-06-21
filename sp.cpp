@@ -51,6 +51,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #endif
 #include <sgx_key_exchange.h>
+#include <sgx_report.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include "json.hpp"
@@ -594,6 +595,7 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 	char *buffer= NULL;
 	char *b64quote;
 	sgx_mac_t vrfymac;
+	sgx_quote_t *q;
 
 	/*
 	 * Read our incoming message. We're using base16 encoding/hex strings
@@ -672,9 +674,9 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 	/* Encode the report body as base64 */
 
 	b64quote= base64_encode((char *) &msg3->quote, quote_sz);
+	q= (sgx_quote_t *) msg3->quote;
 
 	if ( verbose ) {
-		sgx_quote_t *q= (sgx_quote_t *) msg3->quote;
 
 		edividerWithText("Msg3 Details (from Client)");
 		eprintf("msg3.mac                 = %s\n",
@@ -717,7 +719,45 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 	if ( get_attestation_report(ias, config->apiver, b64quote,
 		msg3->ps_sec_prop, msg4) ) {
 
-		if ( verbose ) edivider();
+		sgx_report_body_t *r= (sgx_report_body_t *) &q->report_body;
+
+		/*
+		 * A real service provider would validate that the enclave
+		 * report is from an enclave that they recognize. Namely,
+		 *  that the MRSIGNER matches our signing key, and the MRENCLAVE
+		 *  hash matches an enclave that we compiled.
+		 *
+		 * Other policy decisions might include examining ISV_SVN to 
+		 * prevent outdated/deprecated software from successfully
+		 * attesting, and ensuring the TCB is not out of date.
+		 */
+
+		if ( verbose ) {
+			edivider();
+
+			// The enclave report is valid so we can trust the report
+			// data.
+
+			edividerWithText("Enclave Report Details");
+
+			eprintf("cpu_svn     = %s\n",
+				hexstring(&r->cpu_svn, sizeof(sgx_cpu_svn_t)));
+			eprintf("misc_select = %s\n",
+				hexstring(&r->misc_select, sizeof(sgx_misc_select_t)));
+			eprintf("attributes  = %s\n",
+				hexstring(&r->attributes, sizeof(sgx_attributes_t)));
+			eprintf("mr_enclave  = %s\n",
+				hexstring(&r->mr_enclave, sizeof(sgx_measurement_t)));
+			eprintf("mr_signer   = %s\n",
+				hexstring(&r->mr_signer, sizeof(sgx_measurement_t)));
+			eprintf("isv_prod_id = %s\n",
+				hexstring(&r->isv_prod_id, sizeof(sgx_prod_id_t)));
+			eprintf("isv_svn     = %s\n",
+				hexstring(&r->isv_svn, sizeof(sgx_isv_svn_t)));
+			eprintf("report_data = %s\n",
+				hexstring(&r->report_data, sizeof(sgx_report_data_t)));
+		}
+
 
 		edividerWithText("Copy/Paste Msg4 Below to Client"); 
 
@@ -726,6 +766,7 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 
 		msgio->send_partial(&msg4->status, sizeof(msg4->status));
 		msgio->send(&msg4->platformInfoBlob, sizeof(msg4->platformInfoBlob));
+
 		fsend_msg_partial(fplog, &msg4->status, sizeof(msg4->status));
 		fsend_msg(fplog, &msg4->platformInfoBlob,
 			sizeof(msg4->platformInfoBlob));
@@ -1092,13 +1133,15 @@ int get_attestation_report(IAS_Connection *ias, int version,
 		}
           
 		/*
-		 * This samples attestion policy is either Trusted in the case of
+		 * This sample's attestion policy is either Trusted in the case of
 		 * an "OK", or a NotTrusted for any other isvEnclaveQuoteStatus
 		 * value.
  		 */
 
-		/* Simply check to see if status is OK, else enclave considered 
-		 * not trusted */
+		/*
+		 * Simply check to see if status is OK, else enclave considered 
+		 * not trusted
+		 */
 
 		memset(msg4, 0, sizeof(ra_msg4_t));
 
