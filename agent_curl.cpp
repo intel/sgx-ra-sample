@@ -125,8 +125,8 @@ int AgentCurl::initialize ()
 		conn->client_cert_type().c_str()) != CURLE_OK ) return 0;
 
 	if ( conn->client_key_file() != "" ) {
-		eprintf("+++ Setting client key file to %s\n",
-			conn->client_key_file().c_str());
+		if ( debug ) eprintf("+++ Setting client key file to %s\n",
+				conn->client_key_file().c_str());
 		if ( curl_easy_setopt(curl, CURLOPT_SSLKEY, 
 			conn->client_key_file().c_str()) != CURLE_OK ) return 0;
 
