@@ -101,7 +101,7 @@ IAS_DISABLE_PROXY=0
 
 # Set to non-zero for verbose output
 
-VERBOSE=1
+VERBOSE=0
 
 
 # Set to non-zero for debugging output
