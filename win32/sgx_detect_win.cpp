@@ -102,7 +102,7 @@ int is_psw_installed()
 
 	delete systemdir; // No longer need this
 
-					  // Need to be able to load both of these DLLs from the System directory.
+	// Need to be able to load both of these DLLs from the System directory.
 
 	if ((h_service = LoadLibrary("sgx_uae_service.dll")) == NULL) {
 		return 0;
