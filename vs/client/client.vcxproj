@@ -339,6 +339,7 @@
     <ClInclude Include="..\..\hexutil.h" />
     <ClInclude Include="..\..\logfile.h" />
     <ClInclude Include="..\..\msgio.h" />
+    <ClInclude Include="..\..\quote_size.h" />
     <ClInclude Include="..\..\sgx_detect.h" />
     <ClInclude Include="..\..\win32\getopt.h" />
     <ClInclude Include="Enclave_u.h" />
@@ -351,6 +352,7 @@
     <ClCompile Include="..\..\hexutil.c" />
     <ClCompile Include="..\..\logfile.c" />
     <ClCompile Include="..\..\msgio.cpp" />
+    <ClCompile Include="..\..\quote_size.c" />
     <ClCompile Include="..\..\sgx_detect_win.cpp" />
     <ClCompile Include="..\..\win32\getopt.c" />
     <ClCompile Include="Enclave_u.c">
