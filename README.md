@@ -2,9 +2,10 @@
 
 * [Introduction](#intro)
 * Building
-  * [Linux](#build-linux)
+  * [Linux*](#build-linux)
     * [Linux build notes](#build-linux-notes)
   * [Windows*](#build-win)
+    * [Windows build notes](#build-win-notes)
 * [Running (Quick-start)](#running-quick)
 * [Running (Advanced)](#running-adv)
 * [Sample Output](#output)
@@ -118,9 +119,14 @@ You can build the client for simulation mode using `--enable-sgx-simulation`. No
  * [https://software.intel.com/en-us/sgx-sdk/download](Intel SGX SDK and Platform Software for Windows)
 
 
-* Install OpenSSL 1.1.0 for Windows. The [Win64 OpenSSL v1.1.0 package from Shining Light Productions](https://slproweb.com/products/Win32OpenSSL.html) is recommended.
+* Install OpenSSL 1.1.0 for Windows. The [Win64 OpenSSL v1.1.0 package from Shining Light Productions](https://slproweb.com/products/Win32OpenSSL.html) is recommended. **Select the option to copy the DLL's to your Windows system directory.**
 
-* Install libcurl 7 for Windows. The [curl distribution from winampplugins.co.uk](https://winampplugins.co.uk/curl/) is recommended because it was built against OpenSSL using Visual Studio 2015, and has no external dependencies. This package includes a certificate bundle, libraries, and the headers necessary for development.
+* Download [applink.c](https://github.com/openssl/openssl/blob/master/ms/applink.c) from GitHub and install it to OpenSSL's `include\openssl` directory.
+
+* Install libcurl 7 for Windows. The [cURL distribution from Confused by Code](http://www.confusedbycode.com/curl/) is recommended because it was built against OpenSSL using Visual Studio 2015, has no external dependencies, and is packaged with an installer. It includes a certificate bundle, libraries, and the headers necessary for development (though **you'll need to choose the advanced install option to include the headers**). Note that this is an older build of cURL (7.46.0 as of this writing). You may be able to find newer builds of the complete libcurl package.
+
+* Copy `libcurl.dll` to your Windows system directory (generally `C:\WINDOWS\SYSTEM32`).
+
 
 #### Configure and Compile
 
@@ -146,6 +152,10 @@ You can build the client for simulation mode using `--enable-sgx-simulation`. No
 
 
 * Build the Solution. The binaries will be written to `vs\x64\Debug`
+
+#### <a name="build-win-notes"></a>Windows build notes
+
+The Windows sample uses libcurl instead of Windows native APIs for contacting IAS. At this time, the Intel Attestation Service development server (which most ISV's use during their application and service testing phase) is not compatible with WinHTTP/WinInet due to the amount of data sent by IAS during the TLS handshake.
 
 ## <a name="running-quick"></a>Running the Sample (Quick Start Guide)
 
