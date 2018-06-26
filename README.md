@@ -116,7 +116,7 @@ You can build the client for simulation mode using `--enable-sgx-simulation`. No
 
  * Windows 10 64-bit
  * Microsoft* Visual Studio 2015 (Professional edition or better)
- * [https://software.intel.com/en-us/sgx-sdk/download](Intel SGX SDK and Platform Software for Windows)
+ * [Intel SGX SDK and Platform Software for Windows](https://software.intel.com/en-us/sgx-sdk/download)
 
 
 * Install OpenSSL 1.1.0 for Windows. The [Win64 OpenSSL v1.1.0 package from Shining Light Productions](https://slproweb.com/products/Win32OpenSSL.html) is recommended. **Select the option to copy the DLL's to your Windows system directory.**
