@@ -48,13 +48,13 @@ SET RA_USE_PLATFORM_SERVICES=0
 
 :: Your IAS client certificate file.
 
-SET RA_IAS_CLIENT_CERT_FILE="..\..\..\ref_sp\ias-dev.pfx"
+SET RA_IAS_CLIENT_CERT_FILE="..\..\..\ref_sp\ias-dev.crt"
 
 
 :: Your IAS client certificate type. This defaults to PEM if you leave
 :: it blank. Can be either PEM or P12.
 
-SET RA_IAS_CLIENT_CERT_TYPE=P12
+SET RA_IAS_CLIENT_CERT_TYPE=PEM
 
 
 :: If your IAS client certificate's key is separate from your 
