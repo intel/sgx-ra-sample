@@ -1,0 +1,113 @@
+## Intel SGX SDK
+
+SGXSDK=@SGXSDK@
+SGXSDK_BINDIR=@SGXSDK_BINDIR@
+SGXSDK_INCDIR=@SGXSDK_INCDIR@
+SGXSDK_LIBDIR=@SGXSDK_LIBDIR@
+SGX_EDGER8R=$(SGXSDK_BINDIR)/sgx_edger8r
+SGX_SIGN=$(SGXSDK_BINDIR)/sgx_sign
+
+## Intel SGX SSL
+
+SGXSSL=@SGXSSL@
+SGXSSL_BINDIR=@SGXSSL_BINDIR@
+SGXSSL_INCDIR=@SGXSSL_INCDIR@
+SGXSSL_LIBDIR=@SGXSSL_LIBDIR@
+
+## Required flags for compiling and linking an Intel SGX enclave.
+
+AM_CFLAGS=@SGX_ENCLAVE_CFLAGS@
+AM_CPPFLAGS=@SGX_ENCLAVE_CPPFLAGS@
+AM_CXXFLAGS=@SGX_ENCLAVE_CXXFLAGS@ @SGX_ENCLAVE_CFLAGS@
+AM_LDFLAGS=@SGX_ENCLAVE_LDFLAGS@
+
+## Trusted libraries. These exist in both hardware and simulation (_sim)
+## form, so they need to be Makefile variables.
+
+SGX_TRTS_LIB=@SGX_TRTS_LIB@
+SGX_TSERVICE_LIB=@SGX_TSERVICE_LIB@
+
+## Automake doesn't support creating shared libraries directly without
+## forcing you to use libtool, and libtool is not an apprpriate tool
+## for building an Intel SGX enclave. Automake also recognizes .so as
+## shared library extension and complains if you try and use it.
+##
+## The solution is to use Automake's EXEEXT feature to append the
+## .so extension, and build the enclave as if it were a program.
+## This template assumes a libexec instead of bin target, which
+## probably makes more sense anyway.
+
+EXEEXT=.so
+libexec_PROGRAMS = $(ENCLAVE)
+
+## Add the signed enclave ot the list of files to be cleaned.
+
+CLEANFILES = $(ENCLAVE).signed.so
+
+## Rule to make trusted proxy functions from an EDL file.
+
+%_t.h %_t.c: %.edl
+	$(SGX_EDGER8R) --search-path $(SGXSDK_INCDIR) $(SGX_EDGER8R_FLAGS) --trusted $<
+
+## When building a debug enclave, go ahead and sign directly using the
+## supplied private key.
+##
+## In release mode, don't sign the enclave: instead, print a message
+## to aid the developer through the two-step signing process.
+
+if ENCLAVE_RELEASE_SIGN
+libexec_PROGRAMS += signed_enclave_rel
+## This is a hack.
+nodist_signed_enclave_rel_SOURCES= signed_enclave_rel.c
+.PHONY: signed_enclave_rel
+else 
+## This is the same hack.
+libexec_PROGRAMS += signed_enclave_debug
+nodist_signed_enclave_debug_SOURCES= signed_enclave_debug.c
+.PHONY: signed_enclave_debug
+endif 
+
+signed_enclave_debug$(EXEEXT): $(ENCLAVE).signed$(EXEEXT) 
+
+$(ENCLAVE).signed$(EXEEXT): $(ENCLAVE)$(EXEEXT)
+	$(SGX_SIGN) sign -key $(ENCLAVE_KEY) -enclave $(ENCLAVE).so -out $(ENCLAVE).signed.so -config $(ENCLAVE_CONFIG)
+
+signed_enclave_rel$(EXEEXT):
+	@echo "--------------------------------------------------------------"
+	@echo "The project has been built in release hardware mode."
+	@echo "Please sign $(ENCLAVE).so with your signing key "
+	@echo "before you run the application to launch and access "
+	@echo "the enclave."
+	@echo
+	@echo "To sign the enclave use the command:"
+	@echo "   $(SGX_SIGN) sign -key <your_key> -enclave $(ENCLAVE).so -out $(ENCLAVE).signed.so -config $(ENCLAVE_CONFIG)"
+	@echo "You can also sign the enclave using an external signing tool."
+	@echo "--------------------------------------------------------------"
+
+## A convenience target for randomly generating a debug signing key.
+
+$(ENCLAVE_KEY):
+	@echo "Creating random private key file for testing and"
+	@echo "debugging purposes:"
+	@echo "$(ENCLAVE_PKEY)"
+	openssl genrsa -3 -out $@ 3072
+
+## A convenience target for building a basic enclave configuration file.
+
+$(ENCLAVE_CONFIG):
+	@echo "Creating default enclave configuration file:"
+	@echo "$(ENCLAVE_CFG)"
+	@echo "<EnclaveConfiguration>">$(ENCLAVE).config.xml
+	@echo " <ProdID>0</ProdID>">>$(ENCLAVE).config.xml
+	@echo " <ISVSVN>0</ISVSVN>">>$(ENCLAVE).config.xml
+	@echo " <StackMaxSize>0x40000</StackMaxSize>">>$(ENCLAVE).config.xml
+	@echo " <HeapMaxSize>0x100000</HeapMaxSize>">>$(ENCLAVE).config.xml
+	@echo " <TCSNum>1</TCSNum>">>$(ENCLAVE).config.xml
+	@echo " <TCSPolicy>1</TCSPolicy>">>$(ENCLAVE).config.xml
+	@echo " <!-- Recommend changing 'DisableDebug' to 1 to make the enclave undebuggable for enclave release -->">>$(ENCLAVE).config.xml
+	@echo " <DisableDebug>0</DisableDebug>">>$(ENCLAVE).config.xml
+	@echo " <MiscSelect>0</MiscSelect>">>$(ENCLAVE).config.xml
+	@echo " <MiscMask>0xFFFFFFFF</MiscMask>">>$(ENCLAVE).config.xml
+	@echo " </EnclaveConfiguration>">>$(ENCLAVE).config.xml
+	@echo ""
+

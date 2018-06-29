@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <meta charset="utf-8" />
+      <title>README</title>
+      <style>.markdown-preview:not([data-use-github-style]) { padding: 2em; font-size: 1.2em; color: rgb(85, 85, 85); background-color: white; overflow: auto; }
+.markdown-preview:not([data-use-github-style]) > :first-child { margin-top: 0px; }
+.markdown-preview:not([data-use-github-style]) h1, .markdown-preview:not([data-use-github-style]) h2, .markdown-preview:not([data-use-github-style]) h3, .markdown-preview:not([data-use-github-style]) h4, .markdown-preview:not([data-use-github-style]) h5, .markdown-preview:not([data-use-github-style]) h6 { line-height: 1.2; margin-top: 1.5em; margin-bottom: 0.5em; color: rgb(3, 3, 3); }
+.markdown-preview:not([data-use-github-style]) h1 { font-size: 2.4em; font-weight: 300; }
+.markdown-preview:not([data-use-github-style]) h2 { font-size: 1.8em; font-weight: 400; }
+.markdown-preview:not([data-use-github-style]) h3 { font-size: 1.5em; font-weight: 500; }
+.markdown-preview:not([data-use-github-style]) h4 { font-size: 1.2em; font-weight: 600; }
+.markdown-preview:not([data-use-github-style]) h5 { font-size: 1.1em; font-weight: 600; }
+.markdown-preview:not([data-use-github-style]) h6 { font-size: 1em; font-weight: 600; }
+.markdown-preview:not([data-use-github-style]) strong { color: rgb(3, 3, 3); }
+.markdown-preview:not([data-use-github-style]) del { color: rgb(126, 126, 126); }
+.markdown-preview:not([data-use-github-style]) a, .markdown-preview:not([data-use-github-style]) a code { color: black; }
+.markdown-preview:not([data-use-github-style]) img { max-width: 100%; }
+.markdown-preview:not([data-use-github-style]) > p { margin-top: 0px; margin-bottom: 1.5em; }
+.markdown-preview:not([data-use-github-style]) > ul, .markdown-preview:not([data-use-github-style]) > ol { margin-bottom: 1.5em; }
+.markdown-preview:not([data-use-github-style]) blockquote { margin: 1.5em 0px; font-size: inherit; color: rgb(126, 126, 126); border-color: rgb(214, 214, 214); border-width: 4px; }
+.markdown-preview:not([data-use-github-style]) hr { margin: 3em 0px; border-top: 2px dashed rgb(214, 214, 214); background: none; }
+.markdown-preview:not([data-use-github-style]) table { margin: 1.5em 0px; }
+.markdown-preview:not([data-use-github-style]) th { color: rgb(3, 3, 3); }
+.markdown-preview:not([data-use-github-style]) th, .markdown-preview:not([data-use-github-style]) td { padding: 0.66em 1em; border: 1px solid rgb(214, 214, 214); }
+.markdown-preview:not([data-use-github-style]) code { color: rgb(3, 3, 3); background-color: rgb(240, 240, 240); }
+.markdown-preview:not([data-use-github-style]) pre.editor-colors { margin: 1.5em 0px; padding: 1em; font-size: 0.92em; border-radius: 3px; background-color: rgb(245, 245, 245); }
+.markdown-preview:not([data-use-github-style]) kbd { color: rgb(3, 3, 3); border-width: 1px 1px 2px; border-style: solid; border-color: rgb(214, 214, 214) rgb(214, 214, 214) rgb(199, 199, 199); border-image: initial; background-color: rgb(240, 240, 240); }
+.markdown-preview[data-use-github-style] { font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif; line-height: 1.6; word-wrap: break-word; padding: 30px; font-size: 16px; color: rgb(51, 51, 51); background-color: rgb(255, 255, 255); overflow: scroll; }
+.markdown-preview[data-use-github-style] > :first-child { margin-top: 0px !important; }
+.markdown-preview[data-use-github-style] > :last-child { margin-bottom: 0px !important; }
+.markdown-preview[data-use-github-style] a:not([href]) { color: inherit; text-decoration: none; }
+.markdown-preview[data-use-github-style] .absent { color: rgb(204, 0, 0); }
+.markdown-preview[data-use-github-style] .anchor { position: absolute; top: 0px; left: 0px; display: block; padding-right: 6px; padding-left: 30px; margin-left: -30px; }
+.markdown-preview[data-use-github-style] .anchor:focus { outline: none; }
+.markdown-preview[data-use-github-style] h1, .markdown-preview[data-use-github-style] h2, .markdown-preview[data-use-github-style] h3, .markdown-preview[data-use-github-style] h4, .markdown-preview[data-use-github-style] h5, .markdown-preview[data-use-github-style] h6 { position: relative; margin-top: 1em; margin-bottom: 16px; font-weight: bold; line-height: 1.4; }
+.markdown-preview[data-use-github-style] h1 .octicon-link, .markdown-preview[data-use-github-style] h2 .octicon-link, .markdown-preview[data-use-github-style] h3 .octicon-link, .markdown-preview[data-use-github-style] h4 .octicon-link, .markdown-preview[data-use-github-style] h5 .octicon-link, .markdown-preview[data-use-github-style] h6 .octicon-link { display: none; color: rgb(0, 0, 0); vertical-align: middle; }
+.markdown-preview[data-use-github-style] h1:hover .anchor, .markdown-preview[data-use-github-style] h2:hover .anchor, .markdown-preview[data-use-github-style] h3:hover .anchor, .markdown-preview[data-use-github-style] h4:hover .anchor, .markdown-preview[data-use-github-style] h5:hover .anchor, .markdown-preview[data-use-github-style] h6:hover .anchor { padding-left: 8px; margin-left: -30px; text-decoration: none; }
+.markdown-preview[data-use-github-style] h1:hover .anchor .octicon-link, .markdown-preview[data-use-github-style] h2:hover .anchor .octicon-link, .markdown-preview[data-use-github-style] h3:hover .anchor .octicon-link, .markdown-preview[data-use-github-style] h4:hover .anchor .octicon-link, .markdown-preview[data-use-github-style] h5:hover .anchor .octicon-link, .markdown-preview[data-use-github-style] h6:hover .anchor .octicon-link { display: inline-block; }
+.markdown-preview[data-use-github-style] h1 tt, .markdown-preview[data-use-github-style] h2 tt, .markdown-preview[data-use-github-style] h3 tt, .markdown-preview[data-use-github-style] h4 tt, .markdown-preview[data-use-github-style] h5 tt, .markdown-preview[data-use-github-style] h6 tt, .markdown-preview[data-use-github-style] h1 code, .markdown-preview[data-use-github-style] h2 code, .markdown-preview[data-use-github-style] h3 code, .markdown-preview[data-use-github-style] h4 code, .markdown-preview[data-use-github-style] h5 code, .markdown-preview[data-use-github-style] h6 code { font-size: inherit; }
+.markdown-preview[data-use-github-style] h1 { padding-bottom: 0.3em; font-size: 2.25em; line-height: 1.2; border-bottom: 1px solid rgb(238, 238, 238); }
+.markdown-preview[data-use-github-style] h1 .anchor { line-height: 1; }
+.markdown-preview[data-use-github-style] h2 { padding-bottom: 0.3em; font-size: 1.75em; line-height: 1.225; border-bottom: 1px solid rgb(238, 238, 238); }
+.markdown-preview[data-use-github-style] h2 .anchor { line-height: 1; }
+.markdown-preview[data-use-github-style] h3 { font-size: 1.5em; line-height: 1.43; }
+.markdown-preview[data-use-github-style] h3 .anchor { line-height: 1.2; }
+.markdown-preview[data-use-github-style] h4 { font-size: 1.25em; }
+.markdown-preview[data-use-github-style] h4 .anchor { line-height: 1.2; }
+.markdown-preview[data-use-github-style] h5 { font-size: 1em; }
+.markdown-preview[data-use-github-style] h5 .anchor { line-height: 1.1; }
+.markdown-preview[data-use-github-style] h6 { font-size: 1em; color: rgb(119, 119, 119); }
+.markdown-preview[data-use-github-style] h6 .anchor { line-height: 1.1; }
+.markdown-preview[data-use-github-style] p, .markdown-preview[data-use-github-style] blockquote, .markdown-preview[data-use-github-style] ul, .markdown-preview[data-use-github-style] ol, .markdown-preview[data-use-github-style] dl, .markdown-preview[data-use-github-style] table, .markdown-preview[data-use-github-style] pre { margin-top: 0px; margin-bottom: 16px; }
+.markdown-preview[data-use-github-style] hr { height: 4px; padding: 0px; margin: 16px 0px; background-color: rgb(231, 231, 231); border: 0px none; }
+.markdown-preview[data-use-github-style] ul, .markdown-preview[data-use-github-style] ol { padding-left: 2em; }
+.markdown-preview[data-use-github-style] ul.no-list, .markdown-preview[data-use-github-style] ol.no-list { padding: 0px; list-style-type: none; }
+.markdown-preview[data-use-github-style] ul ul, .markdown-preview[data-use-github-style] ul ol, .markdown-preview[data-use-github-style] ol ol, .markdown-preview[data-use-github-style] ol ul { margin-top: 0px; margin-bottom: 0px; }
+.markdown-preview[data-use-github-style] li > p { margin-top: 16px; }
+.markdown-preview[data-use-github-style] dl { padding: 0px; }
+.markdown-preview[data-use-github-style] dl dt { padding: 0px; margin-top: 16px; font-size: 1em; font-style: italic; font-weight: bold; }
+.markdown-preview[data-use-github-style] dl dd { padding: 0px 16px; margin-bottom: 16px; }
+.markdown-preview[data-use-github-style] blockquote { padding: 0px 15px; color: rgb(119, 119, 119); border-left: 4px solid rgb(221, 221, 221); }
+.markdown-preview[data-use-github-style] blockquote > :first-child { margin-top: 0px; }
+.markdown-preview[data-use-github-style] blockquote > :last-child { margin-bottom: 0px; }
+.markdown-preview[data-use-github-style] table { display: block; width: 100%; overflow: auto; word-break: keep-all; }
+.markdown-preview[data-use-github-style] table th { font-weight: bold; }
+.markdown-preview[data-use-github-style] table th, .markdown-preview[data-use-github-style] table td { padding: 6px 13px; border: 1px solid rgb(221, 221, 221); }
+.markdown-preview[data-use-github-style] table tr { background-color: rgb(255, 255, 255); border-top: 1px solid rgb(204, 204, 204); }
+.markdown-preview[data-use-github-style] table tr:nth-child(2n) { background-color: rgb(248, 248, 248); }
+.markdown-preview[data-use-github-style] img { max-width: 100%; box-sizing: border-box; }
+.markdown-preview[data-use-github-style] .emoji { max-width: none; }
+.markdown-preview[data-use-github-style] span.frame { display: block; overflow: hidden; }
+.markdown-preview[data-use-github-style] span.frame > span { display: block; float: left; width: auto; padding: 7px; margin: 13px 0px 0px; overflow: hidden; border: 1px solid rgb(221, 221, 221); }
+.markdown-preview[data-use-github-style] span.frame span img { display: block; float: left; }
+.markdown-preview[data-use-github-style] span.frame span span { display: block; padding: 5px 0px 0px; clear: both; color: rgb(51, 51, 51); }
+.markdown-preview[data-use-github-style] span.align-center { display: block; overflow: hidden; clear: both; }
+.markdown-preview[data-use-github-style] span.align-center > span { display: block; margin: 13px auto 0px; overflow: hidden; text-align: center; }
+.markdown-preview[data-use-github-style] span.align-center span img { margin: 0px auto; text-align: center; }
+.markdown-preview[data-use-github-style] span.align-right { display: block; overflow: hidden; clear: both; }
+.markdown-preview[data-use-github-style] span.align-right > span { display: block; margin: 13px 0px 0px; overflow: hidden; text-align: right; }
+.markdown-preview[data-use-github-style] span.align-right span img { margin: 0px; text-align: right; }
+.markdown-preview[data-use-github-style] span.float-left { display: block; float: left; margin-right: 13px; overflow: hidden; }
+.markdown-preview[data-use-github-style] span.float-left span { margin: 13px 0px 0px; }
+.markdown-preview[data-use-github-style] span.float-right { display: block; float: right; margin-left: 13px; overflow: hidden; }
+.markdown-preview[data-use-github-style] span.float-right > span { display: block; margin: 13px auto 0px; overflow: hidden; text-align: right; }
+.markdown-preview[data-use-github-style] code, .markdown-preview[data-use-github-style] tt { padding: 0.2em 0px; margin: 0px; font-size: 85%; background-color: rgba(0, 0, 0, 0.04); border-radius: 3px; }
+.markdown-preview[data-use-github-style] code::before, .markdown-preview[data-use-github-style] tt::before, .markdown-preview[data-use-github-style] code::after, .markdown-preview[data-use-github-style] tt::after { letter-spacing: -0.2em; content: " "; }
+.markdown-preview[data-use-github-style] code br, .markdown-preview[data-use-github-style] tt br { display: none; }
+.markdown-preview[data-use-github-style] del code { text-decoration: inherit; }
+.markdown-preview[data-use-github-style] pre > code { padding: 0px; margin: 0px; font-size: 100%; word-break: normal; white-space: pre; background: transparent; border: 0px; }
+.markdown-preview[data-use-github-style] .highlight { margin-bottom: 16px; }
+.markdown-preview[data-use-github-style] .highlight pre, .markdown-preview[data-use-github-style] pre { padding: 16px; overflow: auto; font-size: 85%; line-height: 1.45; background-color: rgb(247, 247, 247); border-radius: 3px; }
+.markdown-preview[data-use-github-style] .highlight pre { margin-bottom: 0px; word-break: normal; }
+.markdown-preview[data-use-github-style] pre { word-wrap: normal; }
+.markdown-preview[data-use-github-style] pre code, .markdown-preview[data-use-github-style] pre tt { display: inline; max-width: initial; padding: 0px; margin: 0px; overflow: initial; line-height: inherit; word-wrap: normal; background-color: transparent; border: 0px; }
+.markdown-preview[data-use-github-style] pre code::before, .markdown-preview[data-use-github-style] pre tt::before, .markdown-preview[data-use-github-style] pre code::after, .markdown-preview[data-use-github-style] pre tt::after { content: normal; }
+.markdown-preview[data-use-github-style] kbd { display: inline-block; padding: 3px 5px; font-size: 11px; line-height: 10px; color: rgb(85, 85, 85); vertical-align: middle; background-color: rgb(252, 252, 252); border-width: 1px; border-style: solid; border-color: rgb(204, 204, 204) rgb(204, 204, 204) rgb(187, 187, 187); border-image: initial; border-radius: 3px; box-shadow: rgb(187, 187, 187) 0px -1px 0px inset; }
+.markdown-preview[data-use-github-style] a { color: rgb(51, 122, 183); }
+.markdown-preview[data-use-github-style] code { color: inherit; }
+.markdown-preview[data-use-github-style] pre.editor-colors { padding: 0.8em 1em; margin-bottom: 1em; font-size: 0.85em; border-radius: 4px; overflow: auto; }
+.scrollbars-visible-always .markdown-preview pre.editor-colors .vertical-scrollbar, .scrollbars-visible-always .markdown-preview pre.editor-colors .horizontal-scrollbar { visibility: hidden; }
+.scrollbars-visible-always .markdown-preview pre.editor-colors:hover .vertical-scrollbar, .scrollbars-visible-always .markdown-preview pre.editor-colors:hover .horizontal-scrollbar { visibility: visible; }
+.markdown-preview .task-list-item-checkbox { position: absolute; margin: 0.25em 0px 0px -1.4em; }
+.bracket-matcher .region {
+  border-bottom: 1px dotted lime;
+  position: absolute;
+}
+.line-number.bracket-matcher.bracket-matcher {
+  color: #555;
+  background-color: rgba(255, 255, 134, 0.34);
+}
+
+.spell-check-misspelling .region {
+  border-bottom: 2px dotted rgba(255, 51, 51, 0.75);
+}
+.spell-check-corrections {
+  width: 25em !important;
+}
+
+pre.editor-colors {
+  background-color: white;
+  color: #555;
+}
+pre.editor-colors .invisible-character {
+  color: rgba(85, 85, 85, 0.2);
+}
+pre.editor-colors .indent-guide {
+  color: rgba(85, 85, 85, 0.2);
+}
+pre.editor-colors .wrap-guide {
+  background-color: rgba(85, 85, 85, 0.2);
+}
+pre.editor-colors .gutter {
+  color: #555;
+  background: white;
+}
+pre.editor-colors .gutter .line-number.folded,
+pre.editor-colors .gutter .line-number:after,
+pre.editor-colors .fold-marker:after {
+  color: #e87b00;
+}
+pre.editor-colors .invisible {
+  color: #555;
+}
+pre.editor-colors .selection .region {
+  background-color: #e1e1e1;
+}
+pre.editor-colors .bracket-matcher .region {
+  background-color: #C9C9C9;
+  opacity: .7;
+  border-bottom: 0 none;
+}
+pre.editor-colors.is-focused .cursor {
+  border-color: black;
+}
+pre.editor-colors.is-focused .selection .region {
+  background-color: #afc4da;
+}
+pre.editor-colors.is-focused .line-number.cursor-line-no-selection,
+pre.editor-colors.is-focused .line.cursor-line {
+  background-color: rgba(255, 255, 134, 0.34);
+}
+pre.editor-colors .syntax--source.syntax--gfm {
+  color: #444;
+}
+pre.editor-colors .syntax--gfm .syntax--markup.syntax--heading {
+  color: #111;
+}
+pre.editor-colors .syntax--gfm .syntax--link {
+  color: #888;
+}
+pre.editor-colors .syntax--gfm .syntax--variable.syntax--list {
+  color: #888;
+}
+pre.editor-colors .syntax--markdown .syntax--paragraph {
+  color: #444;
+}
+pre.editor-colors .syntax--markdown .syntax--heading {
+  color: #111;
+}
+pre.editor-colors .syntax--markdown .syntax--link {
+  color: #888;
+}
+pre.editor-colors .syntax--markdown .syntax--link .syntax--string {
+  color: #888;
+}
+.syntax--comment {
+  color: #999988;
+  font-style: italic;
+}
+.syntax--string {
+  color: #D14;
+}
+.syntax--string .syntax--source,
+.syntax--string .syntax--meta.syntax--embedded.syntax--line {
+  color: #5A5A5A;
+}
+.syntax--string .syntax--punctuation.syntax--section.syntax--embedded {
+  color: #920B2D;
+}
+.syntax--string .syntax--punctuation.syntax--section.syntax--embedded .syntax--source {
+  color: #920B2D;
+}
+.syntax--constant.syntax--numeric {
+  color: #D14;
+}
+.syntax--constant.syntax--language {
+  color: #606aa1;
+}
+.syntax--constant.syntax--character,
+.syntax--constant.syntax--other {
+  color: #606aa1;
+}
+.syntax--constant.syntax--symbol {
+  color: #990073;
+}
+.syntax--constant.syntax--numeric.syntax--line-number.syntax--find-in-files .syntax--match {
+  color: rgba(143, 190, 0, 0.63);
+}
+.syntax--variable {
+  color: #008080;
+}
+.syntax--variable.syntax--parameter {
+  color: #606aa1;
+}
+.syntax--keyword {
+  color: #222;
+  font-weight: bold;
+}
+.syntax--keyword.syntax--unit {
+  color: #445588;
+}
+.syntax--keyword.syntax--special-method {
+  color: #0086B3;
+}
+.syntax--storage {
+  color: #222;
+}
+.syntax--storage.syntax--type {
+  color: #222;
+}
+.syntax--entity.syntax--name.syntax--class {
+  text-decoration: underline;
+  color: #606aa1;
+}
+.syntax--entity.syntax--other.syntax--inherited-class {
+  text-decoration: underline;
+  color: #606aa1;
+}
+.syntax--entity.syntax--name.syntax--function {
+  color: #900;
+}
+.syntax--entity.syntax--name.syntax--tag {
+  color: #008080;
+}
+.syntax--entity.syntax--other.syntax--attribute-name {
+  color: #458;
+  font-weight: bold;
+}
+.syntax--entity.syntax--name.syntax--filename.syntax--find-in-files {
+  color: #E6DB74;
+}
+.syntax--support.syntax--constant,
+.syntax--support.syntax--function,
+.syntax--support.syntax--type {
+  color: #458;
+}
+.syntax--support.syntax--class {
+  color: #008080;
+}
+.syntax--invalid {
+  color: #F8F8F0;
+  background-color: #00A8C6;
+}
+.syntax--invalid.syntax--deprecated {
+  color: #F8F8F0;
+  background-color: #8FBE00;
+}
+.syntax--meta.syntax--structure.syntax--dictionary.syntax--json > .syntax--string.syntax--quoted.syntax--double.syntax--json,
+.syntax--meta.syntax--structure.syntax--dictionary.syntax--json > .syntax--string.syntax--quoted.syntax--double.syntax--json .syntax--punctuation.syntax--string {
+  color: #000080;
+}
+.syntax--meta.syntax--structure.syntax--dictionary.syntax--value.syntax--json > .syntax--string.syntax--quoted.syntax--double.syntax--json {
+  color: #d14;
+}
+.syntax--meta.syntax--diff,
+.syntax--meta.syntax--diff.syntax--header {
+  color: #75715E;
+}
+.syntax--css.syntax--support.syntax--property-name {
+  font-weight: bold;
+  color: #333;
+}
+.syntax--css.syntax--constant {
+  color: #099;
+}
+</style>
+  </head>
+  <body class='markdown-preview' data-use-github-style><h1 id="intel-software-guard-extensions-sgx-remote-attestation-end-to-end-sample-windows-build-">Intel® Software Guard Extensions (SGX) Remote Attestation End-to-End Sample (Windows Build)</h1>
+<p>This README contains a copy of the Windows build and run notes from the README in the main source directory as a convenience.</p>
+<ul>
+<li>Building<ul>
+<li><a href="#build-win-notes">Build notes</a></li>
+</ul>
+</li>
+<li><a href="#running-quick">Running (Quick-start)</a></li>
+<li><a href="#running-adv">Running (Advanced)</a></li>
+<li><a href="#output">Sample Output</a></li>
+</ul>
+<h2 id="-a-name-build-a-building-the-sample"><a name="build"></a>Building the Sample</h2>
+<p>For simplicity, the client and server are packaged and built together. In a real-world environment, these would be separate builds.</p>
+<p>The service provider's remote attestation server <em>does not require Intel SGX hardware or software to run</em>. The server in this code sample requires the Intel SGX SDK header files in order to simplify the code and build process, but this is not strictly necessary.</p>
+<h4 id="prerequisites">Prerequisites</h4>
+<ul>
+<li><p>Ensure you have the following:</p>
+<ul>
+<li>Windows 10 64-bit</li>
+<li>Microsoft* Visual Studio 2015 (Professional edition or better)</li>
+<li><a href="Intel SGX SDK and Platform Software for Windows">https://software.intel.com/en-us/sgx-sdk/download</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li><p>Install OpenSSL 1.1.0 for Windows. The <a href="https://slproweb.com/products/Win32OpenSSL.html">Win64 OpenSSL v1.1.0 package from Shining Light Productions</a> is recommended. <strong>Select the option to copy the DLL's to your Windows system directory.</strong></p>
+</li>
+<li><p>Download <a href="https://github.com/openssl/openssl/blob/master/ms/applink.c">applink.c</a> from GitHub and install it to OpenSSL's <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">include\openssl</code> directory.</p>
+</li>
+<li><p>Install libcurl 7 for Windows. The <a href="http://www.confusedbycode.com/curl/">cURL distribution from Confused by Code</a> is recommended because it was built against OpenSSL using Visual Studio 2015, has no external dependencies, and is packaged with an installer. It includes a certificate bundle, libraries, and the headers necessary for development (though <strong>you'll need to choose the advanced install option to include the headers</strong>). Note that this is an older build of cURL (7.46.0 as of this writing). You may be able to find newer builds of the complete libcurl package.</p>
+</li>
+<li><p>Copy <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">libcurl.dll</code> to your Windows system directory (generally <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">C:\WINDOWS\SYSTEM32</code>).</p>
+</li>
+</ul>
+<h4 id="configure-and-compile">Configure and Compile</h4>
+<ul>
+<li><p>Open the Solution file <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">remote-attestation-sample.sln</code> in the <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">vs/</code> subdirectory.</p>
+</li>
+<li><p>Set the configuration to "Debug" and the platform to "x64".</p>
+</li>
+<li><p>Configure the client build</p>
+<ul>
+<li><p>Open the <strong>client</strong> project properties</p>
+</li>
+<li><p>Navigate to "C/C++ -&gt; General" and edit "Additional Include Directories" to include your OpenSSL include path. This is pre-set to <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">C:\OpenSSL-Win64\include</code> which is the default location for the recommended OpenSSL package for Windows.</p>
+</li>
+<li><p>Navigate to "Linker -&gt; General" and edit "Additional Library Directories" to <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">C:\OpenSSL-Win64\lib</code></p>
+</li>
+</ul>
+</li>
+<li><p>Configure the <em>server</em> build</p>
+<ul>
+<li><p>Open the <strong>sp</strong> project properties</p>
+</li>
+<li><p>Navigate to "C/C++ -&gt; General" and edit "Additional Include Directories" to include your curl and OpenSSL include paths. These are pre-set to <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">C:\Program Files\cURL\include</code> and <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">C:\OpenSSL-Win64\include</code> which are the default locations for the recommended packages.</p>
+</li>
+<li><p>Navigate to "Linker -&gt; Additional Library Directories" and edit "Additional Library Directories" to include your curl and OpenSSL library paths. These are pre-set to <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">C:\Program Files\cURL\lib</code> and <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">C:\OpenSSL-Win64\lib\VC\</code> which are the default locations for the recommended packages.</p>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li>Build the Solution. The binaries will be written to <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">vs\x64\Debug</code></li>
+</ul>
+<h4 id="-a-name-build-win-notes-a-build-notes"><a name="build-win-notes"></a>Build notes</h4>
+<p>The Windows sample uses libcurl instead of Windows native APIs for contacting IAS. At this time, the Intel Attestation Service development server (which most ISV's use during their application and service testing phase) is not compatible with WinHTTP/WinInet due to the amount of data sent by IAS during the TLS handshake.</p>
+<h2 id="-a-name-running-quick-a-running-the-sample-quick-start-guide-"><a name="running-quick"></a>Running the Sample (Quick Start Guide)</h2>
+<p>By default, the server listens on port 7777 and the client connects to localhost. The server will make use of system proxy settings when contacting IAS.</p>
+<p>The client and server use a very simplistic network protocol with <em>no error handling and no encryption</em>. Messages are sent using base 16 encoding (printed hex strings) for easy reading and interpretation. The intent here is to demonstrate the RA procedures and the modified Sigma protocol, not model a real-world application. <em>It's assumed that a real ISV would integrate RA flows into their existing service infrastructure (e.g. a REST API implemented over a TLS session).</em></p>
+<p>Two wrapper scripts, <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">run-client.cmd</code> and <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">run-server.cmd</code> are provided for convenience. These are Windows CMD-style batch files that do the following:</p>
+<ul>
+<li>Parse the <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">settings.cmd</code> file (which is called as a batch file)</li>
+<li>Execute the client.exe or sp.exe applications with the corresponding command-line options.</li>
+</ul>
+<p>You can pass command-line options to the underlying executables via the wrapper scripts. Note that it expects UNIX-style syntax (dashes), not Windows-style (slashes).</p>
+<p>To execute:</p>
+<ul>
+<li><p>Edit the <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">settings.cmd</code> file</p>
+</li>
+<li><p>Run the server:</p>
+<pre class="editor-colors lang-"><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>run-server&nbsp;[&nbsp;options&nbsp;]&nbsp;[&nbsp;port&nbsp;]</span></span></div></pre></li>
+<li><p>Run the client:</p>
+<pre class="editor-colors lang-"><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>run-client&nbsp;[&nbsp;options&nbsp;]&nbsp;[&nbsp;host[:port]&nbsp;]</span></span></div></pre></li>
+</ul>
+<h2 id="-a-name-running-adv-a-running-the-sample-advanced-options-"><a name="running-adv"></a>Running the Sample (Advanced Options)</h2>
+<p>Use verbose mode (<code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">-v</code>) to see additional details about the messages sent between the client and server. This information is printed to stderr.</p>
+<p>Use debug mode (<code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">-d</code>) to view debugging information.</p>
+<h3 id="client">Client</h3>
+<pre class="editor-colors lang-"><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>usage:&nbsp;client&nbsp;[&nbsp;options&nbsp;]&nbsp;[&nbsp;host[:port]&nbsp;]</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>Required:</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-N,&nbsp;--nonce-file=FILE&nbsp;&nbsp;&nbsp;&nbsp;Set&nbsp;a&nbsp;nonce&nbsp;from&nbsp;a&nbsp;file&nbsp;containing&nbsp;a&nbsp;32-byte</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ASCII&nbsp;hex&nbsp;string</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-P,&nbsp;--pubkey-file=FILE&nbsp;&nbsp;&nbsp;File&nbsp;containing&nbsp;the&nbsp;public&nbsp;key&nbsp;of&nbsp;the&nbsp;service</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;provider.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-S,&nbsp;--spid-file=FILE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Set&nbsp;the&nbsp;SPID&nbsp;from&nbsp;a&nbsp;file&nbsp;containing&nbsp;a&nbsp;32-byte</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ASCII&nbsp;hex&nbsp;string</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-d,&nbsp;--debug&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show&nbsp;debugging&nbsp;information</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-e,&nbsp;--epid-gid&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Get&nbsp;the&nbsp;EPID&nbsp;Group&nbsp;ID&nbsp;instead&nbsp;of&nbsp;performing</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;an&nbsp;attestation.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-l,&nbsp;--linkable&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Specify&nbsp;a&nbsp;linkable&nbsp;quote&nbsp;(default:&nbsp;unlinkable)</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-m,&nbsp;--pse-manifest&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Include&nbsp;the&nbsp;PSE&nbsp;manifest&nbsp;in&nbsp;the&nbsp;quote</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-n,&nbsp;--nonce=HEXSTRING&nbsp;&nbsp;&nbsp;&nbsp;Set&nbsp;a&nbsp;nonce&nbsp;from&nbsp;a&nbsp;32-byte&nbsp;ASCII&nbsp;hex&nbsp;string</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-p,&nbsp;--pubkey=HEXSTRING&nbsp;&nbsp;&nbsp;Specify&nbsp;the&nbsp;public&nbsp;key&nbsp;of&nbsp;the&nbsp;service&nbsp;provider</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;as&nbsp;an&nbsp;ASCII&nbsp;hex&nbsp;string&nbsp;instead&nbsp;of&nbsp;using&nbsp;the</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-q&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Generate&nbsp;a&nbsp;quote&nbsp;instead&nbsp;of&nbsp;performing&nbsp;an</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;attestation.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-r&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Generate&nbsp;a&nbsp;nonce&nbsp;using&nbsp;RDRAND</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-s,&nbsp;--spid=HEXSTRING&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Set&nbsp;the&nbsp;SPID&nbsp;from&nbsp;a&nbsp;32-byte&nbsp;ASCII&nbsp;hex&nbsp;string</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-v,&nbsp;--verbose&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Print&nbsp;decoded&nbsp;RA&nbsp;messages&nbsp;to&nbsp;stderr</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-z&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Read&nbsp;from&nbsp;stdin&nbsp;and&nbsp;write&nbsp;to&nbsp;stdout&nbsp;instead</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;connecting&nbsp;to&nbsp;a&nbsp;server.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;</span></span></div></pre><p>By default, the client connects to a server running on localhost, port 7777, and attempts a remote attestation.</p>
+<p>If <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">-z</code> is supplied, it will run interactively, accepting input from stdin and writing to stdout. This makes it possible to copy and paste output from the client to the server, and visa-versa.</p>
+<p>The <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">-q</code> option will generate and print a quote instead of performing remote attestation. This quote can be submitted as-is to the Intel Attestation Service, and is intended for debugging RA workflows and IAS communications.</p>
+<p>The <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">-p</code> and <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">-P</code> options let you override the service provider's public key for debugging and testing purposes. This key is normally hardcoded into the enclave to ensure it only attests to the expected service provider.</p>
+<h3 id="server">Server</h3>
+<pre class="editor-colors lang-"><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>usage:&nbsp;sp&nbsp;[&nbsp;options&nbsp;]&nbsp;[&nbsp;port&nbsp;]</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>Required:</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-A,&nbsp;--ias-signing-cafile=FILE</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Specify&nbsp;the&nbsp;IAS&nbsp;Report&nbsp;Signing&nbsp;CA&nbsp;file.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-C,&nbsp;--ias-cert-file=FILE&nbsp;Specify&nbsp;the&nbsp;IAS&nbsp;client&nbsp;certificate&nbsp;to&nbsp;use&nbsp;when</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;communicating&nbsp;with&nbsp;IAS.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>One&nbsp;of&nbsp;(required):</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-S,&nbsp;--spid-file=FILE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Set&nbsp;the&nbsp;SPID&nbsp;from&nbsp;a&nbsp;file&nbsp;containg&nbsp;a&nbsp;32-byte.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ASCII&nbsp;hex&nbsp;string.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-s,&nbsp;--spid=HEXSTRING&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Set&nbsp;the&nbsp;SPID&nbsp;from&nbsp;a&nbsp;32-byte&nbsp;ASCII&nbsp;hex&nbsp;string.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>Optional:</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-B,&nbsp;--ca-bundle-file=FILE</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Use&nbsp;the&nbsp;CA&nbsp;certificate&nbsp;bundle&nbsp;at&nbsp;FILE&nbsp;(default:</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/etc/ssl/certs/ca-certificates.crt)</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-E,&nbsp;--ias-cert-passwd=FILE</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Use&nbsp;password&nbsp;in&nbsp;FILE&nbsp;for&nbsp;the&nbsp;IAS&nbsp;client</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;certificate.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-G,&nbsp;--list-agents&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;List&nbsp;available&nbsp;user&nbsp;agent&nbsp;names&nbsp;for&nbsp;--user-agent</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-K,&nbsp;--service-key-file=FILE</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;private&nbsp;key&nbsp;file&nbsp;for&nbsp;the&nbsp;service&nbsp;in&nbsp;PEM</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;format&nbsp;(default:&nbsp;use&nbsp;hardcoded&nbsp;key).&nbsp;The</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;client&nbsp;must&nbsp;be&nbsp;given&nbsp;the&nbsp;corresponding&nbsp;public</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key.&nbsp;Can't&nbsp;combine&nbsp;with&nbsp;--key.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-P,&nbsp;--production&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Query&nbsp;the&nbsp;production&nbsp;IAS&nbsp;server&nbsp;instead&nbsp;of&nbsp;dev.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-Y,&nbsp;--ias-cert-key=FILE&nbsp;&nbsp;The&nbsp;private&nbsp;key&nbsp;file&nbsp;for&nbsp;the&nbsp;IAS&nbsp;client&nbsp;certificate.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-d,&nbsp;--debug&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Print&nbsp;debug&nbsp;information&nbsp;to&nbsp;stderr.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-g,&nbsp;--user-agent=NAME&nbsp;&nbsp;&nbsp;&nbsp;Use&nbsp;NAME&nbsp;as&nbsp;the&nbsp;user&nbsp;agent&nbsp;for&nbsp;contacting&nbsp;IAS.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-k,&nbsp;--key=HEXSTRING&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The&nbsp;private&nbsp;key&nbsp;as&nbsp;a&nbsp;hex&nbsp;string.&nbsp;See&nbsp;--key-file</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;notes.&nbsp;Can't&nbsp;combine&nbsp;with&nbsp;--key-file.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-l,&nbsp;--linkable&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Request&nbsp;a&nbsp;linkable&nbsp;quote&nbsp;(default:&nbsp;unlinkable).</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-p,&nbsp;--proxy=PROXYURL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Use&nbsp;the&nbsp;proxy&nbsp;server&nbsp;at&nbsp;PROXYURL&nbsp;when&nbsp;contacting</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IAS.&nbsp;Can't&nbsp;combine&nbsp;with&nbsp;--no-proxy</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-r,&nbsp;--api-version=N&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Use&nbsp;version&nbsp;N&nbsp;of&nbsp;the&nbsp;IAS&nbsp;API&nbsp;(default:&nbsp;2)</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-t,&nbsp;--ias-cert-type=TYPE&nbsp;The&nbsp;client&nbsp;certificate&nbsp;type.&nbsp;Can&nbsp;be&nbsp;PEM&nbsp;(default)</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;or&nbsp;P12.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-v,&nbsp;--verbose&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Be&nbsp;verbose.&nbsp;Print&nbsp;message&nbsp;structure&nbsp;details&nbsp;and&nbsp;the</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;results&nbsp;of&nbsp;intermediate&nbsp;operations&nbsp;to&nbsp;stderr.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-x,&nbsp;--no-proxy&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Do&nbsp;not&nbsp;use&nbsp;a&nbsp;proxy&nbsp;(force&nbsp;a&nbsp;direct&nbsp;connection),</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;overriding&nbsp;environment.</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;-z&nbsp;&nbsp;--stdio&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Read&nbsp;from&nbsp;stdin&nbsp;and&nbsp;write&nbsp;to&nbsp;stdout&nbsp;instead&nbsp;of</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;running&nbsp;as&nbsp;a&nbsp;network&nbsp;server.</span></span></div></pre><p>You set the user agent with <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">-g</code> (a list of supported agents can be obtained from <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">-G</code>). On Linux, this is one of either <strong>wget</strong> or <strong>libcurl</strong> (unless the latter is disabled in the build configuration). On Windows, <strong>libcurl</strong> is the only agent.</p>
+<p>By default, the server uses protocol version 2 when communicating with IAS. This can be changed with <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">-r</code>. Version 1 has been deprecated.</p>
+<p>You can override the service provider private key with <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">-k</code> or <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">-K</code>. As with the client, this key would normally be hardcoded into the server to prevent it from handling unauthorized clients.</p>
+<p>The certificate used by the server when communicating with IAS must be from a recognized CA. If you use a self-signed certificate, the signing CA must be added to your CA bundle or it will be rejected (a full certificate chain in the client certificate file is allowed).</p>
+<p>You can force the server to use a proxy when communicating with IAS via <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">-p</code>, or to use a direct connection via <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">-x</code>.</p>
+<p>As with the client, the server can be run in interactive mode via <code style="font-family: Menlo, Consolas, &quot;DejaVu Sans Mono&quot;, monospace;">-z</code>, accepting input from stdin and writing to stdout. This makes it possible to copy and paste output from the client to the server, and visa-versa.</p>
+<h2 id="-a-name-output-a-sample-output"><a name="output"></a>Sample output</h2>
+<h3 id="client">Client</h3>
+<pre class="editor-colors lang-"><div class="line"><span class="syntax--source syntax--yaml"><span class="syntax--punctuation syntax--definition syntax--directives syntax--end syntax--yaml"><span>---</span></span><span class="syntax--string syntax--unquoted syntax--yaml"><span>-&nbsp;Copy/Paste&nbsp;Msg0||Msg1&nbsp;Below&nbsp;to&nbsp;SP&nbsp;-------------------------------------</span></span></span></div><div class="line"><span class="syntax--source syntax--yaml"><span class="syntax--string syntax--unquoted syntax--yaml"><span>000000006beaf1641d386157559ecbc95330c407442f5169c0adc13e9faa6b94e1011acbdfb157867dbd65633b023cc95a1d19eda341f5bbfed20eebdc04c708b99e40b2e00a0000</span></span></span></div><div class="line"><span class="syntax--source syntax--yaml"><span class="syntax--punctuation syntax--definition syntax--directives syntax--end syntax--yaml"><span>---</span></span><span class="syntax--string syntax--unquoted syntax--yaml"><span>-------------------------------------------------------------------------</span></span></span></div><div class="line"><span class="syntax--source syntax--yaml"><span class="syntax--string syntax--unquoted syntax--yaml"><span>Waiting&nbsp;for&nbsp;msg2</span></span></span></div><div class="line"><span class="syntax--source syntax--yaml"><span>&nbsp;</span></span></div><div class="line"><span class="syntax--source syntax--yaml"><span class="syntax--punctuation syntax--definition syntax--directives syntax--end syntax--yaml"><span>---</span></span><span class="syntax--string syntax--unquoted syntax--yaml"><span>-&nbsp;Copy/Paste&nbsp;Msg3&nbsp;Below&nbsp;to&nbsp;SP&nbsp;-------------------------------------------</span></span></span></div><div class="line"><span class="syntax--source syntax--yaml"><span class="syntax--string syntax--unquoted syntax--yaml"><span>d0cf09ac6230516154c174906b2937476beaf1641d386157559ecbc95330c407442f5169c0adc13e9faa6b94e1011acbdfb157867dbd65633b023cc95a1d19eda341f5bbfed20eebdc04c708b99e40b20000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000e00a00000700060000000000928a6b0e3cddad56eb3badaa3b63f71f26e915240eea8bff76b4f95c099997ff04040204ff8000000000000000000000000000000000000000000000000000000000000000000000000000000000000007000000000000000700000000000000c168cba257604a3ba4ac9650cbf02c8bb1474bac999566dd3f9e2e9c7ed0dd280000000000000000000000000000000000000000</span></span><span>000000000000000000000000bd71c6380ef77c5417e8b2d1ce2d4b6504b9f418e5049342440cfff2443d95bd000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007275d839674afa2a4236b8a98d414db129efdf8264d25dee20b758bd5c589a3b0000000000000000000000000000000000000000000000000000000000000000a802000071b644877107086edf039798938260c194b21e3ee07315692fc8132fe6c051b16f9efabb0351cbd26da9996769ccb8b4b048f7438b0a1fa3da114afd7b549bf39f5ee406e84657b6b98abd3f2d47c07b3a90538dcbba978de8d049879cf68730208cb4b4de24280dd1179086062ab303ac7f5b1dcae6129ea3befeafa1d4dcba800264baa52cf1541c17b664d801f2b51d1bf2e2e231b9bd359d22979194de11162564e76b0bdb9eae825ea684823cb140d2567262e7834483e8a0db0f389f89253f75bf17295b29bb219f6e8dfb68c0e8f836ee6706191321c2c94489e01efd9fa8568cb0c175b85e8c0261a423202bd5a051227a5ef88cc9a798bcebd958dbc4bdf57f377a954112d072123bea83fe7049092e7b5f78a3e3d9af75d34f94bef36ded123364305fc4ae72e168010000a1e4f316f843d77dcdce958bea5111667110e171720c63c0e71e4e497f553790894d058dc36881ce30017263667e24d35b3ea6666840f3c84ee7ec4343e6268d043bdf35a3768a0689bda434e87c0289a9c353584dbe58e7400e763ac0b7d935a3365665363c6d2b607a74c8fc7fe4ed2c9458186b2b9db88a46d4b0d16021f79082873b483b1e593e5ba589f93a462c1fcf0a2122732ed3bc2af337ab2d7e767e644b32ef100948b448a2bf335890c4ef199b2ffc9009b5068e2eecb7b3455c905c2c3e1c4845d753e17d025e04fb983a7994b455244d01345f71b575ad43d381453b848cd6e29cca2947ef3df72fe3ae61bd5bb15d46ba55b262dbdd4060faf7ed787a50e208e970d7dcea273770ace4ee597135766629fd628529cfd6cc28385192ad83506d97bdcacd2e4814a31f6bd1bd6452599b76aff500a24f137428ded821df2893702bb4887fa6fd2bec51b3d0addf94e80e11edb7515b7572a3d911e1f709e3967ea21f3c0c695afca00b29fe6a88e4911a0a</span></span></div><div class="line"><span class="syntax--source syntax--yaml"><span class="syntax--punctuation syntax--definition syntax--directives syntax--end syntax--yaml"><span>---</span></span><span class="syntax--string syntax--unquoted syntax--yaml"><span>-------------------------------------------------------------------------</span></span></span></div><div class="line"><span class="syntax--source syntax--yaml"><span>&nbsp;</span></span></div><div class="line"><span class="syntax--source syntax--yaml"><span class="syntax--punctuation syntax--definition syntax--directives syntax--end syntax--yaml"><span>---</span></span><span class="syntax--string syntax--unquoted syntax--yaml"><span>-&nbsp;Enclave&nbsp;Trust&nbsp;Status&nbsp;from&nbsp;Service&nbsp;Provider&nbsp;----------------------------</span></span></span></div><div class="line"><span class="syntax--source syntax--yaml"><span class="syntax--string syntax--unquoted syntax--yaml"><span>Enclave&nbsp;TRUSTED</span></span></span></div></pre><h3 id="server">Server</h3>
+<pre class="editor-colors lang-"><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>Listening&nbsp;for&nbsp;connections&nbsp;on&nbsp;port&nbsp;7777</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>Waiting&nbsp;for&nbsp;a&nbsp;client&nbsp;to&nbsp;connect...</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>Connection&nbsp;from&nbsp;127.0.0.1</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>Waiting&nbsp;for&nbsp;msg0||msg1</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>----&nbsp;Copy/Paste&nbsp;Msg2&nbsp;Below&nbsp;to&nbsp;Client&nbsp;---------------------------------------</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>e1c252d589daf123e18a20047d48d00dcc36312bba903b56ff62e3282a7991e4c355bc2c62427e003c7830b9f648cae480105fd065866b41fd0255038a9f54d6928a6b0e3cddad56eb3badaa3b63f71f00000100b5d1f9b84fe9e25690b220ad89465ba4d569b3eccbc26d0842666b466e745f8b5079ec3591be5c6ff6fe185d97244c06ffda6f1cb23f600e4b6a04b141df8e2f3c43bbcd7fc375b372c6044ccd414e3300000000</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>----------------------------------------------------------------------------</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>Waiting&nbsp;for&nbsp;msg3</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>&nbsp;</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>----&nbsp;Copy/Paste&nbsp;Msg4&nbsp;Below&nbsp;to&nbsp;Client&nbsp;---------------------------------------</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000</span></span></div><div class="line"><span class="syntax--text syntax--plain syntax--null-grammar"><span>----------------------------------------------------------------------------</span></span></div></pre></body>
+</html>
