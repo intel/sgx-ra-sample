@@ -19,9 +19,9 @@ The service provider's remote attestation server _does not require Intel SGX har
 
 * Ensure you have the following:
 
- * Windows 10 64-bit
- * Microsoft* Visual Studio 2015 (Professional edition or better)
- * [https://software.intel.com/en-us/sgx-sdk/download](Intel SGX SDK and Platform Software for Windows)
+  * Windows 10 64-bit
+  * Microsoft* Visual Studio 2015 (Professional edition or better)
+  * [https://software.intel.com/en-us/sgx-sdk/download](Intel SGX SDK and Platform Software for Windows)
 
 
 * Install OpenSSL 1.1.0 for Windows. The [Win64 OpenSSL v1.1.0 package from Shining Light Productions](https://slproweb.com/products/Win32OpenSSL.html) is recommended. **Select the option to copy the DLL's to your Windows system directory.**
@@ -41,19 +41,19 @@ The service provider's remote attestation server _does not require Intel SGX har
 
 * Configure the client build
 
- * Open the **client** project properties
+  * Open the **client** project properties
 
- * Navigate to "C/C++ -> General" and edit "Additional Include Directories" to include your OpenSSL include path. This is pre-set to `C:\OpenSSL-Win64\include` which is the default location for the recommended OpenSSL package for Windows.
+  * Navigate to "C/C++ -> General" and edit "Additional Include Directories" to include your OpenSSL include path. This is pre-set to `C:\OpenSSL-Win64\include` which is the default location for the recommended OpenSSL package for Windows.
 
- * Navigate to "Linker -> General" and edit "Additional Library Directories" to `C:\OpenSSL-Win64\lib`
+  * Navigate to "Linker -> General" and edit "Additional Library Directories" to `C:\OpenSSL-Win64\lib`
 
 * Configure the *server* build
 
- * Open the **sp** project properties
+  * Open the **sp** project properties
 
- * Navigate to "C/C++ -> General" and edit "Additional Include Directories" to include your curl and OpenSSL include paths. These are pre-set to `C:\Program Files\cURL\include` and `C:\OpenSSL-Win64\include` which are the default locations for the recommended packages.
+  * Navigate to "C/C++ -> General" and edit "Additional Include Directories" to include your curl and OpenSSL include paths. These are pre-set to `C:\Program Files\cURL\include` and `C:\OpenSSL-Win64\include` which are the default locations for the recommended packages.
 
- * Navigate to "Linker -> Additional Library Directories" and edit "Additional Library Directories" to include your curl and OpenSSL library paths. These are pre-set to `C:\Program Files\cURL\lib` and `C:\OpenSSL-Win64\lib\VC\` which are the default locations for the recommended packages.
+  * Navigate to "Linker -> Additional Library Directories" and edit "Additional Library Directories" to include your curl and OpenSSL library paths. These are pre-set to `C:\Program Files\cURL\lib` and `C:\OpenSSL-Win64\lib\VC\` which are the default locations for the recommended packages.
 
 
 * Build the Solution. The binaries will be written to `vs\x64\Debug`

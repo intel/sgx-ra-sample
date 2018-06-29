@@ -37,25 +37,25 @@ The service provider's remote attestation server _does not require Intel SGX har
 
 * Ensure that you have one of the following operating systems:
 
- * CentOS 7.4 (64-bit)
- * Ubuntu 16.04 LTS Desktop (64-bit)
- * Ubuntu 16.04 LTS Server (64-bit)
+  * CentOS 7.4 (64-bit)
+  * Ubuntu 16.04 LTS Desktop (64-bit)
+  * Ubuntu 16.04 LTS Server (64-bit)
 
 * Ensure that you have built and installed the Intel SGX packages:
 
- * [Intel SGX Software Development Kit and Platform Software package for Linux](https://github.com/intel/linux-sgx)
- * [Intel SGX Driver for Linux](https://github.com/intel/linux-sgx)
+  * [Intel SGX Software Development Kit and Platform Software package for Linux](https://github.com/intel/linux-sgx)
+  * [Intel SGX Driver for Linux](https://github.com/intel/linux-sgx)
 
 
 * Run the following commands to install the required packages to build the RA code sample (this assumes you have installed the dependencies for the Intel SGX SDK and PSW package)
 
- * On CentOS 7.4
+  * On CentOS 7.4
 
   ```
   $ yum install libcurl-devel
   ```
 
- * On Ubuntu 16.04
+  * On Ubuntu 16.04
 
  ```
  $ apt-get install libcurl4-openssl-dev
@@ -114,9 +114,9 @@ You can build the client for simulation mode using `--enable-sgx-simulation`. No
 
 * Ensure you have the following:
 
- * Windows 10 64-bit
- * Microsoft* Visual Studio 2015 (Professional edition or better)
- * [https://software.intel.com/en-us/sgx-sdk/download](Intel SGX SDK and Platform Software for Windows)
+  * Windows 10 64-bit
+  * Microsoft* Visual Studio 2015 (Professional edition or better)
+  * [https://software.intel.com/en-us/sgx-sdk/download](Intel SGX SDK and Platform Software for Windows)
 
 
 * Install OpenSSL 1.1.0 for Windows. The [Win64 OpenSSL v1.1.0 package from Shining Light Productions](https://slproweb.com/products/Win32OpenSSL.html) is recommended. **Select the option to copy the DLL's to your Windows system directory.**
@@ -136,19 +136,19 @@ You can build the client for simulation mode using `--enable-sgx-simulation`. No
 
 * Configure the client build
 
- * Open the **client** project properties
+  * Open the **client** project properties
 
- * Navigate to "C/C++ -> General" and edit "Additional Include Directories" to include your OpenSSL include path. This is pre-set to `C:\OpenSSL-Win64\include` which is the default location for the recommended OpenSSL package for Windows.
+  * Navigate to "C/C++ -> General" and edit "Additional Include Directories" to include your OpenSSL include path. This is pre-set to `C:\OpenSSL-Win64\include` which is the default location for the recommended OpenSSL package for Windows.
 
- * Navigate to "Linker -> General" and edit "Additional Library Directories" to `C:\OpenSSL-Win64\lib`
+  * Navigate to "Linker -> General" and edit "Additional Library Directories" to `C:\OpenSSL-Win64\lib`
 
 * Configure the *server* build
 
- * Open the **sp** project properties
+  * Open the **sp** project properties
 
- * Navigate to "C/C++ -> General" and edit "Additional Include Directories" to include your curl and OpenSSL include paths. These are pre-set to `C:\Program Files\cURL\include` and `C:\OpenSSL-Win64\include` which are the default locations for the recommended packages.
+  * Navigate to "C/C++ -> General" and edit "Additional Include Directories" to include your curl and OpenSSL include paths. These are pre-set to `C:\Program Files\cURL\include` and `C:\OpenSSL-Win64\include` which are the default locations for the recommended packages.
 
- * Navigate to "Linker -> Additional Library Directories" and edit "Additional Library Directories" to include your curl and OpenSSL library paths. These are pre-set to `C:\Program Files\cURL\lib` and `C:\OpenSSL-Win64\lib\VC\` which are the default locations for the recommended packages.
+  * Navigate to "Linker -> Additional Library Directories" and edit "Additional Library Directories" to include your curl and OpenSSL library paths. These are pre-set to `C:\Program Files\cURL\lib` and `C:\OpenSSL-Win64\lib\VC\` which are the default locations for the recommended packages.
 
 
 * Build the Solution. The binaries will be written to `vs\x64\Debug`
