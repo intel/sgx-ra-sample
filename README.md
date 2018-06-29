@@ -1,6 +1,7 @@
 # Intel&reg; Software Guard Extensions (SGX) Remote Attestation End-to-End Sample
 
 * [Introduction](#intro)
+* [License](#license)
 * Building
   * [Linux*](#build-linux)
     * [Linux build notes](#build-linux-notes)
@@ -24,6 +25,11 @@ This code sample demonstrates the procedures that must be followed when performi
 For complete information on remote attestation, see the [white paper](https://software.intel.com/en-us/articles/intel-software-guard-extensions-remote-attestation-end-to-end-example) on Intel's Developer Zone.
 
 For more information on developing applications with Intel SGX, visit the [Intel SGX landing zone](https://software.intel.com/sgx/).
+
+## <a name="license"></a>License
+
+Except as otherwise noted, source code is made available under the
+Intel Sample Source Code license. See the LICENSE file for terms.
 
 ## <a name="build"></a>Building the Sample
 

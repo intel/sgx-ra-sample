@@ -2,12 +2,18 @@
 
 This README contains a copy of the Windows build and run notes from the README in the main source directory as a convenience.
 
+* [License](#license)
 * Building
   * [Build notes](#build-win-notes)
 * [Running (Quick-start)](#running-quick)
 * [Running (Advanced)](#running-adv)
 * [Sample Output](#output)
 
+
+## <a name="license"></a>License
+
+Except as otherwise noted, source code is made available under the
+Intel Sample Source Code license. See the LICENSE file for terms.
 
 ## <a name="build"></a>Building the Sample
 
