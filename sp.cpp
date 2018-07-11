@@ -735,10 +735,8 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 				hexstring(&r->mr_enclave, sizeof(sgx_measurement_t)));
 			eprintf("mr_signer   = %s\n",
 				hexstring(&r->mr_signer, sizeof(sgx_measurement_t)));
-			eprintf("isv_prod_id = %s\n",
-				hexstring(&r->isv_prod_id, sizeof(sgx_prod_id_t)));
-			eprintf("isv_svn     = %s\n",
-				hexstring(&r->isv_svn, sizeof(sgx_isv_svn_t)));
+			eprintf("isv_prod_id = %04hX\n", r->isv_prod_id);
+			eprintf("isv_svn     = %04hX\n", r->isv_svn);
 			eprintf("report_data = %s\n",
 				hexstring(&r->report_data, sizeof(sgx_report_data_t)));
 		}
