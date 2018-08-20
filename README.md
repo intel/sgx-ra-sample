@@ -70,10 +70,10 @@ The service provider's remote attestation server _does not require Intel SGX har
 * Download the source for the latest release of OpenSSL 1.1.0, then build and install it into a _non-system directory_ such as /opt (note that both `--prefix` and `--openssldir` should be set when building OpenSSL 1.1.0). For example:
 
   ```
-  $ wget https://www.openssl.org/source/openssl-1.1.0h.tar.gz
-  $ tar xf openssl-1.1.0h.tar.gz
-  $ cd openssl-1.1.0h
-  $ ./Configure --prefix=/opt/openssl/1.1.0h --openssldir=/opt/openssl/1.1.0h
+  $ wget https://www.openssl.org/source/openssl-1.1.0i.tar.gz
+  $ tar xf openssl-1.1.0i.tar.gz
+  $ cd openssl-1.1.0i
+  $ ./Configure --prefix=/opt/openssl/1.1.0i --openssldir=/opt/openssl/1.1.0i
   $ make
   $ sudo make install
   ```
@@ -84,7 +84,7 @@ First, prepare the build system (GNU* automake and autoconf) by running `bootstr
 
   ```
   $ ./bootstrap
-  $ ./configure --with-openssldir=/opt/openssl/1.1.0h
+  $ ./configure --with-openssldir=/opt/openssl/1.1.0i
   $ make
   ```
 
