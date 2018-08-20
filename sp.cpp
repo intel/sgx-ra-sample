@@ -230,6 +230,11 @@ int main(int argc, char *argv[])
 		case 'G':
 			ias_list_agents(stdout);
 			return 1;
+
+                case 'P':
+                        flag_prod = 1;
+                        break;
+
 		case 'S':
 			if (!from_hexstring_file((unsigned char *)&config.spid, optarg, 16)) {
 				eprintf("SPID must be 32-byte hex string\n");

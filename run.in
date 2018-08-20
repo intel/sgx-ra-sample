@@ -117,6 +117,7 @@ then
 		-C "$IAS_CLIENT_CERT_FILE" \
 		$sp_cert_key $sp_noproxy $sp_proxy $sp_cert_passwd $sp_cert_type \
 		$flag_linkable $flag_debug $flag_verbose \
+                $sp_production \
 		"$@" 
 else
 	echo "$PROG: unrecognized instance (expected run-client or run-server)" >&2
