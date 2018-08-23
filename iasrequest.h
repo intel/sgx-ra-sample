@@ -35,8 +35,10 @@ using namespace std;
 #define IAS_F_DEFAULT		IAS_F_VERIFY_PEER
 #define IAS_F_VERIFY_PEER	0x1
 
-/* v1 API has been EOL'd */
+/* IAS API v1 has been EOL'd */
+/* IAS API v2 has been deprecated as of Aug-17-2018 */
 #define IAS_MIN_VERSION	2
+/* IAS API v3 is the latest supported API */ 
 #define IAS_MAX_VERSION	3
 
 #define IAS_PROXY_NONE	0
