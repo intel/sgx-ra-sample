@@ -493,6 +493,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	status = sgx_get_extended_epid_group_id(&msg0_extended_epid_group_id);
 	if ( status != SGX_SUCCESS ) {
+                enclave_ra_close(eid, &sgxrv, ra_ctx); 
 		fprintf(stderr, "sgx_get_extended_epid_group_id: %08x\n", status);
 		return 1;
 	}
@@ -515,6 +516,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	status= sgx_ra_get_msg1(ra_ctx, eid, sgx_ra_get_ga, &msg1);
 	if ( status != SGX_SUCCESS ) {
+                enclave_ra_close(eid, &sgxrv, ra_ctx);
 		fprintf(stderr, "sgx_ra_get_msg1: %08x\n", status);
 		fprintf(fplog, "sgx_ra_get_msg1: %08x\n", status);
 		return 1;
@@ -575,9 +577,11 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	rv= msgio->read((void **) &msg2, NULL);
 	if ( rv == 0 ) {
+                enclave_ra_close(eid, &sgxrv, ra_ctx);
 		fprintf(stderr, "protocol error reading msg2\n");
 		exit(1);
 	} else if ( rv == -1 ) {
+                enclave_ra_close(eid, &sgxrv, ra_ctx);
 		fprintf(stderr, "system error occurred while reading msg2\n");
 		exit(1);
 	}
@@ -650,6 +654,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	}
 
 	if ( status != SGX_SUCCESS ) {
+                enclave_ra_close(eid, &sgxrv, ra_ctx);
 		fprintf(stderr, "sgx_ra_proc_msg2: %08x\n", status);
 		fprintf(fplog, "sgx_ra_proc_msg2: %08x\n", status);
 
@@ -781,6 +786,8 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		free (msg4);
 		msg4 = NULL;
 	}
+
+        enclave_ra_close(eid, &sgxrv, ra_ctx);
    
 	return 0;
 }
