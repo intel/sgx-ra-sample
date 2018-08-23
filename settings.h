@@ -8,7 +8,7 @@
  *
  * This can be overriden by the -r option to sp.
  */
-#define IAS_API_DEF_VERSION     2
+#define IAS_API_DEF_VERSION    3 
 
 /*----------------------------------------------------------------------
  * CA Certificate Bundles

@@ -151,3 +151,10 @@ sgx_status_t enclave_ra_init_def(int b_pse, sgx_ra_context_t *ctx,
 	return enclave_ra_init(def_service_public_key, b_pse, ctx, pse_status);
 }
 
+
+sgx_status_t enclave_ra_close(sgx_ra_context_t ctx)
+{
+        sgx_status_t ret;
+        ret = sgx_ra_close(ctx);
+        return ret;
+}

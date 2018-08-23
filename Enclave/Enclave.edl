@@ -43,6 +43,8 @@ enclave {
 
 		public sgx_status_t enclave_ra_init_def(int b_pse,
 			[out] sgx_ra_context_t *ctx, [out] sgx_status_t *pse_status);
+
+                public sgx_status_t enclave_ra_close(sgx_ra_context_t ctx);
 	};
 
 	untrusted {
