@@ -69,7 +69,7 @@ endif
 
 signed_enclave_debug$(EXEEXT): $(ENCLAVE).signed$(EXEEXT) 
 
-$(ENCLAVE).signed$(EXEEXT): $(ENCLAVE)$(EXEEXT)
+$(ENCLAVE).signed$(EXEEXT): $(ENCLAVE)$(EXEEXT) $(ENCLAVE).config.xml
 	$(SGX_SIGN) sign -key $(ENCLAVE_KEY) -enclave $(ENCLAVE).so -out $(ENCLAVE).signed.so -config $(ENCLAVE_CONFIG)
 
 signed_enclave_rel$(EXEEXT):
