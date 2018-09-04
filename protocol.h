@@ -39,7 +39,8 @@ in the License.
 
 typedef enum {
 	NotTrusted = 0,
-	Trusted
+	Trusted,
+	ItsComplicated
 } attestation_status_t;
 
 typedef struct _ra_msg4_struct {
