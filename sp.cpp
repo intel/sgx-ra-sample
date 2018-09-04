@@ -99,7 +99,8 @@ int process_msg01 (MsgIO *msg, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 	 unsigned char smk[16]);
 
 int process_msg3 (MsgIO *msg, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
-	ra_msg4_t *msg4, config_t *config, unsigned char smk[16]);
+	ra_msg4_t *msg4, config_t *config, unsigned char smk[16],
+	unsigned char mk[16], unsigned char sk[16]);
 
 int get_sigrl (IAS_Connection *ias, int version, sgx_epid_group_id_t gid,
 	char **sigrl, uint32_t *msg2);
@@ -527,7 +528,7 @@ int main(int argc, char *argv[])
 		sgx_ra_msg1_t msg1;
 		sgx_ra_msg2_t msg2;
 		ra_msg4_t msg4;
-		unsigned char smk[16];
+		unsigned char smk[16], sk[16], mk[16];
 
 		/* Read message 0 and 1, then generate message 2 */
 
@@ -560,7 +561,7 @@ int main(int argc, char *argv[])
 
 		/* Read message 3, and generate message 4 */
 
-		if ( ! process_msg3(msgio, ias, &msg1, &msg4, &config, smk) ) {
+		if ( ! process_msg3(msgio, ias, &msg1, &msg4, &config, smk, mk, sk) ) {
 			eprintf("error processing msg3\n");
 			goto disconnect;
 		}
@@ -575,7 +576,8 @@ disconnect:
 }
 
 int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
-	ra_msg4_t *msg4, config_t *config, unsigned char smk[16])
+	ra_msg4_t *msg4, config_t *config, unsigned char smk[16],
+	unsigned char mk[16], unsigned char sk[16])
 {
 	sgx_ra_msg3_t *msg3;
 	size_t blen= 0;
@@ -714,8 +716,8 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 		/*
 		 * A real service provider would validate that the enclave
 		 * report is from an enclave that they recognize. Namely,
-		 *  that the MRSIGNER matches our signing key, and the MRENCLAVE
-		 *  hash matches an enclave that we compiled.
+		 * that the MRSIGNER matches our signing key, and the MRENCLAVE
+		 * hash matches an enclave that we compiled.
 		 *
 		 * Other policy decisions might include examining ISV_SVN to 
 		 * prevent outdated/deprecated software from successfully
@@ -759,6 +761,32 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 		fsend_msg(fplog, &msg4->platformInfoBlob,
 			sizeof(msg4->platformInfoBlob));
 		edivider();
+
+		/*
+		 *  If the enclave is trusted, derive the MK and SK. Also get
+		 * SHA256 hashes of these so we can verify there's a shared
+		 * secret between us and the client.
+		 */
+
+		if ( msg4->status == Trusted ) {
+			unsigned char hashmk[32], hashsk[32];
+
+			if ( debug ) eprintf("+++ Deriving the MK and SK\n");
+			cmac128(config->kdk, (unsigned char *)("\x01MK\x00\x80\x00"),
+				6, mk);
+			cmac128(config->kdk, (unsigned char *)("\x01SK\x00\x80\x00"),
+				6, sk);
+
+			sha256_digest(mk, 16, hashmk);
+			sha256_digest(sk, 16, hashsk);
+
+			if ( verbose ) {
+				eprintf("MK         = %s\n", hexstring(mk, 16));
+				eprintf("SK         = %s\n", hexstring(sk, 16));
+				eprintf("SHA256(MK) = %s\n", hexstring(hashmk, 32));
+				eprintf("SHA256(SK) = %s\n", hexstring(hashsk, 32));
+			}
+		}
 
 	} else {
 		eprintf("Attestation failed\n");
