@@ -1356,8 +1356,8 @@ void usage ()
 "                             key. Can't combine with --key." NL
 "  -P, --production         Query the production IAS server instead of dev." NL
 "  -X, --strict-trust-mode  Don't trust enclaves that receive a " NL
-"                             GROUP_OUT_OF_DATE or CONFIGURATION_NEEDED " NL
-"                             response from IAS (default: trust)" NL
+"                             CONFIGURATION_NEEDED response from IAS " NL
+"                             (default: trust)" NL
 "  -Y, --ias-cert-key=FILE  The private key file for the IAS client certificate." NL
 "  -d, --debug              Print debug information to stderr." NL
 "  -g, --user-agent=NAME    Use NAME as the user agent for contacting IAS." NL
