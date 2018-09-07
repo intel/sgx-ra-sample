@@ -18,7 +18,7 @@ IF NOT "%RA_IAS_PROXY_URL%"=="" SET sp_proxy=--proxy=%RA_IAS_PROXY_URL%
 
 IF NOT "%IAS_DISABLE_PROXY%"=="" SET sp_noproxy=-x
 
-IF "%POLICY_STRICT_TRUST%" NEQ "0" SET strict_trust=-X
+IF "%RA_POLICY_STRICT_TRUST%" NEQ "0" SET strict_trust=-X
 
 IF "%RA_VERBOSE%" NEQ "0" SET verbose=-v
 

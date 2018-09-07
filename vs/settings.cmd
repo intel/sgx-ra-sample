@@ -98,7 +98,7 @@ SET RA_IAS_REPORT_SIGNING_CA_FILE=""
 :: enclaves that result in a CONFIGURATION_NEEDED response from IAS when
 :: verifying attestation evidence. Strict mode is DISABLED by default.
 
-:: SET POLICY_STRICT_TRUST=1
+:: SET RA_POLICY_STRICT_TRUST=1
 
 
 ::======================================================================

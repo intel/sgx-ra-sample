@@ -729,7 +729,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		// Trusted, but client may be untrusted in the future unless it
 		// takes action.
 
-		eprintf("Enclave Trust is TRUSTED and COMPLICATED. The client is out of date and\nmay not be trusted in the future depending on the ISV policy.\n");
+		eprintf("Enclave Trust is TRUSTED and COMPLICATED. The client is out of date and\nmay not be trusted in the future depending on the service provider's  policy.\n");
 	} else {
 		// Not Trusted, but client may be able to take action to become
 		// trusted.

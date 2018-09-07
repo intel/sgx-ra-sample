@@ -1,0 +1,4 @@
+Server log started
+Sep  7 2018 10:42:16 --spid or --spid-file is required
+Sep  7 2018 10:42:16 --ias-cert-file is required
+Sep  7 2018 10:42:16 --ias-signing-cafile is required
