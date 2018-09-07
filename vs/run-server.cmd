@@ -18,6 +18,8 @@ IF NOT "%RA_IAS_PROXY_URL%"=="" SET sp_proxy=--proxy=%RA_IAS_PROXY_URL%
 
 IF NOT "%IAS_DISABLE_PROXY%"=="" SET sp_noproxy=-x
 
+IF "%POLICY_STRICT_TRUST%" NEQ "0" SET strict_trust=-X
+
 IF "%RA_VERBOSE%" NEQ "0" SET verbose=-v
 
 IF "%RA_DEBUG%" NEQ "0" SET debug=-d
@@ -25,7 +27,7 @@ IF "%RA_DEBUG%" NEQ "0" SET debug=-d
 
 @ECHO ON
 
-sp.exe -s %RA_SPID% -A %RA_IAS_REPORT_SIGNING_CA_FILE% -C %RA_IAS_CLIENT_CERT_FILE% %sp_noproxy% %sp_proxy% %sp_cert_key% %sp_cert_passwd% %sp_cert_type% %ra_link_opt% %verbose% %debug% %*
+sp.exe -s %RA_SPID% -A %RA_IAS_REPORT_SIGNING_CA_FILE% -C %RA_IAS_CLIENT_CERT_FILE% %sp_noproxy% %sp_proxy% %sp_cert_key% %sp_cert_passwd% %sp_cert_type% %ra_link_opt% %strict_trust% %verbose% %debug% %*
 
 @ECHO OFF
 

@@ -47,21 +47,21 @@ source settings
 
 # Optional settings
 
-if [ "$QUERY_IAS_PRODUCTION" != "" -a "$QUERY_IAS_PRODUCTION" -ne 0 ]; then
+if [ "$QUERY_IAS_PRODUCTION" != "" -a "0$QUERY_IAS_PRODUCTION" -ne 0 ]; then
 	sp_production=-P
 fi
 
-if [ "$LINKABLE" != "" -a "$LINKABLE" -ne 0 ]; then
+if [ "$LINKABLE" != "" -a "0$LINKABLE" -ne 0 ]; then
 	flag_linkable=-l
 fi
 
 # Optional client settings
 
-if [ "$RANDOM_NONCE" != "" -a "$RANDOM_NONCE" -ne 0 ]; then
+if [ "$RANDOM_NONCE" != "" -a "0$RANDOM_NONCE" -ne 0 ]; then
 	cl_nonce=-r
 fi
 
-if [ "$USE_PLATFORM_SERVICES" != "" -a "$USE_PLATFORM_SERVICES" -ne 0 ]; then
+if [ "$USE_PLATFORM_SERVICES" != "" -a "0$USE_PLATFORM_SERVICES" -ne 0 ]; then
 	cl_pse=-m
 fi
 
@@ -83,17 +83,22 @@ if [ "$IAS_PROXY_URL" != "" ]; then
 	sp_proxy="--proxy=$IAS_PROXY_URL"
 fi
 
-if [ "$IAS_DISABLE_PROXY" != "" -a "$IAS_DISABLE_PROXY" -ne 0 ]; then
+if [ "$IAS_DISABLE_PROXY" != "" -a "0$IAS_DISABLE_PROXY" -ne 0 ]; then
 	sp_noproxy="-x"
 fi
 
+if [ "$POLICY_STRICT_TRUST" != "" -a "0$POLICY_STRICT_TRUST" -ne 0 ]; then
+	sp_strict_trust="-X"
+fi
+
+
 # Debugging options
 
-if [ "$VERBOSE" != "" -a "$VERBOSE" -ne 0 ]; then
+if [ "$VERBOSE" != "" -a "0$VERBOSE" -ne 0 ]; then
 	flag_verbose=-v
 fi
 
-if [ "$DEBUG" != "" -a "$DEBUG" -ne 0 ]; then
+if [ "$DEBUG" != "" -a "0$DEBUG" -ne 0 ]; then
 	flag_debug=-d
 fi
 
@@ -116,7 +121,7 @@ then
 		-A "$IAS_REPORT_SIGNING_CA_FILE" \
 		-C "$IAS_CLIENT_CERT_FILE" \
 		$sp_cert_key $sp_noproxy $sp_proxy $sp_cert_passwd $sp_cert_type \
-		$flag_linkable $flag_debug $flag_verbose \
+		$flag_linkable $sp_strict_trust $flag_debug $flag_verbose \
                 $sp_production \
 		"$@" 
 else

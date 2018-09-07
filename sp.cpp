@@ -87,6 +87,7 @@ typedef struct config_struct {
 	X509_STORE *store;
 	X509 *signing_ca;
 	unsigned int apiver;
+	int strict_trust;
 } config_t;
 
 void usage();
@@ -106,7 +107,8 @@ int get_sigrl (IAS_Connection *ias, int version, sgx_epid_group_id_t gid,
 	char **sigrl, uint32_t *msg2);
 
 int get_attestation_report(IAS_Connection *ias, int version,
-	const char *b64quote, sgx_ps_sec_prop_desc_t sec_prop, ra_msg4_t *msg4);
+	const char *b64quote, sgx_ps_sec_prop_desc_t sec_prop, ra_msg4_t *msg4,
+	int strict_trust);
 
 int get_proxy(char **server, unsigned int *port, const char *url);
 
@@ -145,6 +147,8 @@ int main(int argc, char *argv[])
 							required_argument,	0, 'K'},
 		{"production",		no_argument,		0, 'P'},
 		{"spid-file",		required_argument,	0, 'S'},
+		{"strict-trust-mode",
+							no_argument,		0, 'X'},
 		{"ias-cert-key",
 							required_argument,	0, 'Y'},
 		{"debug",			no_argument,		0, 'd'},
@@ -183,7 +187,7 @@ int main(int argc, char *argv[])
 		int c;
 		int opt_index = 0;
 
-		c = getopt_long(argc, argv, "A:B:C:E:GK:PS:Y:dg:hk:lp:r:s:t:vxz", long_opt, &opt_index);
+		c = getopt_long(argc, argv, "A:B:C:E:GK:PS:X:Y:dg:hk:lp:r:s:t:vxz", long_opt, &opt_index);
 		if (c == -1) break;
 
 		switch (c) {
@@ -250,6 +254,9 @@ int main(int argc, char *argv[])
 				eprintf("%s: could not load EC private key\n", optarg);
 				return 1;
 			}
+			break;
+		case 'X':
+			config.strict_trust= 1;
 			break;
 		case 'Y':
 			config.cert_key_file = strdup(optarg);
@@ -709,7 +716,7 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 	}
 
 	if ( get_attestation_report(ias, config->apiver, b64quote,
-		msg3->ps_sec_prop, msg4) ) {
+		msg3->ps_sec_prop, msg4, config->strict_trust) ) {
 
 		sgx_report_body_t *r= (sgx_report_body_t *) &q->report_body;
 
@@ -763,7 +770,7 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 		edivider();
 
 		/*
-		 *  If the enclave is trusted, derive the MK and SK. Also get
+		 * If the enclave is trusted, derive the MK and SK. Also get
 		 * SHA256 hashes of these so we can verify there's a shared
 		 * secret between us and the client.
 		 */
@@ -1085,7 +1092,8 @@ int get_sigrl (IAS_Connection *ias, int version, sgx_epid_group_id_t gid,
 }
 
 int get_attestation_report(IAS_Connection *ias, int version,
-	const char *b64quote, sgx_ps_sec_prop_desc_t secprop, ra_msg4_t *msg4) 
+	const char *b64quote, sgx_ps_sec_prop_desc_t secprop, ra_msg4_t *msg4,
+	int strict_trust) 
 {
 	IAS_Request *req = NULL;
 	map<string,string> payload;
@@ -1149,9 +1157,20 @@ int get_attestation_report(IAS_Connection *ias, int version,
 		}
           
 		/*
-		 * This sample's attestion policy is either Trusted in the case of
-		 * an "OK", or a NotTrusted for any other isvEnclaveQuoteStatus
-		 * value.
+		 * This sample's attestion policy is based on isvEnclaveQuoteStatus:
+		 * 
+		 *   1) if "OK" then return "Trusted"
+		 *
+ 		 *   2) if "CONFIGURATION_NEEDED" then return
+		 *       "NotTrusted_ItsComplicated" when in --strict-trust-mode
+		 *        and "Trusted_ItsComplicated" otherwise
+		 *
+		 *   3) return "NotTrusted" for all other responses
+		 *
+		 * 
+		 * ItsComplicated means the client is not trusted, but can 
+		 * conceivable take action that will allow it to be trusted
+		 * (such as a BIOS update).
  		 */
 
 		/*
@@ -1166,11 +1185,26 @@ int get_attestation_report(IAS_Connection *ias, int version,
 		if ( !(reportObj["isvEnclaveQuoteStatus"].ToString().compare("OK"))) {
 			msg4->status = Trusted;
 			if ( verbose ) eprintf("Enclave TRUSTED\n");
+		} else if ( !(reportObj["isvEnclaveQuoteStatus"].ToString().compare("CONFIGURATION_NEEDED"))) {
+			if ( strict_trust ) {
+				msg4->status = NotTrusted_ItsComplicated;
+				if ( verbose ) eprintf("Enclave NOT TRUSTED and COMPLICATED - Reason: %s\n",
+					reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
+			} else {
+				if ( verbose ) eprintf("Enclave TRUSTED and COMPLICATED - Reason: %s\n",
+					reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
+				msg4->status = Trusted_ItsComplicated;
+			}
+		} else if ( !(reportObj["isvEnclaveQuoteStatus"].ToString().compare("GROUP_OUT_OF_DATE"))) {
+			msg4->status = NotTrusted_ItsComplicated;
+			if ( verbose ) eprintf("Enclave NOT TRUSTED and COMPLICATED - Reason: %s\n",
+				reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
 		} else {
 			msg4->status = NotTrusted;
 			if ( verbose ) eprintf("Enclave NOT TRUSTED - Reason: %s\n",
 				reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
 		}
+
 
 		/* Check to see if a platformInfoBlob was sent back as part of the
 		 * response */
@@ -1321,6 +1355,9 @@ void usage ()
 "                             client must be given the corresponding public" NL
 "                             key. Can't combine with --key." NL
 "  -P, --production         Query the production IAS server instead of dev." NL
+"  -X, --strict-trust-mode  Don't trust enclaves that receive a " NL
+"                             GROUP_OUT_OF_DATE or CONFIGURATION_NEEDED " NL
+"                             response from IAS (default: trust)" NL
 "  -Y, --ias-cert-key=FILE  The private key file for the IAS client certificate." NL
 "  -d, --debug              Print debug information to stderr." NL
 "  -g, --user-agent=NAME    Use NAME as the user agent for contacting IAS." NL

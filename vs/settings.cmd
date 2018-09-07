@@ -94,6 +94,14 @@ SET RA_IAS_REPORT_SIGNING_CA_FILE=""
 :: SET RA_IAS_DISABLE_PROXY=0
 
 
+:: Set to non-zero to enforce a strict attestation policy, which rejects 
+:: enclaves that result in a GROUP_OUT_OF_DATE or CONFIGURATION_NEEDED 
+:: response from IAS when verifying attestation evidence. Strict mode is
+:: DISABLED by default.
+
+:: SET POLICY_STRICT_TRUST=1
+
+
 ::======================================================================
 :: Debugging options
 ::======================================================================

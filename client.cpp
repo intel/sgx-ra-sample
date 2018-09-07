@@ -718,19 +718,23 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	edividerWithText("Enclave Trust Status from Service Provider");
 
-	if ( msg4->status == Trusted ) {
+	enclaveTrusted= msg4->status;
+	if ( enclaveTrusted == Trusted ) {
 		eprintf("Enclave TRUSTED\n");
-		enclaveTrusted = Trusted; // Trusted
 	}
-	else if (msg4->status == NotTrusted ) {
+	else if ( enclaveTrusted == NotTrusted ) {
 		eprintf("Enclave NOT TRUSTED\n");
-		enclaveTrusted = NotTrusted; // Not Trusted
 	}
-	else {
-		// Not Trusted, but client can potentially take action to become
+	else if ( enclaveTrusted == Trusted_ItsComplicated ) {
+		// Trusted, but client may be untrusted in the future unless it
+		// takes action.
+
+		eprintf("Enclave Trust is TRUSTED and COMPLICATED. The client is out of date and\nmay not be trusted in the future depending on the ISV policy.\n");
+	} else {
+		// Not Trusted, but client may be able to take action to become
 		// trusted.
-		eprintf("Enclave Trust is OTHER\n");
-		enclaveTrusted = ItsComplicated;
+
+		eprintf("Enclave Trust is NOT TRUSTED and COMPLICATED. The client is out of date.\n");
 	}
 
 	/* check to see if we have a PIB by comparing to empty PIB */
