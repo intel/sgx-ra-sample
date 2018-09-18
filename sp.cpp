@@ -71,6 +71,16 @@ static const unsigned char def_service_private_key[32] = {
 	0xad, 0x57, 0x34, 0x53, 0xd1, 0x03, 0x8c, 0x01
 };
 
+typedef struct ra_session_struct {
+	unsigned char g_a[64];
+	unsigned char g_b[64];
+	unsigned char kdk[16];
+	unsigned char smk[16];
+	unsigned char sk[16];
+	unsigned char mk[16];
+	unsigned char vk[16];
+} ra_session_t;
+
 typedef struct config_struct {
 	sgx_spid_t spid;
 	uint16_t quote_type;
@@ -82,7 +92,6 @@ typedef struct config_struct {
 	char *cert_key_file;
 	char *cert_passwd_file;
 	unsigned int proxy_port;
-	unsigned char kdk[16];
 	char *cert_type[4];
 	X509_STORE *store;
 	X509 *signing_ca;
@@ -97,11 +106,10 @@ int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
 
 int process_msg01 (MsgIO *msg, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 	sgx_ra_msg2_t *msg2, char **sigrl, config_t *config,
-	 unsigned char smk[16]);
+	ra_session_t *session);
 
 int process_msg3 (MsgIO *msg, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
-	ra_msg4_t *msg4, config_t *config, unsigned char smk[16],
-	unsigned char mk[16], unsigned char sk[16]);
+	ra_msg4_t *msg4, config_t *config, ra_session_t *session);
 
 int get_sigrl (IAS_Connection *ias, int version, sgx_epid_group_id_t gid,
 	char **sigrl, uint32_t *msg2);
@@ -532,14 +540,18 @@ int main(int argc, char *argv[])
  	/* If we're running in server mode, we'll block here.  */
 
 	while ( msgio->server_loop() ) {
+		ra_session_t session;
 		sgx_ra_msg1_t msg1;
 		sgx_ra_msg2_t msg2;
 		ra_msg4_t msg4;
-		unsigned char smk[16], sk[16], mk[16];
+
+		memset(&session, 0, sizeof(ra_session_t));
 
 		/* Read message 0 and 1, then generate message 2 */
 
-		if ( ! process_msg01(msgio, ias, &msg1, &msg2, &sigrl, &config, smk) ) {
+		if ( ! process_msg01(msgio, ias, &msg1, &msg2, &sigrl, &config,
+			&session) ) {
+
 			eprintf("error processing msg1\n");
 			goto disconnect;
 		}
@@ -568,7 +580,7 @@ int main(int argc, char *argv[])
 
 		/* Read message 3, and generate message 4 */
 
-		if ( ! process_msg3(msgio, ias, &msg1, &msg4, &config, smk, mk, sk) ) {
+		if ( ! process_msg3(msgio, ias, &msg1, &msg4, &config, &session) ) {
 			eprintf("error processing msg3\n");
 			goto disconnect;
 		}
@@ -583,8 +595,7 @@ disconnect:
 }
 
 int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
-	ra_msg4_t *msg4, config_t *config, unsigned char smk[16],
-	unsigned char mk[16], unsigned char sk[16])
+	ra_msg4_t *msg4, config_t *config, ra_session_t *session)
 {
 	sgx_ra_msg3_t *msg3;
 	size_t blen= 0;
@@ -657,7 +668,7 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 
 	/* Validate the MAC of M */
 
-	cmac128(smk, (unsigned char *) &msg3->g_a,
+	cmac128(session->smk, (unsigned char *) &msg3->g_a,
 		sizeof(sgx_ra_msg3_t)-sizeof(sgx_mac_t)+quote_sz,
 		(unsigned char *) vrfymac);
 	if ( debug ) {
@@ -690,7 +701,7 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 			hexstring(&q->version, sizeof(uint16_t)));
 		eprintf("msg3.quote.sign_type     = %s\n",
 			hexstring(&q->sign_type, sizeof(uint16_t)));
-		eprintf("msg3.quote.epd_group_id  = %s\n",
+		eprintf("msg3.quote.epid_group_id = %s\n",
 			hexstring(&q->epid_group_id, sizeof(sgx_epid_group_id_t)));
 		eprintf("msg3.quote.qe_svn        = %s\n",
 			hexstring(&q->qe_svn, sizeof(sgx_isv_svn_t)));
@@ -715,10 +726,72 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 		edivider();
 	}
 
+	/* Verify that the EPID group ID in the quote matches the one from msg1 */
+
+	if ( debug ) {
+		eprintf("+++ Validating quote's epid_group_id against msg1\n");
+		eprintf("msg1.egid = %s\n", 
+			hexstring(msg1->gid, sizeof(sgx_epid_group_id_t)));
+		eprintf("msg3.quote.epid_group_id = %s\n",
+			hexstring(&q->epid_group_id, sizeof(sgx_epid_group_id_t)));
+	}
+
+	if ( memcmp(msg1->gid, &q->epid_group_id, sizeof(sgx_epid_group_id_t)) ) {
+		eprintf("EPID GID mismatch. Attestation failed.\n");
+		return 0;
+	}
+
+
 	if ( get_attestation_report(ias, config->apiver, b64quote,
 		msg3->ps_sec_prop, msg4, config->strict_trust) ) {
 
+		unsigned char hash_rdata[32];
+		unsigned char msg_rdata[144]; /* for Ga || Gb || VK */
+
 		sgx_report_body_t *r= (sgx_report_body_t *) &q->report_body;
+
+		/*
+		 * Verify that the first 64 bytes of the report data (inside
+		 * the quote) are SHA256(Ga||Gb||VK).
+		 *
+		 * VK = CMACkdk( 0x01 || "VK" || 0x00 || 0x80 || 0x00 )
+		 *
+		 * where || denotes concatenation.
+		 */
+
+		/* Derive VK */
+
+		cmac128(session->kdk, (unsigned char *)("\x01VK\x00\x80\x00"),
+				6, session->vk);
+
+		/* Build our plaintext */
+
+		memcpy(msg_rdata, session->g_a, 64);
+		memcpy(&msg_rdata[64], session->g_b, 64);
+		memcpy(&msg_rdata[128], session->vk, 16);
+
+		/* SHA-256 hash */
+
+		sha256_digest(msg_rdata, 144, hash_rdata);
+
+		if ( verbose ) {
+			edividerWithText("Enclave Report Verification");
+			if ( debug ) {
+				eprintf("VK                 = %s\n", 
+					hexstring(session->vk, 16));
+			}
+			eprintf("SHA256(Ga||Gb||VK) = %s\n",
+				hexstring(hash_rdata, 32));
+			eprintf("report_data[32]    = %s\n",
+				hexstring(&r->report_data, 32));
+		}
+
+		if ( CRYPTO_memcmp((void *) hash_rdata, (void *) &r->report_data,
+			32) ) {
+
+			eprintf("Report verification failed.\n");
+			return 0;
+		}	
 
 		/*
 		 * A real service provider would validate that the enclave
@@ -779,17 +852,19 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 			unsigned char hashmk[32], hashsk[32];
 
 			if ( debug ) eprintf("+++ Deriving the MK and SK\n");
-			cmac128(config->kdk, (unsigned char *)("\x01MK\x00\x80\x00"),
-				6, mk);
-			cmac128(config->kdk, (unsigned char *)("\x01SK\x00\x80\x00"),
-				6, sk);
+			cmac128(session->kdk, (unsigned char *)("\x01MK\x00\x80\x00"),
+				6, session->mk);
+			cmac128(session->kdk, (unsigned char *)("\x01SK\x00\x80\x00"),
+				6, session->sk);
 
-			sha256_digest(mk, 16, hashmk);
-			sha256_digest(sk, 16, hashsk);
+			sha256_digest(session->mk, 16, hashmk);
+			sha256_digest(session->sk, 16, hashsk);
 
 			if ( verbose ) {
-				eprintf("MK         = %s\n", hexstring(mk, 16));
-				eprintf("SK         = %s\n", hexstring(sk, 16));
+				if ( debug ) {
+					eprintf("MK         = %s\n", hexstring(session->mk, 16));
+					eprintf("SK         = %s\n", hexstring(session->sk, 16));
+				}
 				eprintf("SHA256(MK) = %s\n", hexstring(hashmk, 32));
 				eprintf("SHA256(SK) = %s\n", hexstring(hashsk, 32));
 			}
@@ -797,6 +872,7 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 
 	} else {
 		eprintf("Attestation failed\n");
+		return 0;
 	}
 
 	free(b64quote);
@@ -810,7 +886,7 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
  */
 
 int process_msg01 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
-	sgx_ra_msg2_t *msg2, char **sigrl, config_t *config, unsigned char smk[16])
+	sgx_ra_msg2_t *msg2, char **sigrl, config_t *config, ra_session_t *session)
 {
 	struct msg01_struct {
 		uint32_t msg0_extended_epid_group_id;
@@ -818,8 +894,7 @@ int process_msg01 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 	} *msg01;
 	size_t blen= 0;
 	char *buffer= NULL;
-	unsigned char gb_ga[128];
-	unsigned char digest[32], r[32], s[32];
+	unsigned char digest[32], r[32], s[32], gb_ga[128];
 	EVP_PKEY *Gb;
 	int rv;
 
@@ -893,13 +968,13 @@ int process_msg01 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 
 	if ( debug ) eprintf("+++ deriving KDK\n");
 
-	if ( ! derive_kdk(Gb, config->kdk, msg1, config) ) {
+	if ( ! derive_kdk(Gb, session->kdk, msg1, config) ) {
 		eprintf("Could not derive the KDK\n");
 		free(msg01);
 		return 0;
 	}
 
-	if ( debug ) eprintf("+++ KDK = %s\n", hexstring( config->kdk, 16));
+	if ( debug ) eprintf("+++ KDK = %s\n", hexstring(session->kdk, 16));
 
 	/*
  	 * Derive the SMK from the KDK 
@@ -908,9 +983,10 @@ int process_msg01 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 
 	if ( debug ) eprintf("+++ deriving SMK\n");
 
-	cmac128(config->kdk, (unsigned char *)("\x01SMK\x00\x80\x00"), 7, smk);
+	cmac128(session->kdk, (unsigned char *)("\x01SMK\x00\x80\x00"), 7,
+		session->smk);
 
-	if ( debug ) eprintf("+++ SMK = %s\n", hexstring(smk, 16));
+	if ( debug ) eprintf("+++ SMK = %s\n", hexstring(session->smk, 16));
 
 	/*
 	 * Build message 2
@@ -967,7 +1043,10 @@ int process_msg01 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 	}
 
 	memcpy(gb_ga, &msg2->g_b, 64);
+	memcpy(session->g_b, &msg2->g_b, 64);
+
 	memcpy(&gb_ga[64], &msg1->g_a, 64);
+	memcpy(session->g_a, &msg1->g_a, 64);
 
 	if ( debug ) eprintf("+++ GbGa = %s\n", hexstring(gb_ga, 128));
 
@@ -983,7 +1062,8 @@ int process_msg01 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 
 	/* The "A" component is conveniently at the start of sgx_ra_msg2_t */
 
-	cmac128(smk, (unsigned char *) msg2, 148, (unsigned char *) &msg2->mac);
+	cmac128(session->smk, (unsigned char *) msg2, 148,
+		(unsigned char *) &msg2->mac);
 
 	if ( verbose ) {
 		edividerWithText("Msg2 Details");

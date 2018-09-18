@@ -353,7 +353,7 @@ int main (int argc, char *argv[])
 		}
 	}
 
-	if ( ! have_spid && ! config.mode == MODE_EPID ) {
+	if ( ! have_spid && config.mode != MODE_EPID ) {
 		fprintf(stderr, "SPID required. Use one of --spid or --spid-file \n");
 		return 1;
 	}

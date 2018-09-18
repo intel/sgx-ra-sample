@@ -1,10 +1,11 @@
+sp.log
+client.log
 install-sh
 compile
 depcomp
 missing
 ref_sp
 public
-settings.dist
-settings.local
+settings.*
 win32/agent_win32.cpp
 win32/agent_win32.h
