@@ -745,14 +745,16 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 	if ( get_attestation_report(ias, config->apiver, b64quote,
 		msg3->ps_sec_prop, msg4, config->strict_trust) ) {
 
-		unsigned char hash_rdata[32];
+		unsigned char vfy_rdata[64];
 		unsigned char msg_rdata[144]; /* for Ga || Gb || VK */
 
 		sgx_report_body_t *r= (sgx_report_body_t *) &q->report_body;
 
+		memset(vfy_rdata, 0, 64);
+
 		/*
 		 * Verify that the first 64 bytes of the report data (inside
-		 * the quote) are SHA256(Ga||Gb||VK).
+		 * the quote) are SHA256(Ga||Gb||VK) || 0x00[32]
 		 *
 		 * VK = CMACkdk( 0x01 || "VK" || 0x00 || 0x80 || 0x00 )
 		 *
@@ -772,7 +774,7 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 
 		/* SHA-256 hash */
 
-		sha256_digest(msg_rdata, 144, hash_rdata);
+		sha256_digest(msg_rdata, 144, vfy_rdata);
 
 		if ( verbose ) {
 			edividerWithText("Enclave Report Verification");
@@ -781,17 +783,17 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 					hexstring(session->vk, 16));
 			}
 			eprintf("SHA256(Ga||Gb||VK) = %s\n",
-				hexstring(hash_rdata, 32));
-			eprintf("report_data[32]    = %s\n",
-				hexstring(&r->report_data, 32));
+				hexstring(vfy_rdata, 32));
+			eprintf("report_data[64]    = %s\n",
+				hexstring(&r->report_data, 64));
 		}
 
-		if ( CRYPTO_memcmp((void *) hash_rdata, (void *) &r->report_data,
-			32) ) {
+		if ( CRYPTO_memcmp((void *) vfy_rdata, (void *) &r->report_data,
+			64) ) {
 
 			eprintf("Report verification failed.\n");
 			return 0;
-		}	
+		}
 
 		/*
 		 * A real service provider would validate that the enclave
