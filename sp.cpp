@@ -101,7 +101,7 @@ typedef struct config_struct {
 
 void usage();
 
-int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
+int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ec256_public_t g_a,
 	config_t *config);
 
 int process_msg01 (MsgIO *msg, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
@@ -968,7 +968,7 @@ int process_msg01 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 
 	if ( debug ) eprintf("+++ deriving KDK\n");
 
-	if ( ! derive_kdk(Gb, session->kdk, msg1, config) ) {
+	if ( ! derive_kdk(Gb, session->kdk, msg1->g_a, config) ) {
 		eprintf("Could not derive the KDK\n");
 		free(msg01);
 		return 0;
@@ -1091,7 +1091,7 @@ int process_msg01 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 	return 1;
 }
 
-int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
+int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ec256_public_t g_a,
 	config_t *config)
 {
 	unsigned char *Gab_x;
@@ -1106,7 +1106,7 @@ int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ra_msg1_t *msg1,
 	 * public/private key.
 	 */
 
-	Ga= key_from_sgx_ec256(&msg1->g_a);
+	Ga= key_from_sgx_ec256(&g_a);
 	if ( Ga == NULL ) {
 		crypto_perror("key_from_sgx_ec256");
 		return 0;
