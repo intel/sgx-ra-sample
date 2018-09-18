@@ -29,7 +29,18 @@ For more information on developing applications with Intel SGX, visit the [Intel
 
 ## <a name="new"></a>What's New
 
-### v2.0.1
+### v2.2
+
+Released on 8/18/2018.
+
+ * Added verification of the enclave report by computing the SHA256
+   hash of Ga || Gb || VK and comparing the result to the first 
+   32 bytes of quote.report\_body.report\_data.
+
+ * Created an ra_session_t data structure to separate session data
+   from global configuration variables.
+
+### v2.1
 
 Released on 9/7/2018.
 
