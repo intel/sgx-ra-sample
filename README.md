@@ -109,7 +109,7 @@ The service provider's remote attestation server _does not require Intel SGX har
   $ wget https://www.openssl.org/source/openssl-1.1.0i.tar.gz
   $ tar xf openssl-1.1.0i.tar.gz
   $ cd openssl-1.1.0i
-  $ ./Configure --prefix=/opt/openssl/1.1.0i --openssldir=/opt/openssl/1.1.0i
+  $ ./config --prefix=/opt/openssl/1.1.0i --openssldir=/opt/openssl/1.1.0i
   $ make
   $ sudo make install
   ```
