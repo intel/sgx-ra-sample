@@ -1,6 +1,7 @@
 # Intel&reg; Software Guard Extensions (SGX) Remote Attestation End-to-End Sample
 
 * [Introduction](#intro)
+* [What's New](#new)
 * [License](#license)
 * Building
   * [Linux*](#build-linux)
@@ -25,6 +26,41 @@ This code sample demonstrates the procedures that must be followed when performi
 For complete information on remote attestation, see the [white paper](https://software.intel.com/en-us/articles/intel-software-guard-extensions-remote-attestation-end-to-end-example) on Intel's Developer Zone.
 
 For more information on developing applications with Intel SGX, visit the [Intel SGX landing zone](https://software.intel.com/sgx/).
+
+## <a name="new"></a>What's New
+
+### v2.2.1
+
+Released on 9/18/2018.
+
+ * Added verification of the enclave report by computing the SHA256
+   hash of Ga || Gb || VK and comparing the result to the first 
+   32 bytes of quote.report\_body.report\_data. Also verify next 32
+   bytes of report_data is a block of 0x00's
+
+ * Created an ra_session_t data structure to separate session data
+   from global configuration variables.
+
+### v2.1
+
+Released on 9/7/2018.
+
+ * Added -X switch (--strict-trust-mode) so the service provider can choose
+   whether or not to trust enclaves that result in a CONFIGURATION_NEEDED
+   status from IAS. Previously, any result that was not OK resulted in a
+   "not trusted" result.
+
+ * Added Trusted_Complicated and NotTrusted_Complicated response codes.
+   When a trust result is complicated, the client can be brought into
+   full compliance by taking action that's reported in the Platform
+   Information Block (PIB).
+
+ * Added derivations of the MK and SK keys in the client and server so.
+
+ * Added POLICY_STRICT_TRUST variable to settings files for both Linux
+   and Windows (see -X, above)
+
+ * Various tweaks to documentation and comments.
 
 ## <a name="license"></a>License
 
@@ -122,7 +158,7 @@ You can build the client for simulation mode using `--enable-sgx-simulation`. No
 
   * Windows 10 64-bit
   * Microsoft* Visual Studio 2015 (Professional edition or better)
-  * [https://software.intel.com/en-us/sgx-sdk/download](Intel SGX SDK and Platform Software for Windows)
+  * [Intel SGX SDK and Platform Software for Windows](https://software.intel.com/en-us/sgx-sdk/download)
 
 
 * Install OpenSSL 1.1.0 for Windows. The [Win64 OpenSSL v1.1.0 package from Shining Light Productions](https://slproweb.com/products/Win32OpenSSL.html) is recommended. **Select the option to copy the DLL's to your Windows system directory.**
@@ -293,6 +329,9 @@ Optional:
                              client must be given the corresponding public
                              key. Can't combine with --key.
   -P, --production         Query the production IAS server instead of dev.
+  -X, --strict-trust-mode  Don't trust enclaves that receive a 
+                             CONFIGURATION_NEEDED response from IAS 
+                             (default: trust)
   -Y, --ias-cert-key=FILE  The private key file for the IAS client certificate.
   -d, --debug              Print debug information to stderr.
   -g, --user-agent=NAME    Use NAME as the user agent for contacting IAS.
@@ -324,6 +363,9 @@ The certificate used by the server when communicating with IAS must be from a re
 You can force the server to use a proxy when communicating with IAS via `-p`, or to use a direct connection via `-x`.
 
 As with the client, the server can be run in interactive mode via `-z`, accepting input from stdin and writing to stdout. This makes it possible to copy and paste output from the client to the server, and visa-versa.
+
+By default, the server trsuts enclaves that result in a CONFIGURATION_NEEDED response from IAS. Enable strict mode with `-X` to mark these enclaves as untrusted. This is a policy decision: the service provider should decide whether or not to trust the enclave in this circumstance.
+
 
 ## <a name="output"></a>Sample output
 

@@ -15,7 +15,7 @@ QUERY_IAS_PRODUCTION=0
 # Your Service Provider ID. This should be a 32-character hex string.
 # [REQUIRED]
 
-SPID=0123456789ABCDEF0123456789ABCDEF
+SPID=928A6B0E3CDDAD56EB3BADAA3B63F71F
 
 
 # Set to a non-zero value if this SPID is associated with linkable 
@@ -48,7 +48,7 @@ USE_PLATFORM_SERVICES=0
 
 # Your IAS client certificate file. [REQUIRED]
 
-IAS_CLIENT_CERT_FILE=
+IAS_CLIENT_CERT_FILE=../ias-ra-data/cert/plse-ias-dev.pem
 
 
 # Your IAS client key file.
@@ -61,7 +61,7 @@ IAS_CLIENT_CERT_FILE=
 # (there's no command line option to send the password or a password 
 # file path).
 
-IAS_CLIENT_KEY_FILE=
+IAS_CLIENT_KEY_FILE=../ias-ra-data/cert/plse-ias-dev.pem
 
 
 # If your IAS client certificate's key is encrypted, put the password
@@ -81,13 +81,13 @@ IAS_CLIENT_CERT_TYPE=
 # when you apply for access to SGX Developer Services at 
 # http://software.intel.com/sgx [REQUIRED]
 
-IAS_REPORT_SIGNING_CA_FILE=
+IAS_REPORT_SIGNING_CA_FILE=../ias-ra-data/cert/IASReportSigningCACert.pem
 
 
 # Set to the URL for your proxy server to force the use of a proxy
 # when communicating with IAS (overriding any environment variables).
 
-# IAS_PROXY_URL=
+IAS_PROXY_URL=http://proxy-us.intel.com:911/
 
 
 # Set to non-zero to disable the use of a proxy server and force a
@@ -96,16 +96,25 @@ IAS_REPORT_SIGNING_CA_FILE=
 
 # IAS_DISABLE_PROXY=0
 
+
+# Set to non-zero to enforce a strict attestation policy, which rejects 
+# enclaves that result in a GROUP_OUT_OF_DATE or CONFIGURATION_NEEDED 
+# response from IAS when verifying attestation evidence. Strict mode is
+# DISABLED by default.
+
+# POLICY_STRICT_TRUST=1
+
+
 #======================================================================
 # Debugging options
 #======================================================================
 
 # Set to non-zero for verbose output
 
-VERBOSE=0
+VERBOSE=1
 
 
 # Set to non-zero for debugging output
 
-DEBUG=0
+DEBUG=1
 

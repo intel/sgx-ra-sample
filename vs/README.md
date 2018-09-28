@@ -170,6 +170,9 @@ Optional:
                              client must be given the corresponding public
                              key. Can't combine with --key.
   -P, --production         Query the production IAS server instead of dev.
+  -X, --strict-trust-mode  Don't trust enclaves that receive a 
+                             CONFIGURATION_NEEDED response from IAS 
+                             (default: trust)
   -Y, --ias-cert-key=FILE  The private key file for the IAS client certificate.
   -d, --debug              Print debug information to stderr.
   -g, --user-agent=NAME    Use NAME as the user agent for contacting IAS.
@@ -201,6 +204,10 @@ The certificate used by the server when communicating with IAS must be from a re
 You can force the server to use a proxy when communicating with IAS via `-p`, or to use a direct connection via `-x`.
 
 As with the client, the server can be run in interactive mode via `-z`, accepting input from stdin and writing to stdout. This makes it possible to copy and paste output from the client to the server, and visa-versa.
+
+By default, the server trsuts enclaves that result in a CONFIGURATION_NEEDED response from IAS. Enable strict mode with `-X` to mark these enclaves as untrusted. This is a policy decision: the service provider should decide whether or not t
+o trust the enclave in this circumstance.
+
 
 ## <a name="output"></a>Sample output
 
