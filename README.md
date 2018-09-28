@@ -132,7 +132,7 @@ at least 1.1.0:
   $ wget https://www.openssl.org/source/openssl-1.1.0i.tar.gz
   $ tar xf openssl-1.1.0i.tar.gz
   $ cd openssl-1.1.0i
-  $ ./Configure --prefix=/opt/openssl/1.1.0i --openssldir=/opt/openssl/1.1.0i
+  $ ./config --prefix=/opt/openssl/1.1.0i --openssldir=/opt/openssl/1.1.0i
   $ make
   $ sudo make install
    ```
