@@ -14,10 +14,8 @@ PROG=`basename $0`
 # Where is OpenSSL 1.1.x?
 
 OPENSSL_LIBDIR=@OPENSSL_LIBDIR@
-if [ "$OPENSSL_LIBDIR" = "" ]
+if [ "$OPENSSL_LIBDIR" != "" ]
 then
-	echo "Could not auto-detect openssl v1.1.0 or newer. Make sure LD_LIBRARY_PATH is set" >&2
-else
 	if [ "$LD_LIBRARY_PATH" = "" ]
 	then
 		export LD_LIBRARY_PATH=$OPENSSL_LIBDIR
