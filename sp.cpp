@@ -32,6 +32,7 @@ in the License.
 #include <openssl/applink.c>
 #include "win32/getopt.h"
 #else
+#include <signal.h>
 #include <getopt.h>
 #include <unistd.h>
 #endif
@@ -100,6 +101,9 @@ typedef struct config_struct {
 } config_t;
 
 void usage();
+#ifndef _WIN32
+void cleanup_and_exit(int signo);
+#endif
 
 int derive_kdk(EVP_PKEY *Gb, unsigned char kdk[16], sgx_ec256_public_t g_a,
 	config_t *config);
@@ -122,6 +126,8 @@ int get_proxy(char **server, unsigned int *port, const char *url);
 
 char debug = 0;
 char verbose = 0;
+/* Need a global for the signal handler */
+MsgIO *msgio = NULL;
 
 int main(int argc, char *argv[])
 {
@@ -137,8 +143,10 @@ int main(int argc, char *argv[])
 	config_t config;
 	int oops;
 	IAS_Connection *ias= NULL;
-	MsgIO *msgio;
 	char *port= NULL;
+#ifndef _WIN32
+	struct sigaction sact;
+#endif
 
 	/* Command line options */
 
@@ -536,6 +544,23 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 	}
+
+#ifndef _WIN32
+	/* 
+	 * Install some rudimentary signal handlers. We just want to make 
+	 * sure we gracefully shutdown the listen socket before we exit
+	 * to avoid "address already in use" errors on startup.
+	 */
+
+	sigemptyset(&sact.sa_mask);
+	sact.sa_flags= 0;
+	sact.sa_handler= &cleanup_and_exit;
+
+	if ( sigaction(SIGHUP, &sact, NULL) == -1 ) perror("sigaction: SIGHUP");
+	if ( sigaction(SIGINT, &sact, NULL) == -1 ) perror("sigaction: SIGHUP");
+	if ( sigaction(SIGTERM, &sact, NULL) == -1 ) perror("sigaction: SIGHUP");
+	if ( sigaction(SIGQUIT, &sact, NULL) == -1 ) perror("sigaction: SIGHUP");
+#endif
 
  	/* If we're running in server mode, we'll block here.  */
 
@@ -1434,6 +1459,27 @@ int get_proxy(char **server, unsigned int *port, const char *url)
 
 	return 1;
 }
+
+#ifndef _WIN32
+
+/* We don't care which signal it is since we're shutting down regardless */
+
+void cleanup_and_exit(int signo)
+{
+	/* Signal-safe, and we don't care if it fails or is a partial write. */
+
+	ssize_t bytes= write(STDERR_FILENO, "\nterminating\n", 13);
+
+	/*
+	 * This destructor consists of signal-safe system calls (close,
+	 * shutdown).
+	 */
+
+	delete msgio;
+
+	exit(1);
+}
+#endif
 
 #define NNL <<endl<<endl<<
 #define NL <<endl<<
