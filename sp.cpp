@@ -1214,103 +1214,130 @@ int get_attestation_report(IAS_Connection *ias, int version,
 
 		if ( verbose ) {
 			edividerWithText("IAS Report - JSON - Required Fields");
-			eprintf("id:\t\t\t%s\n", reportObj["id"].ToString().c_str());
-			eprintf("timestamp:\t\t%s\n",
+			if ( version >= 3 ) {
+				eprintf("version               = %d\n",
+					reportObj["version"].ToInt());
+			}
+			eprintf("id:                   = %s\n",
+				reportObj["id"].ToString().c_str());
+			eprintf("timestamp             = %s\n",
 				reportObj["timestamp"].ToString().c_str());
-			eprintf("isvEnclaveQuoteStatus:\t%s\n",
+			eprintf("isvEnclaveQuoteStatus = %s\n",
 				reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
-			eprintf("isvEnclaveQuoteBody:\t%s\n",
+			eprintf("isvEnclaveQuoteBody   = %s\n",
 				reportObj["isvEnclaveQuoteBody"].ToString().c_str());
 
 			edividerWithText("IAS Report - JSON - Optional Fields");
 
-			eprintf("platformInfoBlob:\t%s\n",
+			eprintf("platformInfoBlob  = %s\n",
 				reportObj["platformInfoBlob"].ToString().c_str());
-			eprintf("revocationReason:\t%s\n",
+			eprintf("revocationReason  = %s\n",
 				reportObj["revocationReason"].ToString().c_str());
-			eprintf("pseManifestStatus:\t%s\n",
+			eprintf("pseManifestStatus = %s\n",
 				reportObj["pseManifestStatus"].ToString().c_str());
-			eprintf("pseManifestHash:\t%s\n",
+			eprintf("pseManifestHash   = %s\n",
 				reportObj["pseManifestHash"].ToString().c_str());
-			eprintf("nonce:\t%s\n", reportObj["nonce"].ToString().c_str());
-			eprintf("epidPseudonym:\t%s\n",
+			eprintf("nonce             = %s\n",
+				reportObj["nonce"].ToString().c_str());
+			eprintf("epidPseudonym     = %s\n",
 				reportObj["epidPseudonym"].ToString().c_str());
 			edivider();
 		}
-          
-		/*
-		 * This sample's attestion policy is based on isvEnclaveQuoteStatus:
-		 * 
-		 *   1) if "OK" then return "Trusted"
-		 *
- 		 *   2) if "CONFIGURATION_NEEDED" then return
-		 *       "NotTrusted_ItsComplicated" when in --strict-trust-mode
-		 *        and "Trusted_ItsComplicated" otherwise
-		 *
-		 *   3) return "NotTrusted" for all other responses
-		 *
-		 * 
-		 * ItsComplicated means the client is not trusted, but can 
-		 * conceivable take action that will allow it to be trusted
-		 * (such as a BIOS update).
- 		 */
 
-		/*
-		 * Simply check to see if status is OK, else enclave considered 
-		 * not trusted
-		 */
+    /*
+     * If the report returned a version number (API v3 and above), make
+     * sure it matches the API version we used to fetch the report.
+	 *
+	 * For API v3 and up, this field MUST be in the report.
+     */
 
-		memset(msg4, 0, sizeof(ra_msg4_t));
+	if ( reportObj.hasKey("version") ) {
+		unsigned int rversion= (unsigned int) reportObj["version"].ToInt();
+		if ( verbose )
+			eprintf("+++ Verifying report version against API version\n");
+		if ( version != rversion ) {
+			eprintf("Report version %u does not match API version %u\n",
+				rversion , version);
+			return 0;
+		}
+	} else if ( version >= 3 ) {
+		eprintf("attestation report version required for API version >= 3\n");
+		return 0;
+	}
 
-	    if ( verbose ) edividerWithText("ISV Enclave Trust Status");
+	/*
+	 * This sample's attestion policy is based on isvEnclaveQuoteStatus:
+	 * 
+	 *   1) if "OK" then return "Trusted"
+	 *
+ 	 *   2) if "CONFIGURATION_NEEDED" then return
+	 *       "NotTrusted_ItsComplicated" when in --strict-trust-mode
+	 *        and "Trusted_ItsComplicated" otherwise
+	 *
+	 *   3) return "NotTrusted" for all other responses
+	 *
+	 * 
+	 * ItsComplicated means the client is not trusted, but can 
+	 * conceivable take action that will allow it to be trusted
+	 * (such as a BIOS update).
+ 	 */
 
-		if ( !(reportObj["isvEnclaveQuoteStatus"].ToString().compare("OK"))) {
-			msg4->status = Trusted;
-			if ( verbose ) eprintf("Enclave TRUSTED\n");
-		} else if ( !(reportObj["isvEnclaveQuoteStatus"].ToString().compare("CONFIGURATION_NEEDED"))) {
-			if ( strict_trust ) {
-				msg4->status = NotTrusted_ItsComplicated;
-				if ( verbose ) eprintf("Enclave NOT TRUSTED and COMPLICATED - Reason: %s\n",
-					reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
-			} else {
-				if ( verbose ) eprintf("Enclave TRUSTED and COMPLICATED - Reason: %s\n",
-					reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
-				msg4->status = Trusted_ItsComplicated;
-			}
-		} else if ( !(reportObj["isvEnclaveQuoteStatus"].ToString().compare("GROUP_OUT_OF_DATE"))) {
+	/*
+	 * Simply check to see if status is OK, else enclave considered 
+	 * not trusted
+	 */
+
+	memset(msg4, 0, sizeof(ra_msg4_t));
+
+	if ( verbose ) edividerWithText("ISV Enclave Trust Status");
+
+	if ( !(reportObj["isvEnclaveQuoteStatus"].ToString().compare("OK"))) {
+		msg4->status = Trusted;
+		if ( verbose ) eprintf("Enclave TRUSTED\n");
+	} else if ( !(reportObj["isvEnclaveQuoteStatus"].ToString().compare("CONFIGURATION_NEEDED"))) {
+		if ( strict_trust ) {
 			msg4->status = NotTrusted_ItsComplicated;
 			if ( verbose ) eprintf("Enclave NOT TRUSTED and COMPLICATED - Reason: %s\n",
 				reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
 		} else {
-			msg4->status = NotTrusted;
-			if ( verbose ) eprintf("Enclave NOT TRUSTED - Reason: %s\n",
+			if ( verbose ) eprintf("Enclave TRUSTED and COMPLICATED - Reason: %s\n",
 				reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
+			msg4->status = Trusted_ItsComplicated;
 		}
+	} else if ( !(reportObj["isvEnclaveQuoteStatus"].ToString().compare("GROUP_OUT_OF_DATE"))) {
+		msg4->status = NotTrusted_ItsComplicated;
+		if ( verbose ) eprintf("Enclave NOT TRUSTED and COMPLICATED - Reason: %s\n",
+			reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
+	} else {
+		msg4->status = NotTrusted;
+		if ( verbose ) eprintf("Enclave NOT TRUSTED - Reason: %s\n",
+			reportObj["isvEnclaveQuoteStatus"].ToString().c_str());
+	}
 
 
-		/* Check to see if a platformInfoBlob was sent back as part of the
-		 * response */
+	/* Check to see if a platformInfoBlob was sent back as part of the
+	 * response */
 
-		if (!reportObj["platformInfoBlob"].IsNull()) {
-			if ( verbose ) eprintf("A Platform Info Blob (PIB) was provided by the IAS\n");
+	if (!reportObj["platformInfoBlob"].IsNull()) {
+		if ( verbose ) eprintf("A Platform Info Blob (PIB) was provided by the IAS\n");
 
-			/* The platformInfoBlob has two parts, a TVL Header (4 bytes),
-			 * and TLV Payload (variable) */
+		/* The platformInfoBlob has two parts, a TVL Header (4 bytes),
+		 * and TLV Payload (variable) */
 
-			string pibBuff = reportObj["platformInfoBlob"].ToString();
+		string pibBuff = reportObj["platformInfoBlob"].ToString();
 
-			/* remove the TLV Header (8 base16 chars, ie. 4 bytes) from
-			 * the PIB Buff. */
+		/* remove the TLV Header (8 base16 chars, ie. 4 bytes) from
+		 * the PIB Buff. */
 
-			pibBuff.erase(pibBuff.begin(), pibBuff.begin() + (4*2)); 
+		pibBuff.erase(pibBuff.begin(), pibBuff.begin() + (4*2)); 
 
-			int ret = from_hexstring ((unsigned char *)&msg4->platformInfoBlob, 
-				pibBuff.c_str(), pibBuff.length());
+		int ret = from_hexstring ((unsigned char *)&msg4->platformInfoBlob, 
+			pibBuff.c_str(), pibBuff.length());
 		} else {
 			if ( verbose ) eprintf("A Platform Info Blob (PIB) was NOT provided by the IAS\n");
 		}
                  
-            return 1;
+		return 1;
 	}
 
 	eprintf("attestation query returned %lu: \n", status);
