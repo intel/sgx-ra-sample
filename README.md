@@ -18,6 +18,7 @@ This code sample demonstrates the procedures that must be followed when performi
 
 **Linux**
  * Ubuntu* 16.04
+ * Ubuntu 18.04
  * Centos* 7.4
 
 **Microsoft* Windows**
@@ -29,12 +30,27 @@ For more information on developing applications with Intel SGX, visit the [Intel
 
 ## <a name="new"></a>What's New
 
+### v2.2.2
+
+Released on 9/28/2018.
+
+ * Verify that the report version matches the API version when
+   retrieving attestation evidence. This applies to IAS API v3
+   and later.
+
+ * (Linux) Add basic signal-handling to the server to gracefully shutdown
+   the listening socket on an interrupt. This should prevent "address already
+   in use" errors if the server is interrupted and then restarted rapidly.
+
+ * (Linux) Don't complain if OPENSSL_LIBDIR is not set in the wrapper scripts
+   run-client and run-server.
+
 ### v2.2.1
 
 Released on 9/18/2018.
 
  * Added verification of the enclave report by computing the SHA256
-   hash of Ga || Gb || VK and comparing the result to the first 
+   hash of Ga || Gb || VK and comparing the result to the first
    32 bytes of quote.report\_body.report\_data. Also verify next 32
    bytes of report_data is a block of 0x00's
 
@@ -80,8 +96,8 @@ The service provider's remote attestation server _does not require Intel SGX har
 * Ensure that you have one of the following operating systems:
 
   * CentOS 7.4 (64-bit)
-  * Ubuntu 16.04 LTS Desktop (64-bit)
-  * Ubuntu 16.04 LTS Server (64-bit)
+  * Ubuntu 16.04 LTS (64-bit)
+  * Ubuntu 18.04 LTS (64-bit)
 
 * Ensure that you have built and installed the Intel SGX packages:
 
@@ -103,16 +119,23 @@ The service provider's remote attestation server _does not require Intel SGX har
  $ apt-get install libcurl4-openssl-dev
  ```
 
-* Download the source for the latest release of OpenSSL 1.1.0, then build and install it into a _non-system directory_ such as /opt (note that both `--prefix` and `--openssldir` should be set when building OpenSSL 1.1.0). For example:
+* Run the following command to get your system's OpenSSL version. It must be
+at least 1.1.0:
 
-  ```
+ ```
+ $ openssl version
+ ```
+
+  * If necessary, download the source for the latest release of OpenSSL 1.1.0, then build and install it into a _non-system directory_ such as /opt (note that both `--prefix` and `--openssldir` should be set when building OpenSSL 1.1.0). For example:
+
+   ```
   $ wget https://www.openssl.org/source/openssl-1.1.0i.tar.gz
   $ tar xf openssl-1.1.0i.tar.gz
   $ cd openssl-1.1.0i
-  $ ./Configure --prefix=/opt/openssl/1.1.0i --openssldir=/opt/openssl/1.1.0i
+  $ ./config --prefix=/opt/openssl/1.1.0i --openssldir=/opt/openssl/1.1.0i
   $ make
   $ sudo make install
-  ```
+   ```
 
 #### Configure and compile
 
@@ -329,8 +352,8 @@ Optional:
                              client must be given the corresponding public
                              key. Can't combine with --key.
   -P, --production         Query the production IAS server instead of dev.
-  -X, --strict-trust-mode  Don't trust enclaves that receive a 
-                             CONFIGURATION_NEEDED response from IAS 
+  -X, --strict-trust-mode  Don't trust enclaves that receive a
+                             CONFIGURATION_NEEDED response from IAS
                              (default: trust)
   -Y, --ias-cert-key=FILE  The private key file for the IAS client certificate.
   -d, --debug              Print debug information to stderr.
