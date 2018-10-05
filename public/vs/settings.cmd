@@ -49,7 +49,6 @@ SET RA_USE_PLATFORM_SERVICES=0
 ::======================================================================
 
 
-<<<<<<< HEAD
 :: Your IAS client certificate file. [REQUIRED]
 
 SET RA_IAS_CLIENT_CERT_FILE=""
@@ -93,13 +92,6 @@ SET RA_IAS_REPORT_SIGNING_CA_FILE=""
 :: environment variables).
 
 :: SET RA_IAS_DISABLE_PROXY=0
-
-
-:: Set to non-zero to enforce a strict attestation policy, which rejects 
-:: enclaves that result in a CONFIGURATION_NEEDED response from IAS when
-:: verifying attestation evidence. Strict mode is DISABLED by default.
-
-:: SET RA_POLICY_STRICT_TRUST=1
 
 
 ::======================================================================

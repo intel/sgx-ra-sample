@@ -16,7 +16,6 @@ in the License.
 */
 
 
-
 #ifndef _WIN32
 #include "config.h"
 #endif
@@ -93,6 +92,7 @@ typedef struct config_struct {
 	char *cert_key_file;
 	char *cert_passwd_file;
 	unsigned int proxy_port;
+	unsigned char kdk[16];
 	char *cert_type[4];
 	X509_STORE *store;
 	X509 *signing_ca;
@@ -1358,9 +1358,9 @@ int get_attestation_report(IAS_Connection *ias, int version,
 
 		int ret = from_hexstring ((unsigned char *)&msg4->platformInfoBlob, 
 			pibBuff.c_str(), pibBuff.length());
-		} else {
-			if ( verbose ) eprintf("A Platform Info Blob (PIB) was NOT provided by the IAS\n");
-		}
+	} else {
+		if ( verbose ) eprintf("A Platform Info Blob (PIB) was NOT provided by the IAS\n");
+	}
                  
 		return 1;
 	}

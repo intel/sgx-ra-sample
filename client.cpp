@@ -433,7 +433,11 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	int rv;
 	MsgIO *msgio;
 	size_t msg4sz = 0;
+<<<<<<< HEAD
 	int enclaveTrusted = NotTrusted; // Not Trusted
+=======
+	int enclaveTrusted = 1; // Not Trusted
+>>>>>>> 080a26bc05114fe770b1cb71e1100df8086e5acd
 	int b_pse= OPT_ISSET(flags, OPT_PSE);
 
 	if ( config->server == NULL ) {
@@ -493,7 +497,10 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	status = sgx_get_extended_epid_group_id(&msg0_extended_epid_group_id);
 	if ( status != SGX_SUCCESS ) {
+<<<<<<< HEAD
                 enclave_ra_close(eid, &sgxrv, ra_ctx); 
+=======
+>>>>>>> 080a26bc05114fe770b1cb71e1100df8086e5acd
 		fprintf(stderr, "sgx_get_extended_epid_group_id: %08x\n", status);
 		return 1;
 	}
@@ -516,7 +523,10 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	status= sgx_ra_get_msg1(ra_ctx, eid, sgx_ra_get_ga, &msg1);
 	if ( status != SGX_SUCCESS ) {
+<<<<<<< HEAD
                 enclave_ra_close(eid, &sgxrv, ra_ctx);
+=======
+>>>>>>> 080a26bc05114fe770b1cb71e1100df8086e5acd
 		fprintf(stderr, "sgx_ra_get_msg1: %08x\n", status);
 		fprintf(fplog, "sgx_ra_get_msg1: %08x\n", status);
 		return 1;
@@ -577,11 +587,17 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	rv= msgio->read((void **) &msg2, NULL);
 	if ( rv == 0 ) {
+<<<<<<< HEAD
                 enclave_ra_close(eid, &sgxrv, ra_ctx);
 		fprintf(stderr, "protocol error reading msg2\n");
 		exit(1);
 	} else if ( rv == -1 ) {
                 enclave_ra_close(eid, &sgxrv, ra_ctx);
+=======
+		fprintf(stderr, "protocol error reading msg2\n");
+		exit(1);
+	} else if ( rv == -1 ) {
+>>>>>>> 080a26bc05114fe770b1cb71e1100df8086e5acd
 		fprintf(stderr, "system error occurred while reading msg2\n");
 		exit(1);
 	}
@@ -654,7 +670,10 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	}
 
 	if ( status != SGX_SUCCESS ) {
+<<<<<<< HEAD
                 enclave_ra_close(eid, &sgxrv, ra_ctx);
+=======
+>>>>>>> 080a26bc05114fe770b1cb71e1100df8086e5acd
 		fprintf(stderr, "sgx_ra_proc_msg2: %08x\n", status);
 		fprintf(fplog, "sgx_ra_proc_msg2: %08x\n", status);
 
@@ -718,6 +737,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 
 	edividerWithText("Enclave Trust Status from Service Provider");
 
+<<<<<<< HEAD
 	enclaveTrusted= msg4->status;
 	if ( enclaveTrusted == Trusted ) {
 		eprintf("Enclave TRUSTED\n");
@@ -735,6 +755,19 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		// trusted.
 
 		eprintf("Enclave Trust is NOT TRUSTED and COMPLICATED. The client is out of date.\n");
+=======
+	if ( msg4->status == Trusted ) {
+		eprintf("Enclave TRUSTED\n");
+		enclaveTrusted = 0; // Trusted
+	}
+	else if (msg4->status == NotTrusted ) {
+		eprintf("Enclave NOT TRUSTED\n");
+		enclaveTrusted = 1; // Not Trusted
+	}
+	else {
+		eprintf("Enclave Trust is OTHER\n");
+		enclaveTrusted = 2; // Not Trusted
+>>>>>>> 080a26bc05114fe770b1cb71e1100df8086e5acd
 	}
 
 	/* check to see if we have a PIB by comparing to empty PIB */
@@ -760,7 +793,11 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		sgx_status_t ret = sgx_report_attestation_status(&msg4->platformInfoBlob, 
 			enclaveTrusted, &update_info);
 
+<<<<<<< HEAD
 		if ( debug )  eprintf("+++ sgx_report_attestation_status ret = 0x%04x\n", ret);
+=======
+		if ( debug )  eprintf("+++ sgx_report_attestation_status ret = 0x%4x\n", ret);
+>>>>>>> 080a26bc05114fe770b1cb71e1100df8086e5acd
 
 		edivider();
 
@@ -788,6 +825,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		}
 	}
 
+<<<<<<< HEAD
 	/*
 	 * If the enclave is trusted, fetch a hash of the the MK and SK from
 	 * the enclave to show proof of a shared secret with the service 
@@ -828,12 +866,17 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		}
 	}
 
+=======
+>>>>>>> 080a26bc05114fe770b1cb71e1100df8086e5acd
 	if ( msg4 ) {
 		free (msg4);
 		msg4 = NULL;
 	}
+<<<<<<< HEAD
 
         enclave_ra_close(eid, &sgxrv, ra_ctx);
+=======
+>>>>>>> 080a26bc05114fe770b1cb71e1100df8086e5acd
    
 	return 0;
 }
