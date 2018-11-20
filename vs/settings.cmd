@@ -49,7 +49,6 @@ SET RA_USE_PLATFORM_SERVICES=0
 ::======================================================================
 
 
-<<<<<<< HEAD
 :: Your IAS client certificate file. [REQUIRED]
 
 SET RA_IAS_CLIENT_CERT_FILE=""
