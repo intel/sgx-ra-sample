@@ -16,7 +16,7 @@ SET RA_QUERY_IAS_PRODUCTION=0
 :: Your Service Provider ID. This should be a 32-character hex string.
 :: [REQUIRED]
 
-SET RA_SPID=0123456789ABCDEF0123456789ABCDEF
+SET RA_SPID=00000000000000000000000000000000
 
 
 :: Set to a non-zero value if this SPID is associated with linkable 
@@ -51,7 +51,7 @@ SET RA_USE_PLATFORM_SERVICES=0
 
 :: Your IAS client certificate file. [REQUIRED]
 
-SET RA_IAS_CLIENT_CERT_FILE=""
+SET RA_IAS_CLIENT_CERT_FILE="certificate.pem"
 
 
 :: Your IAS client certificate type. This defaults to PEM if you leave
@@ -64,7 +64,7 @@ SET RA_IAS_CLIENT_CERT_FILE=""
 :: certificate, set the filename here. Otherwise, leave it 
 :: blank.
 
-SET RA_IAS_CLIENT_CERT_KEY_FILE=""
+SET RA_IAS_CLIENT_CERT_KEY_FILE="private_key.pem"
 
 
 :: If your IAS client certificate's key is encrypted, put the password
@@ -78,13 +78,13 @@ SET RA_IAS_CLIENT_CERT_KEY_PASSWORD_FILE=""
 :: http://software.intel.com/sgx [REQUIRED]
 
 
-SET RA_IAS_REPORT_SIGNING_CA_FILE=""
+SET RA_IAS_REPORT_SIGNING_CA_FILE="IASReportSigningCACert.pem"
 
 
 :: Set to the URL for your proxy server to force the use of a proxy
 :: when communicating with IAS (overriding any environment variables).
 
-:: SET RA_IAS_PROXY_URL=
+SET RA_IAS_PROXY_URL=""
 
 
 :: Set to non-zero to disable the use of a proxy server and force a
@@ -107,7 +107,7 @@ SET RA_IAS_REPORT_SIGNING_CA_FILE=""
 
 :: Set to non-zero for verbose output
 
-SET RA_VERBOSE=0
+SET RA_VERBOSE=1
 
 
 :: Set to non-zero for debugging output
