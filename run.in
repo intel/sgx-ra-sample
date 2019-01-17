@@ -77,12 +77,10 @@ if [ "$IAS_CLIENT_CERT_TYPE" != "" ]; then
 	sp_cert_type="--ias-cert-type=$IAS_CLIENT_CERT_TYPE"
 fi
 
-if [ "$IAS_PROXY_URL" != "" ]; then
-	sp_proxy="--proxy=$IAS_PROXY_URL"
-fi
-
 if [ "$IAS_DISABLE_PROXY" != "" -a "0$IAS_DISABLE_PROXY" -ne 0 ]; then
 	sp_noproxy="-x"
+elif [ "$IAS_PROXY_URL" != "" ]; then
+	sp_proxy="--proxy=$IAS_PROXY_URL"
 fi
 
 if [ "$POLICY_STRICT_TRUST" != "" -a "0$POLICY_STRICT_TRUST" -ne 0 ]; then
