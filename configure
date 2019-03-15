@@ -4764,6 +4764,7 @@ if test "$openssl" != ""; then :
 	old_LIBS="$LIBS"
 	old_CPPFLAGS="$CPPFLAGS"
 	LDFLAGS="$LDFLAGS -L${openssl}/lib"
+	CPPFLAGS="$CPPFLAGS -I${openssl}/include"
 
 fi
 
