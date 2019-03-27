@@ -1357,7 +1357,7 @@ int get_attestation_report(IAS_Connection *ias, int version,
 		pibBuff.erase(pibBuff.begin(), pibBuff.begin() + (4*2)); 
 
 		int ret = from_hexstring ((unsigned char *)&msg4->platformInfoBlob, 
-			pibBuff.c_str(), pibBuff.length());
+			pibBuff.c_str(), pibBuff.length()/2);
 	} else {
 		if ( verbose ) eprintf("A Platform Info Blob (PIB) was NOT provided by the IAS\n");
 	}
