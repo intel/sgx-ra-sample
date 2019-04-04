@@ -89,7 +89,7 @@ MsgIO::MsgIO(const char *peer, const char *port)
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
-	if ( peer == NULL ) hints.ai_flags = AI_PASSIVE;
+	if (peer == NULL) hints.ai_flags = AI_PASSIVE; // Server here
 	hints.ai_protocol = IPPROTO_TCP;
 
 	rv= getaddrinfo(peer, port, &hints, &addrs);
@@ -109,8 +109,22 @@ MsgIO::MsgIO(const char *peer, const char *port)
 		}
 
 		if ( peer == NULL ) { 	// We're the server
+			int enable = 1;			
+
+			setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&enable, sizeof(enable));
+#ifdef SO_REUSEPORT
+			setsockopt(s, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(enable));
+#endif
+#ifdef IPV6_V6ONLY
+			// If we have an IPV6 socket, make sure it will accept IPv4 connections, too
+			if (addr->ai_family == AF_INET6) {
+				int disable = 0;				
+				setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&disable, sizeof(disable));
+			}
+#endif
+
 			if ( bind(s, addr->ai_addr, (int) addr->ai_addrlen) == 0 ) break;
-		} else {
+		} else {	// We're the client
 			if ( connect(s, addr->ai_addr, (int) addr->ai_addrlen) == 0 ) break;
 		}
 
@@ -147,10 +161,6 @@ MsgIO::MsgIO(const char *peer, const char *port)
 		ls= s;				// Use 'ls' to refer to the listening socket
 		s = INVALID_SOCKET;	// and 's' as the session socket.
 
-		setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, (char *) &enable, sizeof(enable));
-#ifdef SO_REUSEPORT
-		setsockopt(ls, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(enable));
-#endif
 		if ( listen(ls, 5) == -1 ) { // The "traditional" backlog value in UNIX
 			perror("listen");
 #ifdef _WIN32
