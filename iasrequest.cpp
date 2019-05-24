@@ -73,7 +73,7 @@ void ias_list_agents (FILE *fp)
 #endif
 }
 
-IAS_Connection::IAS_Connection(int server_idx, uint32_t flags)
+IAS_Connection::IAS_Connection(int server_idx, uint32_t flags, char *subscriptionKey)
 {
 	c_server= ias_servers[server_idx];
 	c_cert_type= "PEM";
@@ -85,6 +85,7 @@ IAS_Connection::IAS_Connection(int server_idx, uint32_t flags)
 	c_proxy_mode= IAS_PROXY_AUTO;
 	c_agent= NULL;
 	c_agent_name= "";
+	c_subscription_key = std::string(subscriptionKey); 
 }
 
 IAS_Connection::~IAS_Connection()
@@ -227,7 +228,8 @@ string IAS_Connection::base_url()
 		url+= to_string(c_server_port);
 	}
 
-	url+= "/attestation/sgx/v";
+	url+= "/attestation/v";
+	//url+= "/attestation/sgx/v";
 
 	return url;
 }

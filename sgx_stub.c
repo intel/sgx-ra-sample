@@ -20,6 +20,7 @@ in the License.
 # include <Windows.h>
 #else
 # include <dlfcn.h>
+# include <stdbool.h>
 #endif
 #include <stdlib.h>
 #include <stdio.h>

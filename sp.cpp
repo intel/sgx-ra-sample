@@ -83,6 +83,7 @@ typedef struct ra_session_struct {
 
 typedef struct config_struct {
 	sgx_spid_t spid;
+	unsigned char subscription_key[IAS_SUBSCRIPTION_KEY_SIZE+1];
 	uint16_t quote_type;
 	EVP_PKEY *service_private_key;
 	char *proxy_server;
@@ -152,32 +153,29 @@ int main(int argc, char *argv[])
 
 	static struct option long_opt[] =
 	{
-		{"ias-signing-cafile",
-							required_argument,	0, 'A'},
-		{"ca-bundle",		required_argument,	0, 'B'},
-		{"ias-cert",		required_argument,	0, 'C'},
-		{"ias-cert-passwd",
-							required_argument,	0, 'E'},
-		{"list-agents",		no_argument,		0, 'G'},
-		{"service-key-file",
-							required_argument,	0, 'K'},
-		{"production",		no_argument,		0, 'P'},
-		{"spid-file",		required_argument,	0, 'S'},
-		{"strict-trust-mode",
-							no_argument,		0, 'X'},
-		{"ias-cert-key",
-							required_argument,	0, 'Y'},
+		{"ias-api-key-file",		required_argument,	0, 'I'},
+		{"ias-signing-cafile",		required_argument,	0, 'A'},
+		{"ca-bundle",			required_argument,	0, 'B'},
+		{"ias-cert",			required_argument,	0, 'C'},
+		{"ias-cert-passwd",		required_argument,	0, 'E'},
+		{"list-agents",			no_argument,		0, 'G'},
+		{"service-key-file",		required_argument,	0, 'K'},
+		{"production",			no_argument,		0, 'P'},
+		{"spid-file",			required_argument,	0, 'S'},
+		{"strict-trust-mode",		no_argument,		0, 'X'},
+		{"ias-cert-key",		required_argument,	0, 'Y'},
 		{"debug",			no_argument,		0, 'd'},
-		{"user-agent",		required_argument,	0, 'g'},
+		{"user-agent",			required_argument,	0, 'g'},
 		{"help",			no_argument, 		0, 'h'},
 		{"key",				required_argument,	0, 'k'},
-		{"linkable",		no_argument,		0, 'l'},
+		{"linkable",			no_argument,		0, 'l'},
 		{"proxy",			required_argument,	0, 'p'},
-		{"api-version",		required_argument,	0, 'r'},
+		{"api-version",			required_argument,	0, 'r'},
 		{"spid",			required_argument,	0, 's'},
-		{"ias-cert-type",	required_argument,	0, 't'},
+		{"ias-api-key",			required_argument,	0, 'i'},
+		{"ias-cert-type",		required_argument,	0, 't'},
 		{"verbose",			no_argument,		0, 'v'},
-		{"no-proxy",		no_argument,		0, 'x'},
+		{"no-proxy",			no_argument,		0, 'x'},
 		{"stdio",			no_argument,		0, 'z'},
 		{ 0, 0, 0, 0 }
 	};
@@ -203,12 +201,34 @@ int main(int argc, char *argv[])
 		int c;
 		int opt_index = 0;
 
-		c = getopt_long(argc, argv, "A:B:C:E:GK:PS:XY:dg:hk:lp:r:s:t:vxz", long_opt, &opt_index);
+		c = getopt_long(argc, argv, "I:A:B:C:E:GK:PS:XY:dg:hk:lp:r:s:i:t:vxz", long_opt, &opt_index);
 		if (c == -1) break;
 
 		switch (c) {
 		case 0:
 			break;
+
+		case 'I':
+
+                        if (strlen(optarg) != IAS_SUBSCRIPTION_KEY_SIZE) {
+                                eprintf("IAS Subscription Key must be %d-byte hex string\n",IAS_SUBSCRIPTION_KEY_SIZE);
+                                return 1;
+                        }
+
+                        strncpy((char *) config.subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
+                        if ( debug ) eprintf("IAS Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
+                                        config.subscription_key[0],
+                                        config.subscription_key[1],
+                                        config.subscription_key[2],
+                                        config.subscription_key[3],
+                                        config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
+                                        config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
+                                        config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
+                                        config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ]
+                                        );
+
+                        break;
+
 		case 'A':
 			if (!cert_load_file(&config.signing_ca, optarg)) {
 				crypto_perror("cert_load_file");
@@ -330,6 +350,27 @@ int main(int argc, char *argv[])
 			}
 			++flag_spid;
 			break;
+
+                case 'i':
+                        if (strlen(optarg) != IAS_SUBSCRIPTION_KEY_SIZE) {
+                                eprintf("IAS Subscription Key must be %d-byte hex string\n",IAS_SUBSCRIPTION_KEY_SIZE);
+                                return 1;
+                        }
+
+			strncpy((char *) config.subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
+                        if ( debug ) eprintf("IAS Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
+					config.subscription_key[0],
+					config.subscription_key[1],
+					config.subscription_key[2],
+					config.subscription_key[3],
+					config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
+					config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
+					config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
+					config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ]
+					);
+
+                        break;
+
 		case 't':
 			strncpy((char *) config.cert_type, optarg, 4);
 			if ( debug ) eprintf("+++ cert type set to %s\n",
@@ -437,7 +478,8 @@ int main(int argc, char *argv[])
 	try {
 		ias = new IAS_Connection(
 			(flag_prod) ? IAS_SERVER_PRODUCTION : IAS_SERVER_DEVELOPMENT,
-			0
+			0,
+			(char *)(config.subscription_key)
 		);
 	}
 	catch (...) {
@@ -1496,6 +1538,10 @@ void usage ()
 "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte." NL
 "                             ASCII hex string." NL
 "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string." NNL
+"  -I, --sub-key-file=FILE  Set the IAS Subscription Key from a file containg a 32-byte." NL
+"                             ASCII hex string." NL
+"  -i, --sub-key=HEXSTRING  Set the IAS Subscription Key from a 32-byte ASCII hex string." NNL
+"Optional:" NL
 "Optional:" NL
 "  -B, --ca-bundle-file=FILE" NL
 "                           Use the CA certificate bundle at FILE (default:" NL

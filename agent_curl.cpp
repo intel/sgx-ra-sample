@@ -132,7 +132,7 @@ int AgentCurl::initialize ()
 	if ( curl_easy_setopt(curl, CURLOPT_CAINFO, conn->ca_bundle().c_str())
 		!= CURLE_OK ) return 0;
 
-	if ( curl_easy_setopt(curl, CURLOPT_SSLCERT,
+/*	if ( curl_easy_setopt(curl, CURLOPT_SSLCERT,
 		conn->client_cert_file().c_str()) != CURLE_OK ) return 0;
 
 	if ( debug )  eprintf("+++ Setting cert file to %s\n",
@@ -170,7 +170,7 @@ int AgentCurl::initialize ()
 #endif
 		delete[] passwd;
 	}
-
+*/
 	// Set the write callback.
 
 	if ( curl_easy_setopt(curl, CURLOPT_WRITEDATA, this) != CURLE_OK )
@@ -193,17 +193,21 @@ int AgentCurl::request(string const &url, string const &postdata,
 
 	header_len= header_pos= 0;
 	flag_eoh= 0;
+	curl_slist *slist= NULL;
+
+	// construct then add the Ocp-Apim-Subscription-Key subscription key header
+	string subscriptionKeyHeader = "Ocp-Apim-Subscription-Key: ";
+	subscriptionKeyHeader.append(conn->subscriptionKey());
+
+        if ( (slist = curl_slist_append(slist, subscriptionKeyHeader.c_str())) == NULL )
+		return 0;
 
 	if ( postdata != "" ) {
-		curl_slist *slist= NULL;
 
 		bp= postdata.c_str();
 
 		if ( (slist= curl_slist_append(slist, "Expect:")) == NULL )
 			return 0;
-
-		if ( curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist)
-			 != CURLE_OK ) return 0;
 
 		// Set our method to POST and send the length
 
@@ -212,11 +216,19 @@ int AgentCurl::request(string const &url, string const &postdata,
 
 	} 
 
+	if ( curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist)
+		!= CURLE_OK ) return 0;
+
 	if ( curl_easy_setopt(curl, CURLOPT_URL, url.c_str()) != CURLE_OK )
 		return 0;
 
 	if ( curl_easy_perform(curl) != 0 ) {
 		return 0;
+	}
+
+	if (slist != NULL) {
+		curl_slist_free_all(slist);
+		slist = NULL;
 	}
 
 	result= parser.parse(response, sresponse.substr(header_pos).c_str(),
