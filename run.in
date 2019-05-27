@@ -114,6 +114,7 @@ elif [ "$PROG" = "run-server" ]
 then
 	./sp \
 		-s $SPID \
+		-i $IAS_SUBSCRIPTION_KEY \
 		-A "$IAS_REPORT_SIGNING_CA_FILE" \
 		-C "$IAS_CLIENT_CERT_FILE" \
 		$sp_cert_key $sp_noproxy $sp_proxy $sp_cert_passwd $sp_cert_type \
