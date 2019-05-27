@@ -46,6 +46,13 @@ USE_PLATFORM_SERVICES=0
 # Service provider (server) options
 #======================================================================
 
+# IAS Subscription Key
+# If the Subscription  Key is set then client certificates options will not be used
+# Associated SPID required
+
+IAS_SUBSCRIPTION_KEY=
+
+
 # Your IAS client certificate file. [REQUIRED]
 
 IAS_CLIENT_CERT_FILE=
