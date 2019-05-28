@@ -104,6 +104,7 @@ retry_write:
 		wget_args.push_back("--content-on-error");
 		wget_args.push_back("--no-http-keep-alive");
 
+/*		
 		arg= "--certificate=";
 		arg+= conn->client_cert_file();
 		wget_args.push_back(arg);
@@ -123,6 +124,12 @@ retry_write:
 			wget_args.push_back(arg);
 
 		}
+*/
+
+                // construct then add the Ocp-Apim-Subscription-Key subscription key header
+                string subscriptionKeyHeader = "--header=Ocp-Apim-Subscription-Key: ";
+                subscriptionKeyHeader.append(conn->subscriptionKey());
+                wget_args.push_back(subscriptionKeyHeader.c_str());
 
 		arg= conn->proxy_server();
 		// Override environment
@@ -165,6 +172,9 @@ retry_write:
 		// Add instance-specific options
 
 		if ( postdata ) {
+                
+                        string contentTypeHeader = "--header=Content-Type: application/json";
+                        wget_args.push_back(contentTypeHeader.c_str());
 			arg= "--post-file=";
 			arg+= tmpfile;
 			wget_args.push_back(arg);
@@ -201,6 +211,7 @@ retry_dup:
 		}
 		close(pipefd[1]);
 		close(pipefd[0]);
+
 
 		execvp("wget", argv);
 		perror("execvp: wget");
