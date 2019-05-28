@@ -104,27 +104,6 @@ retry_write:
 		wget_args.push_back("--content-on-error");
 		wget_args.push_back("--no-http-keep-alive");
 
-/*		
-		arg= "--certificate=";
-		arg+= conn->client_cert_file();
-		wget_args.push_back(arg);
-
-		arg= "--certificate-type=";
-		arg+= conn->client_cert_type();
-		wget_args.push_back(arg);
-
-		arg= conn->client_key_file();
-		if ( arg != "" ) {
-			arg= "--private-key=" + arg;
-			wget_args.push_back(arg);
-
-			// Sanity assumption: the same type for both cert and key
-			arg= "--private-key-type=";
-			arg+= conn->client_cert_type();
-			wget_args.push_back(arg);
-
-		}
-*/
 
                 // construct then add the Ocp-Apim-Subscription-Key subscription key header
                 string subscriptionKeyHeader = "--header=Ocp-Apim-Subscription-Key: ";

@@ -89,12 +89,12 @@ typedef struct config_struct {
 	char *proxy_server;
 	char *ca_bundle;
 	char *user_agent;
-	char *cert_file;
-	char *cert_key_file;
-	char *cert_passwd_file;
+//	char *cert_file;
+//	char *cert_key_file;
+//	char *cert_passwd_file;
 	unsigned int proxy_port;
 	unsigned char kdk[16];
-	char *cert_type[4];
+//	char *cert_type[4];
 	X509_STORE *store;
 	X509 *signing_ca;
 	unsigned int apiver;
@@ -156,10 +156,10 @@ int main(int argc, char *argv[])
 		{"ias-api-key-file",		required_argument,	0, 'I'},
 		{"ias-signing-cafile",		required_argument,	0, 'A'},
 		{"ca-bundle",			required_argument,	0, 'B'},
-		{"ias-cert",			required_argument,	0, 'C'},
-		{"ias-cert-passwd",		required_argument,	0, 'E'},
+//		{"ias-cert",			required_argument,	0, 'C'},
+//		{"ias-cert-passwd",		required_argument,	0, 'E'},
 		{"list-agents",			no_argument,		0, 'G'},
-		{"service-key-file",		required_argument,	0, 'K'},
+//		{"service-key-file",		required_argument,	0, 'K'},
 		{"production",			no_argument,		0, 'P'},
 		{"spid-file",			required_argument,	0, 'S'},
 		{"strict-trust-mode",		no_argument,		0, 'X'},
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
 		{"api-version",			required_argument,	0, 'r'},
 		{"spid",			required_argument,	0, 's'},
 		{"ias-api-key",			required_argument,	0, 'i'},
-		{"ias-cert-type",		required_argument,	0, 't'},
+//		{"ias-cert-type",		required_argument,	0, 't'},
 		{"verbose",			no_argument,		0, 'v'},
 		{"no-proxy",			no_argument,		0, 'x'},
 		{"stdio",			no_argument,		0, 'z'},
@@ -188,12 +188,14 @@ int main(int argc, char *argv[])
 	/* Config defaults */
 
 	memset(&config, 0, sizeof(config));
+/*
 #ifdef _WIN32
 	strncpy_s((char *)config.cert_type, 4, "PEM", 3);
 #else
 	strncpy((char *)config.cert_type, "PEM", 3);
 #endif
-	config.apiver= IAS_API_DEF_VERSION;
+*/
+        config.apiver= IAS_API_DEF_VERSION;
 
 	/* Parse our options */
 
@@ -201,7 +203,8 @@ int main(int argc, char *argv[])
 		int c;
 		int opt_index = 0;
 
-		c = getopt_long(argc, argv, "I:A:B:C:E:GK:PS:XY:dg:hk:lp:r:s:i:t:vxz", long_opt, &opt_index);
+//		c = getopt_long(argc, argv, "I:A:B:C:E:GK:PS:XY:dg:hk:lp:r:s:i:t:vxz", long_opt, &opt_index);
+		c = getopt_long(argc, argv, "I:A:B:GK:PS:X:dg:hk:lp:r:s:i:vxz", long_opt, &opt_index);
 		if (c == -1) break;
 
 		switch (c) {
@@ -252,7 +255,7 @@ int main(int argc, char *argv[])
 			}
 
 			break;
-		case 'C':
+/*		case 'C':
 			config.cert_file = strdup(optarg);
 			if (config.cert_file == NULL) {
 				perror("strdup");
@@ -261,13 +264,15 @@ int main(int argc, char *argv[])
 			++flag_cert;
 
 			break;
-		case 'E':
+*/
+/*		case 'E':
 			config.cert_passwd_file = strdup(optarg);
 			if (config.cert_passwd_file == NULL) {
 				perror("strdup");
 				return 1;
 			}
 			break;
+*/
 		case 'G':
 			ias_list_agents(stdout);
 			return 1;
@@ -294,13 +299,14 @@ int main(int argc, char *argv[])
 		case 'X':
 			config.strict_trust= 1;
 			break;
-		case 'Y':
+/*		case 'Y':
 			config.cert_key_file = strdup(optarg);
 			if (config.cert_key_file == NULL) {
 				perror("strdup");
 				return 1;
 			}
 			break;
+*/
 		case 'd':
 			debug = 1;
 			break;
@@ -371,11 +377,12 @@ int main(int argc, char *argv[])
 
                         break;
 
-		case 't':
+/*		case 't':
 			strncpy((char *) config.cert_type, optarg, 4);
 			if ( debug ) eprintf("+++ cert type set to %s\n",
 				config.cert_type);
 			break;
+*/
 		case 'v':
 			verbose = 1;
 			break;
@@ -455,11 +462,11 @@ int main(int argc, char *argv[])
 		flag_usage = 1;
 	}
 
-	if (!flag_cert) {
+/*	if (!flag_cert) {
 		eprintf("--ias-cert-file is required\n");
 		flag_usage = 1;
 	}
-
+*/
 	if (!flag_ca) {
 		eprintf("--ias-signing-cafile is required\n");
 		flag_usage = 1;
@@ -467,7 +474,7 @@ int main(int argc, char *argv[])
 
 	if (flag_usage) usage();
 
-	if (verbose) eprintf("Using cert file %s\n", config.cert_file);
+//	if (verbose) eprintf("Using cert file %s\n", config.cert_file);
 
 	/* Initialize out support libraries */
 
@@ -488,7 +495,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	ias->client_cert(config.cert_file, (char *)config.cert_type);
+/*	ias->client_cert(config.cert_file, (char *)config.cert_type);
 	if ( config.cert_passwd_file != NULL ) {
 		char *passwd;
 		char *keyfile;
@@ -546,7 +553,7 @@ int main(int argc, char *argv[])
 		// We have a key file but no password.
 		ias->client_key(config.cert_key_file, NULL);
 	}
-
+*/
 	if ( flag_noproxy ) ias->proxy_mode(IAS_PROXY_NONE);
 	else if (config.proxy_server != NULL) {
 		ias->proxy_mode(IAS_PROXY_FORCE);
@@ -1532,8 +1539,8 @@ void usage ()
 "Required:" NL
 "  -A, --ias-signing-cafile=FILE" NL
 "                           Specify the IAS Report Signing CA file." NL
-"  -C, --ias-cert-file=FILE Specify the IAS client certificate to use when" NL
-"                             communicating with IAS." NNL
+//"  -C, --ias-cert-file=FILE Specify the IAS client certificate to use when" NL
+//"                             communicating with IAS." NNL
 "One of (required):" NL
 "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte." NL
 "                             ASCII hex string." NL
@@ -1546,9 +1553,9 @@ void usage ()
 "  -B, --ca-bundle-file=FILE" NL
 "                           Use the CA certificate bundle at FILE (default:" NL
 "                             " << DEFAULT_CA_BUNDLE << ")" NL
-"  -E, --ias-cert-passwd=FILE" NL
-"                           Use password in FILE for the IAS client" NL
-"                             certificate." NL
+//"  -E, --ias-cert-passwd=FILE" NL
+//"                           Use password in FILE for the IAS client" NL
+//"                             certificate." NL
 "  -G, --list-agents        List available user agent names for --user-agent" NL
 "  -K, --service-key-file=FILE" NL
 "                           The private key file for the service in PEM" NL
@@ -1559,7 +1566,7 @@ void usage ()
 "  -X, --strict-trust-mode  Don't trust enclaves that receive a " NL
 "                             CONFIGURATION_NEEDED response from IAS " NL
 "                             (default: trust)" NL
-"  -Y, --ias-cert-key=FILE  The private key file for the IAS client certificate." NL
+//"  -Y, --ias-cert-key=FILE  The private key file for the IAS client certificate." NL
 "  -d, --debug              Print debug information to stderr." NL
 "  -g, --user-agent=NAME    Use NAME as the user agent for contacting IAS." NL
 "  -k, --key=HEXSTRING      The private key as a hex string. See --key-file" NL
@@ -1568,7 +1575,7 @@ void usage ()
 "  -p, --proxy=PROXYURL     Use the proxy server at PROXYURL when contacting" NL
 "                             IAS. Can't combine with --no-proxy\n" NL
 "  -r, --api-version=N      Use version N of the IAS API (default: " << to_string(IAS_API_DEF_VERSION) << ")" NL
-"  -t, --ias-cert-type=TYPE The client certificate type. Can be PEM (default)" NL
+//"  -t, --ias-cert-type=TYPE The client certificate type. Can be PEM (default)" NL
 "                             or P12." NL
 "  -v, --verbose            Be verbose. Print message structure details and the" NL
 "                             results of intermediate operations to stderr." NL

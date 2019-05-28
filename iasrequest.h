@@ -91,13 +91,13 @@ class IAS_Connection {
 friend class Agent;
 	string c_server;
 	string c_subscription_key;
-	string c_cert_file;
-	string c_key_file;
-	string c_cert_type;
+//	string c_cert_file;
+//	string c_key_file;
+//	string c_cert_type;
 	string c_ca_file;
-	unsigned char *c_key_passwd;	
+//	unsigned char *c_key_passwd;	
 	unsigned char *c_xor;
-	size_t c_pwlen;
+//	size_t c_pwlen;
 	string c_proxy_server;
 	uint16_t c_server_port;
 	uint16_t c_proxy_port;
@@ -124,13 +124,13 @@ public:
 	uint16_t proxy_port() { return c_proxy_port; }
 	string proxy_url();
 
-	int client_cert(const char *file, const char *certtype);
-	string client_cert_file() { return c_cert_file; }
-	string client_cert_type() { return c_cert_type; }
+//	int client_cert(const char *file, const char *certtype);
+//	string client_cert_file() { return c_cert_file; }
+//	string client_cert_type() { return c_cert_type; }
 
-	int client_key(const char *file, const char *passwd);
-	string client_key_file() { return c_key_file; }
-	int client_key_passwd(char **passwd, size_t *len);
+//	int client_key(const char *file, const char *passwd);
+//	string client_key_file() { return c_key_file; }
+//	int client_key_passwd(char **passwd, size_t *len);
 
 	void ca_bundle(const char *file) { c_ca_file= file; }
 	string ca_bundle() { return c_ca_file; }

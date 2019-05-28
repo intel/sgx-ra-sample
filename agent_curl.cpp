@@ -124,53 +124,11 @@ int AgentCurl::initialize ()
 			return 0;
 	}
 
-	// Configure SSL
-	//------------------------------------------------------------
-
 	// Specify your certificate stores
 
 	if ( curl_easy_setopt(curl, CURLOPT_CAINFO, conn->ca_bundle().c_str())
 		!= CURLE_OK ) return 0;
 
-/*	if ( curl_easy_setopt(curl, CURLOPT_SSLCERT,
-		conn->client_cert_file().c_str()) != CURLE_OK ) return 0;
-
-	if ( debug )  eprintf("+++ Setting cert file to %s\n",
-		conn->client_cert_file().c_str());
-
-	if ( curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE,
-		conn->client_cert_type().c_str()) != CURLE_OK ) return 0;
-
-	if ( conn->client_key_file() != "" ) {
-		if ( debug ) eprintf("+++ Setting client key file to %s\n",
-				conn->client_key_file().c_str());
-		if ( curl_easy_setopt(curl, CURLOPT_SSLKEY, 
-			conn->client_key_file().c_str()) != CURLE_OK ) return 0;
-
-		// Sanity assumption: cert and the key are the same type.
-		if ( curl_easy_setopt(curl, CURLOPT_SSLKEYTYPE,
-			conn->client_cert_type().c_str()) != CURLE_OK ) return 0;
-
-	}
-
-	// Set the password for the key (if any). Note that this method
-	//  allocates passwd so need to wipe it and free it later.
-
-	if ( conn->client_key_passwd(&passwd, &pwlen) == 0 ) return 0;
-	if ( pwlen ) {
-		if ( debug ) {
-			eprintf("+++ client cert key password length = %u\n", pwlen);
-			eprintf("+++ client cert key password is %s\n", passwd);
-		}
-		CURLcode ccode= curl_easy_setopt(curl, CURLOPT_KEYPASSWD, passwd);
-#ifdef _WIN32
-		SecureZeroMemory(passwd, pwlen);
-#else
-		memset(passwd, 0, pwlen);
-#endif
-		delete[] passwd;
-	}
-*/
 	// Set the write callback.
 
 	if ( curl_easy_setopt(curl, CURLOPT_WRITEDATA, this) != CURLE_OK )

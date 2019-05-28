@@ -76,10 +76,10 @@ void ias_list_agents (FILE *fp)
 IAS_Connection::IAS_Connection(int server_idx, uint32_t flags, char *subscriptionKey)
 {
 	c_server= ias_servers[server_idx];
-	c_cert_type= "PEM";
+//	c_cert_type= "PEM";
 	c_flags= flags;
-	c_pwlen= 0;
-	c_key_passwd= NULL;
+//	c_pwlen= 0;
+//	c_key_passwd= NULL;
 	c_xor= NULL;
 	c_server_port= IAS_PORT;
 	c_proxy_mode= IAS_PROXY_AUTO;
@@ -90,7 +90,7 @@ IAS_Connection::IAS_Connection(int server_idx, uint32_t flags, char *subscriptio
 
 IAS_Connection::~IAS_Connection()
 {
-	if ( c_key_passwd != NULL ) delete[] c_key_passwd;
+//	if ( c_key_passwd != NULL ) delete[] c_key_passwd;
 	if ( c_xor != NULL ) delete[] c_xor;
 }
 
@@ -143,7 +143,7 @@ string IAS_Connection::proxy_url()
 
 	return proxy_url;
 }
-
+/*
 int IAS_Connection::client_cert(const char *file, const char *certtype)
 {
 	int rv= 1;
@@ -218,6 +218,7 @@ int IAS_Connection::client_key_passwd(char **passwd, size_t *pwlen)
 
 	return 1;
 }
+*/
 
 string IAS_Connection::base_url()
 {

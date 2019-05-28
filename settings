@@ -53,55 +53,24 @@ USE_PLATFORM_SERVICES=0
 IAS_SUBSCRIPTION_KEY=00000000000000000000000000000000
 
 
-# Your IAS client certificate file. [REQUIRED]
-
-IAS_CLIENT_CERT_FILE=/path/to/certificate.pem
-
-
-# Your IAS client key file.
-#
-# Note that curl built against NSS can only use a 3-des encrypted key
-# or an unencrypted key.
-#
-# If using wget as your user agent, you have to use an unencrypted key.
-# Otherwise, wget will prompt you for the prigve key password every time
-# (there's no command line option to send the password or a password 
-# file path).
-
-IAS_CLIENT_KEY_FILE=/path/to/private_key.pem
-
-
-# If your IAS client certificate's key is encrypted, put the password
-# in a file, and place the filename here. If you aren't using a password
-# then comment this out.
-
-IAS_CLIENT_CERT_KEY_PASSWORD_FILE=
-
-
-# Your IAS client certificate type. This defaults to PEM if you leave
-# it blank. Can be either PEM or P12.
-
-IAS_CLIENT_CERT_TYPE=
-
-
 # The Intel IAS SGX Report Signing CA file. You are sent this certificate
 # when you apply for access to SGX Developer Services at 
 # http://software.intel.com/sgx [REQUIRED]
 
-IAS_REPORT_SIGNING_CA_FILE=/path/to/IASReportSigningCACert.pem
+IAS_REPORT_SIGNING_CA_FILE=
 
 
 # Set to the URL for your proxy server to force the use of a proxy
 # when communicating with IAS (overriding any environment variables).
 
-IAS_PROXY_URL=
+IAS_PROXY_URL=http://<proxy>:<port>
 
 
 # Set to non-zero to disable the use of a proxy server and force a
 # direct connection when communicating with IAS (overriding any
 # environment variables).
 
-# IAS_DISABLE_PROXY=0
+#IAS_DISABLE_PROXY=0
 
 
 # Set to non-zero to enforce a strict attestation policy, which rejects 
@@ -118,7 +87,7 @@ IAS_PROXY_URL=
 
 # Set to non-zero for verbose output
 
-VERBOSE=1
+VERBOSE=0
 
 
 # Set to non-zero for debugging output
