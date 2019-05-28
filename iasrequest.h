@@ -56,12 +56,6 @@ using namespace std;
 /* The IAS production server hostname */
 #define IAS_SERVER_PRODUCTION_HOST      "api.trustedservices.intel.com/sgx"
 
-/* The IAS development server hostname */
-//#define IAS_SERVER_DEVELOPMENT_HOST     "test-as.sgx.trustedservices.intel.com"
-
-/* The IAS production server hostname */
-//#define IAS_SERVER_PRODUCTION_HOST      "as.sgx.trustedservices.intel.com"
-
 #define IAS_PORT	443
 
 /* Model these roughly after errno */
@@ -90,14 +84,11 @@ class Agent;
 class IAS_Connection {
 friend class Agent;
 	string c_server;
-	string c_subscription_key;
-//	string c_cert_file;
-//	string c_key_file;
-//	string c_cert_type;
+
+	char c_subscription_key_enc[IAS_SUBSCRIPTION_KEY_SIZE];
+	char c_subscription_key_xor[IAS_SUBSCRIPTION_KEY_SIZE];
+
 	string c_ca_file;
-//	unsigned char *c_key_passwd;	
-	unsigned char *c_xor;
-//	size_t c_pwlen;
 	string c_proxy_server;
 	uint16_t c_server_port;
 	uint16_t c_proxy_port;
@@ -107,6 +98,8 @@ friend class Agent;
 	Agent *c_agent;
 	string c_agent_name;
 
+	int setSubscriptionKey(char * subscriptionKey);
+
 public:
 	IAS_Connection(int server, uint32_t flags, char * subscriptionKey);
 	~IAS_Connection();
@@ -115,7 +108,7 @@ public:
 
 	int agent(const char *agent_name);
 
-	string subscriptionKey() { return c_subscription_key; }
+	string getSubscriptionKey(); 
 
 	int proxy(const char *server, uint16_t port);
 	void proxy_mode(int mode) { c_proxy_mode= mode; }
@@ -124,13 +117,6 @@ public:
 	uint16_t proxy_port() { return c_proxy_port; }
 	string proxy_url();
 
-//	int client_cert(const char *file, const char *certtype);
-//	string client_cert_file() { return c_cert_file; }
-//	string client_cert_type() { return c_cert_type; }
-
-//	int client_key(const char *file, const char *passwd);
-//	string client_key_file() { return c_key_file; }
-//	int client_key_passwd(char **passwd, size_t *len);
 
 	void ca_bundle(const char *file) { c_ca_file= file; }
 	string ca_bundle() { return c_ca_file; }

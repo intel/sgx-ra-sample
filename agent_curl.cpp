@@ -155,7 +155,7 @@ int AgentCurl::request(string const &url, string const &postdata,
 
 	// construct then add the Ocp-Apim-Subscription-Key subscription key header
 	string subscriptionKeyHeader = "Ocp-Apim-Subscription-Key: ";
-	subscriptionKeyHeader.append(conn->subscriptionKey());
+	subscriptionKeyHeader.append(conn->getSubscriptionKey());
 
         if ( (slist = curl_slist_append(slist, subscriptionKeyHeader.c_str())) == NULL )
 		return 0;

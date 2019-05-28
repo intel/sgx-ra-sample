@@ -15,7 +15,7 @@ QUERY_IAS_PRODUCTION=0
 # Your Service Provider ID. This should be a 32-character hex string.
 # [REQUIRED]
 
-SPID=00000000000000000000000000000000
+SPID=0123456789ABCDEF0123456789ABCDEF
 
 
 # Set to a non-zero value if this SPID is associated with linkable 
@@ -50,7 +50,7 @@ USE_PLATFORM_SERVICES=0
 # If the Subscription  Key is set then client certificates options will not be used
 # Associated SPID required
 
-IAS_SUBSCRIPTION_KEY=00000000000000000000000000000000
+IAS_SUBSCRIPTION_KEY=
 
 
 # The Intel IAS SGX Report Signing CA file. You are sent this certificate
@@ -63,23 +63,14 @@ IAS_REPORT_SIGNING_CA_FILE=
 # Set to the URL for your proxy server to force the use of a proxy
 # when communicating with IAS (overriding any environment variables).
 
-IAS_PROXY_URL=http://<proxy>:<port>
+# IAS_PROXY_URL=
 
 
 # Set to non-zero to disable the use of a proxy server and force a
 # direct connection when communicating with IAS (overriding any
 # environment variables).
 
-#IAS_DISABLE_PROXY=0
-
-
-# Set to non-zero to enforce a strict attestation policy, which rejects 
-# enclaves that result in a GROUP_OUT_OF_DATE or CONFIGURATION_NEEDED 
-# response from IAS when verifying attestation evidence. Strict mode is
-# DISABLED by default.
-
-# POLICY_STRICT_TRUST=1
-
+# IAS_DISABLE_PROXY=0
 
 #======================================================================
 # Debugging options

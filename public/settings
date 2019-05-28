@@ -53,37 +53,6 @@ USE_PLATFORM_SERVICES=0
 IAS_SUBSCRIPTION_KEY=
 
 
-# Your IAS client certificate file. [REQUIRED]
-
-IAS_CLIENT_CERT_FILE=
-
-
-# Your IAS client key file.
-#
-# Note that curl built against NSS can only use a 3-des encrypted key
-# or an unencrypted key.
-#
-# If using wget as your user agent, you have to use an unencrypted key.
-# Otherwise, wget will prompt you for the prigve key password every time
-# (there's no command line option to send the password or a password 
-# file path).
-
-IAS_CLIENT_KEY_FILE=
-
-
-# If your IAS client certificate's key is encrypted, put the password
-# in a file, and place the filename here. If you aren't using a password
-# then comment this out.
-
-IAS_CLIENT_CERT_KEY_PASSWORD_FILE=
-
-
-# Your IAS client certificate type. This defaults to PEM if you leave
-# it blank. Can be either PEM or P12.
-
-IAS_CLIENT_CERT_TYPE=
-
-
 # The Intel IAS SGX Report Signing CA file. You are sent this certificate
 # when you apply for access to SGX Developer Services at 
 # http://software.intel.com/sgx [REQUIRED]

@@ -76,22 +76,16 @@ void ias_list_agents (FILE *fp)
 IAS_Connection::IAS_Connection(int server_idx, uint32_t flags, char *subscriptionKey)
 {
 	c_server= ias_servers[server_idx];
-//	c_cert_type= "PEM";
 	c_flags= flags;
-//	c_pwlen= 0;
-//	c_key_passwd= NULL;
-	c_xor= NULL;
 	c_server_port= IAS_PORT;
 	c_proxy_mode= IAS_PROXY_AUTO;
 	c_agent= NULL;
 	c_agent_name= "";
-	c_subscription_key = std::string(subscriptionKey); 
+	setSubscriptionKey(subscriptionKey); 
 }
 
 IAS_Connection::~IAS_Connection()
 {
-//	if ( c_key_passwd != NULL ) delete[] c_key_passwd;
-	if ( c_xor != NULL ) delete[] c_xor;
 }
 
 int IAS_Connection::agent(const char *agent_name)
@@ -143,82 +137,64 @@ string IAS_Connection::proxy_url()
 
 	return proxy_url;
 }
-/*
-int IAS_Connection::client_cert(const char *file, const char *certtype)
-{
-	int rv= 1;
-	try {
-		c_cert_file= file;
-		if ( certtype != NULL ) c_cert_type= certtype;
-	}
-	catch (...) {
-		rv= 0;
-	}
-	return rv;
-}
 
-int IAS_Connection::client_key(const char *file, const char *passwd)
+// Encrypt the subscription key while its stored in memory 
+int IAS_Connection::setSubscriptionKey(char * subscriptionKeyPlainText)
 {
-	size_t i;
+	memset(c_subscription_key_enc, 0, sizeof (c_subscription_key_enc));
+	memset(c_subscription_key_xor, 0, sizeof(c_subscription_key_xor));
 
-	try {
-		c_key_file= file;
-	}
-	catch (...) {
+	if (subscriptionKeyPlainText == NULL || (strlen(subscriptionKeyPlainText) != IAS_SUBSCRIPTION_KEY_SIZE))
+	{
+		if ( debug )
+			eprintf("Error Setting subScriptionKey\n");
 		return 0;
 	}
 
-	if ( passwd != NULL ) {
-		c_pwlen= strlen(passwd);
-		try {
-			c_key_passwd= new unsigned char[c_pwlen];
-			c_xor= new unsigned char[c_pwlen];
-		}
-		catch (...) { 
-			if ( c_key_passwd != NULL ) delete[] c_key_passwd;
-			return 0;
-		}
+        // Create Random one time pad
+        RAND_bytes((unsigned char *)c_subscription_key_xor, (int) sizeof(c_subscription_key_xor));
 
-		RAND_bytes(c_xor, (int) c_pwlen);
-		for (i= 0; i< c_pwlen; ++i) c_key_passwd[i]=
-			(unsigned char) passwd[i]^c_xor[i];
-	}
+	// XOR Subscription Key with One Time Pad to create an encrypted key
+        for (int i= 0; i < IAS_SUBSCRIPTION_KEY_SIZE; i++) 
+		c_subscription_key_enc[i] = (unsigned char) subscriptionKeyPlainText[i] ^ c_subscription_key_xor[i];
 
 	if ( debug ) {
-		eprintf("+++ Password:           %s\n", hexstring(passwd, c_pwlen));
-		eprintf("+++ One-time pad:       %s\n", hexstring(c_xor, c_pwlen));
-		eprintf("+++ Encrypted password: %s\n", hexstring(c_key_passwd,
-			c_pwlen));
-	}
+		eprintf("\n+++ IAS Subscription Key:\t\t'%s'\n", subscriptionKeyPlainText);
+		eprintf("+++ IAS Subscription Key (Hex):\t\t%s\n", hexstring(subscriptionKeyPlainText, IAS_SUBSCRIPTION_KEY_SIZE));
+		eprintf("+++ One-time pad:\t\t\t%s\n", hexstring(c_subscription_key_xor, sizeof(c_subscription_key_xor)));
+		eprintf("+++ Encrypted SubscriptionKey:\t\t%s\n\n", hexstring(c_subscription_key_enc,sizeof(c_subscription_key_enc)));
+		}	
+
+        // zero the original subscription key in memory
+	memset(subscriptionKeyPlainText, 0, IAS_SUBSCRIPTION_KEY_SIZE);
+
 	return 1;
 }
 
-int IAS_Connection::client_key_passwd(char **passwd, size_t *pwlen)
+// Decrypt then return the subscription key
+string IAS_Connection::getSubscriptionKey()
 {
-	size_t i;
-	char *ch;
+	char keyBuff[IAS_SUBSCRIPTION_KEY_SIZE+1];
+	memset(keyBuff, 0, IAS_SUBSCRIPTION_KEY_SIZE+1);
 
-	*pwlen= c_pwlen;
+        for ( int i = 0; i < IAS_SUBSCRIPTION_KEY_SIZE; i++ )
+                 keyBuff[i] = (c_subscription_key_enc[i] ^ c_subscription_key_xor[i]);
 
-	if ( c_pwlen == 0 ) {
-		*passwd= NULL;
-		return 1;
-	}
+	string subscriptionKeyBuff(keyBuff);
 
-	try {
-		*passwd= new char[c_pwlen+1];
-	}
-	catch (...) {
-		return 0;
-	}
+        if ( debug ) {
+                eprintf("\n+++ Reconstructed Subscription Key:\t'%s'\n", subscriptionKeyBuff.c_str());
+		eprintf("+++ IAS Subscription Key (Hex):\t\t%s\n", hexstring(keyBuff, IAS_SUBSCRIPTION_KEY_SIZE));
+                eprintf("+++ One-time pad:\t\t\t%s\n", hexstring(c_subscription_key_xor, sizeof(c_subscription_key_xor)));
+                eprintf("+++ Encrypted SubscriptionKey:\t\t%s\n\n", hexstring(c_subscription_key_enc,sizeof(c_subscription_key_enc)));
+                }
 
-	for (i= 0, ch= *passwd; i< c_pwlen; ++i, ++ch) 
-		 *ch= (char) (c_key_passwd[i] ^ c_xor[i]);
-	*ch= 0;
 
-	return 1;
+
+        return subscriptionKeyBuff;
+
 }
-*/
+
 
 string IAS_Connection::base_url()
 {
@@ -230,7 +206,6 @@ string IAS_Connection::base_url()
 	}
 
 	url+= "/attestation/v";
-	//url+= "/attestation/sgx/v";
 
 	return url;
 }

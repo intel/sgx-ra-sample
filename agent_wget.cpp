@@ -107,7 +107,7 @@ retry_write:
 
                 // construct then add the Ocp-Apim-Subscription-Key subscription key header
                 string subscriptionKeyHeader = "--header=Ocp-Apim-Subscription-Key: ";
-                subscriptionKeyHeader.append(conn->subscriptionKey());
+                subscriptionKeyHeader.append(conn->getSubscriptionKey());
                 wget_args.push_back(subscriptionKeyHeader.c_str());
 
 		arg= conn->proxy_server();
