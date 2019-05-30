@@ -41,6 +41,8 @@ Enclave.edl: Enclave/Enclave.edl
 Enclave.signed.so: Enclave/Enclave.signed.so
 	ln -s $?
 
+Enclave/Enclave.signed.so:
+	make -C Enclave
 
 ## Additional automake variables
 ##
@@ -54,7 +56,8 @@ AM_CPPFLAGS += -fno-builtin-memset @OPENSSL_CPPFLAGS@
 ## Additional targets to remove with 'make clean'. You must list
 ## any edger8r generated files here.
 
-CLEANFILES = Enclave_u.c Enclave_u.h Enclave.edl Enclave.signed.so
+CLEANFILES = Enclave_u.c Enclave_u.h Enclave.edl Enclave.signed.so \
+	enclave_sigstruct.h
 
 
 ## The build target
@@ -81,10 +84,17 @@ client_LDFLAGS= $(AM_LDFLAGS) @OPENSSL_LDFLAGS@
 
 ## sp
 
-sp_SOURCES = sp.cpp agent_wget.cpp iasrequest.cpp $(common)
+sp_SOURCES = sp.cpp agent_wget.cpp iasrequest.cpp enclave_verify.c $(common)
+BUILT_SOURCES += enclave_sigstruct.h
+EXTRA_sp_DEPENDENCIES = Enclave.signed.so
 if AGENT_CURL
 sp_SOURCES += agent_curl.cpp
 endif
+
+## Extract our enclave identity metatdata into a header file
+enclave_sigstruct.h: Enclave.signed.so
+	$(SGX_SIGN) dump -cssfile enclave_sigstruct_raw -dumpfile /dev/null -enclave Enclave.signed.so
+	xxd -i enclave_sigstruct_raw > $@ && rm -f enclave_sigstruct_raw
 
 sp_LDFLAGS= $(AM_LDFLAGS) @OPENSSL_LDFLAGS@ @CURL_LDFLAGS@
 

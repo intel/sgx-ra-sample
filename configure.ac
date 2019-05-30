@@ -25,6 +25,11 @@ AC_ARG_ENABLE([agent-libcurl],
 	[AC_HELP_STRING([--disable-agent-libcurl], [Disable the libcurl user agent])],
 	[], [enable_agent_libcurl=yes])
 
+dnl Need xxd
+dnl ----------------------------------------------------------------------
+AC_PATH_PROG([have_xxd], [xxd], [])
+AS_IF([test "$have_xxd" = ""], AC_MSG_ERROR([xxd not installed]))
+
 dnl Check for OpenSSL 1.1.0 or later
 dnl ----------------------------------------------------------------------
 AS_IF([test "$openssl" != ""], [

@@ -51,6 +51,7 @@ in the License.
 #include "iasrequest.h"
 #include "logfile.h"
 #include "settings.h"
+#include "enclave_verify.h"
 
 using namespace json;
 using namespace std;
@@ -817,7 +818,7 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 		}
 
 		/*
-		 * A real service provider would validate that the enclave
+		 * The service provider must validate that the enclave
 		 * report is from an enclave that they recognize. Namely,
 		 * that the MRSIGNER matches our signing key, and the MRENCLAVE
 		 * hash matches an enclave that we compiled.
@@ -825,7 +826,16 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 		 * Other policy decisions might include examining ISV_SVN to 
 		 * prevent outdated/deprecated software from successfully
 		 * attesting, and ensuring the TCB is not out of date.
+		 *
+		 * A real-world service provider might allow multiple ISV_SVN
+		 * values, but for this sample we only allow the enclave that
+		 * is compiled.
 		 */
+
+		if ( ! verify_enclave_identity(r) ) {
+			eprintf("Enclave not recognized.\n");
+			return 0;
+		}
 
 		if ( verbose ) {
 			edivider();
