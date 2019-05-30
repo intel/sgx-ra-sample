@@ -3,6 +3,30 @@
 #include "crypto.h"
 #include "hexutil.h"
 #include "enclave_verify.h"
+
+/*
+ * enclave_sigstruct.c is an automatically generated file. After 
+ * Enclave.signed.so is built, we run:
+ *
+ *   sgx_sign dump -cssfile ...
+ *
+ * to output the SIGSTRUCT as a binary blob, which then is converted
+ * to a C byte array.
+ * 
+ * The SIGSTRUCT contains everything needed to identify an enclave. 
+ * This is a convenient, automated way to hardcode the enclave identity
+ * into the service provider so that it can validate the client enclave
+ * during a remote attestation.
+ *
+ * This code sample requires that the hardcoded identity match the
+ * enclave in the report. A production service might accept enclaves
+ * with older ISV_SVNs (and different MRENCLAVE values) as long as the
+ * MRSIGNER is recognized in order to support older versions of the
+ * enclave.
+ *
+ * These are policy decisions that are left up to the ISV.
+ */
+
 #include "enclave_sigstruct.h"
 
 sgx_measurement_t my_mr_signer;
