@@ -832,10 +832,14 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 		 * is compiled.
 		 */
 
+#ifndef _WIN32
+/* Windows implementation is not available yet */
+
 		if ( ! verify_enclave_identity(r) ) {
 			eprintf("Enclave not recognized.\n");
 			return 0;
 		}
+#endif
 
 		if ( verbose ) {
 			edivider();
