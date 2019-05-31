@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 {
 	char flag_spid = 0;
 	char flag_pubkey = 0;
-	char flag_cert = 0;
+	char flag_api_key = 0;
 	char flag_ca = 0;
 	char flag_usage = 0;
 	char flag_noproxy= 0;

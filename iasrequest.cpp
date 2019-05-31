@@ -27,9 +27,13 @@ in the License.
 #include "common.h"
 #include "agent.h"
 #ifdef _WIN32
-# define AGENT_LIBCURL
+# define AGENT_WINHTTP
+//#define AGENT_LIBCURL
 #else
 # define AGENT_WGET
+#endif
+#ifdef AGENT_WINHTTP
+# include "agent_winhttp.h"
 #endif
 #ifdef AGENT_WGET
 # include "agent_wget.h"
@@ -71,6 +75,9 @@ void ias_list_agents (FILE *fp)
 #ifdef AGENT_WGET
 	fprintf(fp, "%s\n", AgentWget::name.c_str());
 #endif
+#ifdef AGENT_WINHTTP
+	fprintf(fp, "%s\n", AgentWinHttp::name.c_str());
+#endif
 }
 
 IAS_Connection::IAS_Connection(int server_idx, uint32_t flags, char *priSubscriptionKey, char *secSubscriptionKey)
@@ -102,6 +109,12 @@ int IAS_Connection::agent(const char *agent_name)
 #ifdef AGENT_WGET
 	if ( AgentWget::name == agent_name ) {
 		c_agent_name= agent_name;
+		return 1;
+	}
+#endif
+#ifdef AGENT_WINHTTP
+	if (AgentWinHttp::name == agent_name) {
+		c_agent_name = agent_name;
 		return 1;
 	}
 #endif
@@ -245,6 +258,16 @@ Agent *IAS_Connection::new_agent()
 				newagent= (Agent *) new AgentWget(this);
 			}
 			catch (...) {
+				return NULL;
+			}
+		}
+#endif
+#ifdef AGENT_WINHTTP
+		if (c_agent_name == AgentWinHttp::name) {
+			try {
+				newagent = (Agent *) new AgentWinHttp(this);
+			}
+			catch (...) {
 				if ( newagent != NULL ) delete newagent;
 				return NULL;
 			}
@@ -275,6 +298,15 @@ Agent *IAS_Connection::new_agent()
 				if ( newagent != NULL ) delete newagent;
 				newagent= NULL;
 			}
+		}
+#endif
+#ifdef AGENT_WINHTTP
+		if (newagent == NULL) {
+			if (debug) eprintf("+++ Trying agent_winhttp\n");
+			try {
+				newagent = (Agent *) new AgentWinHttp(this);
+			}
+			catch (...) { newagent = NULL; }
 		}
 #endif
 	}
