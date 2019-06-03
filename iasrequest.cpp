@@ -81,6 +81,8 @@ IAS_Connection::IAS_Connection(int server_idx, uint32_t flags, char *subscriptio
 	c_proxy_mode= IAS_PROXY_AUTO;
 	c_agent= NULL;
 	c_agent_name= "";
+	c_proxy_port= 80;
+	c_store= NULL;
 	setSubscriptionKey(subscriptionKey); 
 }
 
@@ -233,8 +235,10 @@ Agent *IAS_Connection::new_agent()
 				newagent= (Agent *) new AgentCurl(this);
 			}
 			catch (...) {
+				if ( newagent != NULL ) delete newagent;
 				return NULL;
 			}
+			return newagent;
 		}
 #endif		
 #ifdef AGENT_WGET
@@ -243,8 +247,10 @@ Agent *IAS_Connection::new_agent()
 				newagent= (Agent *) new AgentWget(this);
 			}
 			catch (...) {
+				if ( newagent != NULL ) delete newagent;
 				return NULL;
 			}
+			return newagent;
 		}
 #endif
 	} else {
@@ -256,7 +262,10 @@ Agent *IAS_Connection::new_agent()
 		try {
 			newagent= (Agent *) new AgentCurl(this);
 		}
-		catch (...) { newagent= NULL; }
+		catch (...) { 
+			if ( newagent != NULL ) delete newagent;
+			newagent= NULL;
+		}
 #endif
 #ifdef AGENT_WGET
 		if ( newagent == NULL ) {
@@ -264,7 +273,10 @@ Agent *IAS_Connection::new_agent()
 			try {
 				newagent= (Agent *) new AgentWget(this);
 			}
-			catch (...) { newagent= NULL; }
+			catch (...) { 
+				if ( newagent != NULL ) delete newagent;
+				newagent= NULL;
+			}
 		}
 #endif
 	}
@@ -297,6 +309,11 @@ ias_error_t IAS_Request::sigrl(uint32_t gid, string &sigrl)
 	string url= r_conn->base_url();
 	Agent *agent= r_conn->new_agent();
 
+	if ( agent == NULL ) {
+		eprintf("Could not allocate agent object");
+		return IAS_QUERY_FAILED;
+	}
+
 	snprintf(sgid, 9, "%08x", gid);
 
 	url+= to_string(r_api_version);
@@ -321,9 +338,11 @@ ias_error_t IAS_Request::sigrl(uint32_t gid, string &sigrl)
 		} 
 	} else {
 		eprintf("Could not query IAS\n");
+		delete agent;
 		return IAS_QUERY_FAILED;
 	}
 
+	delete agent;
 	return response.statusCode;
 }
 
@@ -348,6 +367,11 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 	EVP_PKEY *pkey= NULL;
 	Agent *agent= r_conn->new_agent();
 	
+	if ( agent == NULL ) {
+		eprintf("Could not allocate agent object");
+		return IAS_QUERY_FAILED;
+	}
+
 	try {
 		for (imap= payload.begin(); imap!= payload.end(); ++imap) {
 			if ( imap != payload.begin() ) {
@@ -365,6 +389,7 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 		url+= "/report";
 	}
 	catch (...) {
+		delete agent;
 		return IAS_QUERY_FAILED;
 	}
 
@@ -382,10 +407,14 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 		}
 	} else {
 		eprintf("Could not query IAS\n");
+		delete agent;
 		return IAS_QUERY_FAILED;
 	}
 
-	if ( response.statusCode != IAS_OK ) return response.statusCode;
+	if ( response.statusCode != IAS_OK ) {
+		delete agent;
+		return response.statusCode;
+	}
 
 	/*
 	 * The response body has the attestation report. The headers have
@@ -404,6 +433,7 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 	certchain= response.headers_as_string("X-IASReport-Signing-Certificate");
 	if ( certchain == "" ) {
 		eprintf("Header X-IASReport-Signing-Certificate not found\n");
+		delete agent;
 		return IAS_BAD_CERTIFICATE;
 	}
 
@@ -413,6 +443,7 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 	}
 	catch (...) {
 		eprintf("invalid URL encoding in header X-IASReport-Signing-Certificate\n");
+		delete agent;
 		return IAS_BAD_CERTIFICATE;
 	}
 
@@ -436,6 +467,7 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 
 		if ( ! cert_load(&cert, certchain.substr(cstart, len).c_str()) ) {
 			crypto_perror("cert_load");
+			delete agent;
 			return IAS_BAD_CERTIFICATE;
 		}
 
@@ -449,6 +481,7 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 	certar= (X509**) malloc(sizeof(X509 *)*(count+1));
 	if ( certar == 0 ) {
 		perror("malloc");
+		delete agent;
 		return IAS_INTERNAL_ERROR;
 	}
 	for (i= 0; i< count; ++i) certar[i]= certvec[i];
@@ -459,7 +492,8 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 	stack= cert_stack_build(certar);
 	if ( stack == NULL ) {
 		crypto_perror("cert_stack_build");
-		return IAS_INTERNAL_ERROR;
+		status= IAS_INTERNAL_ERROR;
+		goto cleanup;
 	}
 
 	// Now verify the signing certificate
@@ -511,7 +545,6 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 	pkey= X509_get_pubkey(sign_cert);
 	if ( pkey == NULL ) {
 		eprintf("Could not extract public key from certificate\n");
-		free(sig);
 		status= IAS_INTERNAL_ERROR;
 		goto cleanup;
 	}
@@ -531,7 +564,6 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 	if ( ! sha256_verify((const unsigned char *) content.c_str(),
 		content.length(), sig, sigsz, pkey, &rv) ) {
 
-		free(sig);
 		crypto_perror("sha256_verify");
 		eprintf("Could not validate signature\n");
 		status= IAS_BAD_SIGNATURE;
@@ -561,6 +593,7 @@ cleanup:
 	free(certar);
 	for (i= 0; i<count; ++i) X509_free(certvec[i]);
 	free(sig);
+	delete agent;
 
 	return status;
 }
