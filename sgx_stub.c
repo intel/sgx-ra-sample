@@ -31,6 +31,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "config.h"
+
 #ifdef _WIN32
 # include <Windows.h>
 #else
@@ -38,6 +40,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <stdlib.h>
 #include <stdio.h>
+#ifdef UAE_SERVICE_HAS_BOOL
+typedef unsigned char bool;
+#endif
 #include "sgx_stub.h"
 #include <sgx_edger8r.h>
 #include <sgx_uae_service.h>
@@ -523,7 +528,7 @@ sgx_status_t sgx_ecall_switchless(const sgx_enclave_id_t eid, const int index, c
 	return (sgx_status_t) p_sgx_ecall_switchless(eid, index, ocall_table, ms);
 }
 
-sgx_status_t sgx_init_quote_ex(const sgx_att_key_id_t *p_att_key_id, sgx_target_info_t *p_qe_target_info, int refresh_att_key, size_t *p_pub_key_id_size, uint8_t *p_pub_key_id)
+sgx_status_t sgx_init_quote_ex(const sgx_att_key_id_t *p_att_key_id, sgx_target_info_t *p_qe_target_info, uint8_t refresh_att_key, size_t *p_pub_key_id_size, uint8_t *p_pub_key_id)
 {
 	if ( l_sgx_init_quote_ex == 0 ) {
 		if ( h_libsgx_uae_service == 0 ) _load_libsgx_uae_service();
