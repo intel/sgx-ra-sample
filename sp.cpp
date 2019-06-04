@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
 
 		case 'I':
 
-                        if (strlen(optarg) != IAS_SUBSCRIPTION_KEY_SIZE) {
+                       if (strlen(optarg) != IAS_SUBSCRIPTION_KEY_SIZE) {
                                 eprintf("IAS Subscription Key must be %d-byte hex string\n",IAS_SUBSCRIPTION_KEY_SIZE);
                                 return 1;
                         }
@@ -685,6 +685,7 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 	}
 	if ( CRYPTO_memcmp(&msg3->g_a, &msg1->g_a, sizeof(sgx_ec256_public_t)) ) {
 		eprintf("msg1.g_a and mgs3.g_a keys don't match\n");
+		free(msg3);
 		return 0;
 	}
 
@@ -700,12 +701,18 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 	}
 	if ( CRYPTO_memcmp(msg3->mac, vrfymac, sizeof(sgx_mac_t)) ) {
 		eprintf("Failed to verify msg3 MAC\n");
+		free(msg3);
 		return 0;
 	}
 
 	/* Encode the report body as base64 */
 
 	b64quote= base64_encode((char *) &msg3->quote, quote_sz);
+	if ( b64quote == NULL ) {
+		eprintf("Could not base64 encode the quote\n");
+		free(msg3);
+		return 0;
+	}
 	q= (sgx_quote_t *) msg3->quote;
 
 	if ( verbose ) {
@@ -760,6 +767,8 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 
 	if ( memcmp(msg1->gid, &q->epid_group_id, sizeof(sgx_epid_group_id_t)) ) {
 		eprintf("EPID GID mismatch. Attestation failed.\n");
+		free(b64quote);
+		free(msg3);
 		return 0;
 	}
 
@@ -814,6 +823,8 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 			64) ) {
 
 			eprintf("Report verification failed.\n");
+			free(b64quote);
+			free(msg3);
 			return 0;
 		}
 
@@ -837,6 +848,8 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 
 		if ( ! verify_enclave_identity(r) ) {
 			eprintf("Enclave not recognized.\n");
+			free(b64quote);
+			free(msg3);
 			return 0;
 		}
 #endif
@@ -909,10 +922,13 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 
 	} else {
 		eprintf("Attestation failed\n");
+		free(msg3);
+		free(b64quote);
 		return 0;
 	}
 
 	free(b64quote);
+	free(msg3);
 
 	return 1;
 }
@@ -1076,6 +1092,7 @@ int process_msg01 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 		&msg2->sig_rl_size) ) {
 
 		eprintf("could not retrieve the sigrl\n");
+		free(msg01);
 		return 0;
 	}
 
@@ -1193,17 +1210,24 @@ int get_sigrl (IAS_Connection *ias, int version, sgx_epid_group_id_t gid,
 
 	if (oops) {
 		eprintf("Exception while creating IAS request object\n");
+		delete req;
 		return 0;
 	}
 
 	if ( req->sigrl(*(uint32_t *) gid, sigrlstr) != IAS_OK ) {
+		delete req;
 		return 0;
 	}
 
 	*sig_rl= strdup(sigrlstr.c_str());
-	if ( *sig_rl == NULL ) return 0;
+	if ( *sig_rl == NULL ) {
+		delete req;
+		return 0;
+	}
 
 	*sig_rl_size= (uint32_t ) sigrlstr.length();
+
+	delete req;
 
 	return 1;
 }
@@ -1223,6 +1247,7 @@ int get_attestation_report(IAS_Connection *ias, int version,
 	}
 	catch (...) {
 		eprintf("Exception while creating IAS request object\n");
+		if ( req != NULL ) delete req;
 		return 0;
 	}
 
@@ -1293,10 +1318,12 @@ int get_attestation_report(IAS_Connection *ias, int version,
 		if ( version != rversion ) {
 			eprintf("Report version %u does not match API version %u\n",
 				rversion , version);
+			delete req;
 			return 0;
 		}
 	} else if ( version >= 3 ) {
 		eprintf("attestation report version required for API version >= 3\n");
+		delete req;
 		return 0;
 	}
 
@@ -1372,6 +1399,7 @@ int get_attestation_report(IAS_Connection *ias, int version,
 		if ( verbose ) eprintf("A Platform Info Blob (PIB) was NOT provided by the IAS\n");
 	}
                  
+		delete req;
 		return 1;
 	}
 
@@ -1409,6 +1437,8 @@ int get_attestation_report(IAS_Connection *ias, int version,
 				eprintf("An unknown error occurred.\n");
 			}
 	}
+
+	delete req;
 
 	return 0;
 }
