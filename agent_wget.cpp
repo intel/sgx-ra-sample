@@ -171,11 +171,11 @@ retry_write:
 		argv= (char **) malloc(sizeof(char *)*(sz+1));
 		for(i= 0; i< sz; ++i) {
 			argv[i]= strdup(wget_args[i].c_str());
-			if ( debug ) eprintf(" %s", argv[i]);
 			if ( argv[i] == NULL ) {
 				perror("strdup");
 				exit(1);
 			}
+			if ( debug ) eprintf(" %s", argv[i]);
 		}
 		argv[sz]= 0;
 		if ( debug ) eprintf("\n");
