@@ -35,12 +35,22 @@ char *base64_encode(const char *msg, size_t sz)
 
 	BIO_push(b64, bmem);
 
-	if ( BIO_write(b64, msg, (int) sz) == -1 ) return NULL;
+	if ( BIO_write(b64, msg, (int) sz) == -1 ) {
+		BIO_free(bmem);
+		BIO_free(b64);
+		return NULL;
+	}
 
 	BIO_flush(b64);
 
 	len= BIO_get_mem_data(bmem, &bstr);
 	dup= (char *) malloc(len+1);
+	if ( dup == NULL ) {
+		BIO_free(bmem);
+		BIO_free(b64);
+		return NULL;
+	}
+
 	memcpy(dup, bstr, len);
 	dup[len]= 0;
 
@@ -58,6 +68,7 @@ char *base64_decode(const char *msg, size_t *sz)
 	size_t len= strlen(msg);
 
 	buf= (char *) malloc(len+1);
+	if ( buf == NULL ) return NULL;
 	memset(buf, 0, len+1);
 
 	b64= BIO_new(BIO_f_base64());
@@ -68,7 +79,10 @@ char *base64_decode(const char *msg, size_t *sz)
 	BIO_push(b64, bmem);
 
 	*sz= BIO_read(b64, buf, (int) len);
-	if ( *sz == -1 ) return NULL;
+	if ( *sz == -1 ) {
+		free(buf);
+		return NULL;
+	}
 
 	BIO_free_all(bmem);
 
