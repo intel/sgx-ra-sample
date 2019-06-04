@@ -46,8 +46,8 @@ FILE *create_logfile(const char *filename)
 
 void close_logfile (FILE *fp)
 {
-        if ( fp ) {
-            fclose(fp);
-            fp = NULL;
-        }
+	if ( fp ) {
+		fclose(fp);
+		fp = NULL;
+	}
 }
