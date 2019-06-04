@@ -52,6 +52,7 @@ int from_file (unsigned char *dest, char *file, off_t *len)
 		exit(1);
 	}
 	if ( fread(dest, (size_t) *len, 1, fp) != 1 ) {
+		fclose(fp);
 		return 0;
 	}
 	fclose(fp);
@@ -66,6 +67,10 @@ int from_hexstring_file (unsigned char *dest, char *file, size_t len)
 	int rv;
 
 	sbuf= (unsigned char *) malloc(len*2);
+	if ( sbuf == NULL ) {
+		perror("malloc");
+		return 0;
+	}
 
 #ifdef _WIN32
 	if (fopen_s(&fp, file, "r") != 0) {
@@ -75,9 +80,11 @@ int from_hexstring_file (unsigned char *dest, char *file, size_t len)
 		fprintf(stderr, "fopen: ");
 #endif
 		perror(file);
+		free(sbuf);
 		return 0;
 	}
 	if ( fread(sbuf, len*2, 1, fp) != 1 ) {
+		fclose(fp);
 		free(sbuf);
 		return 0;
 	}
