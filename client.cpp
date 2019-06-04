@@ -147,10 +147,15 @@ int main (int argc, char *argv[])
 	dividerWithText(fplog, "Client Log Timestamp");
 
 	const time_t timeT = time(NULL);
-	struct tm lt;
+	struct tm lt, *ltp;
 
 #ifndef _WIN32
-	lt = *localtime(&timeT);
+	ltp = localtime(&timeT);
+	if ( ltp == NULL ) {
+		perror("localtime");
+		return 1;
+	}
+	lt= *ltp;
 #else
 
 	localtime_s(&lt, &timeT);
@@ -417,6 +422,8 @@ int main (int argc, char *argv[])
 
      
 	close_logfile(fplog);
+
+	return 0;
 }
 
 int do_attestation (sgx_enclave_id_t eid, config_t *config)
@@ -472,6 +479,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	/* Did the ECALL succeed? */
 	if ( status != SGX_SUCCESS ) {
 		fprintf(stderr, "enclave_ra_init: %08x\n", status);
+		delete msgio;
 		return 1;
 	}
 
@@ -479,6 +487,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	if (b_pse) {
 		if ( pse_status != SGX_SUCCESS ) {
 			fprintf(stderr, "pse_session: %08x\n", sgxrv);
+			delete msgio;
 			return 1;
 		}
 	}
@@ -486,6 +495,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	/* Did sgx_ra_init() succeed? */
 	if ( sgxrv != SGX_SUCCESS ) {
 		fprintf(stderr, "sgx_ra_init: %08x\n", sgxrv);
+		delete msgio;
 		return 1;
 	}
 
@@ -495,6 +505,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	if ( status != SGX_SUCCESS ) {
 		enclave_ra_close(eid, &sgxrv, ra_ctx); 
 		fprintf(stderr, "sgx_get_extended_epid_group_id: %08x\n", status);
+		delete msgio;
 		return 1;
 	}
 	if ( verbose ) {
@@ -519,6 +530,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		enclave_ra_close(eid, &sgxrv, ra_ctx);
 		fprintf(stderr, "sgx_ra_get_msg1: %08x\n", status);
 		fprintf(fplog, "sgx_ra_get_msg1: %08x\n", status);
+		delete msgio;
 		return 1;
 	}
 
@@ -579,10 +591,12 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	if ( rv == 0 ) {
 		enclave_ra_close(eid, &sgxrv, ra_ctx);
 		fprintf(stderr, "protocol error reading msg2\n");
+		delete msgio;
 		exit(1);
 	} else if ( rv == -1 ) {
 		enclave_ra_close(eid, &sgxrv, ra_ctx);
 		fprintf(stderr, "system error occurred while reading msg2\n");
+		delete msgio;
 		exit(1);
 	}
 
@@ -648,16 +662,14 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		sizeof(sgx_ra_msg2_t) + msg2->sig_rl_size,
 	    &msg3, &msg3_sz);
 
-	if ( msg2 ) {
-		free(msg2);
-		msg2 = NULL;
-	}
+	free(msg2);
 
 	if ( status != SGX_SUCCESS ) {
 		enclave_ra_close(eid, &sgxrv, ra_ctx);
 		fprintf(stderr, "sgx_ra_proc_msg2: %08x\n", status);
 		fprintf(fplog, "sgx_ra_proc_msg2: %08x\n", status);
 
+		delete msgio;
 		return 1;
 	} 
 
@@ -714,7 +726,18 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
  
 	/* Read Msg4 provided by Service Provider, then process */
         
-	msgio->read((void **)&msg4, &msg4sz);
+	rv= msgio->read((void **)&msg4, &msg4sz);
+	if ( rv == 0 ) {
+		enclave_ra_close(eid, &sgxrv, ra_ctx);
+		fprintf(stderr, "protocol error reading msg4\n");
+		delete msgio;
+		exit(1);
+	} else if ( rv == -1 ) {
+		enclave_ra_close(eid, &sgxrv, ra_ctx);
+		fprintf(stderr, "system error occurred while reading msg4\n");
+		delete msgio;
+		exit(1);
+	}
 
 	edividerWithText("Enclave Trust Status from Service Provider");
 
@@ -828,12 +851,10 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		}
 	}
 
-	if ( msg4 ) {
-		free (msg4);
-		msg4 = NULL;
-	}
+	free (msg4);
 
 	enclave_ra_close(eid, &sgxrv, ra_ctx);
+	delete msgio;
 
 	return 0;
 }
@@ -1012,9 +1033,18 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 
 #else
 	b64quote= base64_encode((char *) quote, sz);
+	if ( b64quote == NULL ) {
+		eprintf("Could not base64 encode quote\n");
+		return 1;
+	}
 
 	if (OPT_ISSET(flags, OPT_PSE)) {
 		b64manifest= base64_encode((char *) pse_manifest, pse_manifest_sz);
+		if ( b64manifest == NULL ) {
+			free(b64quote);
+			eprintf("Could not base64 encode manifest\n");
+			return 1;
+		}
 	}
 #endif
 
@@ -1034,6 +1064,9 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 #ifdef SGX_HW_SIM
 	fprintf(stderr, "WARNING! Built in h/w simulation mode. This quote will not be verifiable.\n");
 #endif
+
+	free(b64quote);
+	if ( b64manifest != NULL ) free(b64manifest);
 
 	return 0;
 
@@ -1106,8 +1139,9 @@ int file_in_searchpath (const char *file, const char *search, char *fullpath,
 
 		if ( lp ) {
 
-			strncpy(fullpath, p, len);
-			rem= len-lp-1;
+			strncpy(fullpath, p, len-1);
+			rem= (len-1)-lp-1;
+			fullpath[len-1]= 0;
 
 			strncat(fullpath, "/", rem);
 			--rem;
