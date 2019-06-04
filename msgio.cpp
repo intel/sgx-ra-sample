@@ -76,6 +76,7 @@ MsgIO::MsgIO(const char *peer, const char *port)
 #endif
 	int rv, proto;
 	struct addrinfo *addrs, *addr, hints;
+	s= ls= -1;
 
 	use_stdio= false;
 #ifdef _WIN32
