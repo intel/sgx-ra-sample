@@ -41,7 +41,7 @@ protected:
 
 public:
 	Agent(IAS_Connection *conn_in) { conn= conn_in; }
-	~Agent() { };
+	virtual ~Agent() { };
 
 	virtual int initialize() { return 1; };
 	virtual int request(string const &url, string const &postdata,
