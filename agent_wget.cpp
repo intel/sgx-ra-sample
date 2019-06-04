@@ -169,6 +169,10 @@ retry_write:
 
 		if ( debug ) eprintf("+++ Exec:");
 		argv= (char **) malloc(sizeof(char *)*(sz+1));
+		if ( argv == NULL ) {
+			perror("malloc");
+			exit(1);
+		}
 		for(i= 0; i< sz; ++i) {
 			argv[i]= strdup(wget_args[i].c_str());
 			if ( argv[i] == NULL ) {

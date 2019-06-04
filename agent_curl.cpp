@@ -44,6 +44,8 @@ AgentCurl::AgentCurl (IAS_Connection *conn_in) : Agent(conn_in)
 {
 	curl= NULL;
 	sresponse= "";
+	header_len= header_pos= 0;
+	flag_eoh= 0;
 }
 
 AgentCurl::~AgentCurl ()
