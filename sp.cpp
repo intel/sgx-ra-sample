@@ -85,6 +85,7 @@ typedef struct ra_session_struct {
 typedef struct config_struct {
 	sgx_spid_t spid;
 	unsigned char subscription_key[IAS_SUBSCRIPTION_KEY_SIZE+1];
+	unsigned char sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE+1];
 	uint16_t quote_type;
 	EVP_PKEY *service_private_key;
 	char *proxy_server;
@@ -151,6 +152,7 @@ int main(int argc, char *argv[])
 	static struct option long_opt[] =
 	{
 		{"ias-api-key-file",		required_argument,	0, 'I'},
+		{"ias-sec-api-key-file",		required_argument,	0, 'J'},
 		{"ias-signing-cafile",		required_argument,	0, 'A'},
 		{"ca-bundle",			required_argument,	0, 'B'},
 		{"list-agents",			no_argument,		0, 'G'},
@@ -167,6 +169,7 @@ int main(int argc, char *argv[])
 		{"api-version",			required_argument,	0, 'r'},
 		{"spid",			required_argument,	0, 's'},
 		{"ias-api-key",			required_argument,	0, 'i'},
+		{"ias-sec-api-key",			required_argument,	0, 'j'},
 		{"verbose",			no_argument,		0, 'v'},
 		{"no-proxy",			no_argument,		0, 'x'},
 		{"stdio",			no_argument,		0, 'z'},
@@ -191,7 +194,7 @@ int main(int argc, char *argv[])
 		int opt_index = 0;
 
 //		c = getopt_long(argc, argv, "I:A:B:C:E:GK:PS:XY:dg:hk:lp:r:s:i:t:vxz", long_opt, &opt_index);
-		c = getopt_long(argc, argv, "I:A:B:GK:PS:X:dg:hk:lp:r:s:i:vxz", long_opt, &opt_index);
+		c = getopt_long(argc, argv, "I:J:A:B:GK:PS:X:dg:hk:lp:r:s:i:j:vxz", long_opt, &opt_index);
 		if (c == -1) break;
 
 		switch (c) {
@@ -205,19 +208,39 @@ int main(int argc, char *argv[])
                                 return 1;
                         }
 
-                        strncpy((char *) config.subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
-                        if ( debug ) eprintf("IAS Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
-                                        config.subscription_key[0],
-                                        config.subscription_key[1],
-                                        config.subscription_key[2],
-                                        config.subscription_key[3],
-                                        config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
-                                        config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
-                                        config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
-                                        config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ]
-                                        );
+			strncpy((char *) config.subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
+			if ( debug ) eprintf("IAS Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
+							config.subscription_key[0],
+							config.subscription_key[1],
+							config.subscription_key[2],
+							config.subscription_key[3],
+							config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
+							config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
+							config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
+							config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ]
+							);
 
-                        break;
+			break;
+		case 'J':
+
+			if (strlen(optarg) != IAS_SUBSCRIPTION_KEY_SIZE) {
+					eprintf("IAS Secondary Subscription Key must be %d-byte hex string\n",IAS_SUBSCRIPTION_KEY_SIZE);
+					return 1;
+			}
+
+			strncpy((char *) config.sec_subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
+			if ( debug ) eprintf("IAS Secondary Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
+							config.sec_subscription_key[0],
+							config.sec_subscription_key[1],
+							config.sec_subscription_key[2],
+							config.sec_subscription_key[3],
+							config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
+							config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
+							config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
+							config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ]
+							);
+
+			break;
 
 		case 'A':
 			if (!cert_load_file(&config.signing_ca, optarg)) {
@@ -318,11 +341,11 @@ int main(int argc, char *argv[])
 			++flag_spid;
 			break;
 
-                case 'i':
-                        if (strlen(optarg) != IAS_SUBSCRIPTION_KEY_SIZE) {
-                                eprintf("IAS Subscription Key must be %d-byte hex string\n",IAS_SUBSCRIPTION_KEY_SIZE);
-                                return 1;
-                        }
+        case 'i':
+			if (strlen(optarg) != IAS_SUBSCRIPTION_KEY_SIZE) {
+					eprintf("IAS Subscription Key must be %d-byte hex string\n",IAS_SUBSCRIPTION_KEY_SIZE);
+					return 1;
+			}
 
 			strncpy((char *) config.subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
                         if ( debug ) eprintf("IAS Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
@@ -336,7 +359,27 @@ int main(int argc, char *argv[])
 					config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ]
 					);
 
-                        break;
+			break;
+
+        case 'j':
+			if (strlen(optarg) != IAS_SUBSCRIPTION_KEY_SIZE) {
+					eprintf("IAS Secondary Subscription Key must be %d-byte hex string\n",IAS_SUBSCRIPTION_KEY_SIZE);
+					return 1;
+			}
+
+			strncpy((char *) config.sec_subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
+                        if ( debug ) eprintf("IAS Secondary Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
+					config.sec_subscription_key[0],
+					config.sec_subscription_key[1],
+					config.sec_subscription_key[2],
+					config.sec_subscription_key[3],
+					config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
+					config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
+					config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
+					config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ]
+					);
+
+			break;
 
 		case 'v':
 			verbose = 1;
@@ -434,7 +477,8 @@ int main(int argc, char *argv[])
 		ias = new IAS_Connection(
 			(flag_prod) ? IAS_SERVER_PRODUCTION : IAS_SERVER_DEVELOPMENT,
 			0,
-			(char *)(config.subscription_key)
+			(char *)(config.subscription_key),
+			(char *)(config.sec_subscription_key)
 		);
 	}
 	catch (...) {

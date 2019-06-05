@@ -52,6 +52,10 @@ USE_PLATFORM_SERVICES=0
 
 IAS_SUBSCRIPTION_KEY=
 
+# IAS Secondary Subscription Key
+# This will be used in case the primary subscription key does not work
+
+IAS_SECONDARY_SUBSCRIPTION_KEY=
 
 # The Intel IAS SGX Report Signing CA file. You are sent this certificate
 # when you apply for access to SGX Developer Services at 

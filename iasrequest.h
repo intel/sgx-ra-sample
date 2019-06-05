@@ -87,6 +87,8 @@ friend class Agent;
 
 	char c_subscription_key_enc[IAS_SUBSCRIPTION_KEY_SIZE];
 	char c_subscription_key_xor[IAS_SUBSCRIPTION_KEY_SIZE];
+	char c_sec_subscription_key_enc[IAS_SUBSCRIPTION_KEY_SIZE];
+	char c_sec_subscription_key_xor[IAS_SUBSCRIPTION_KEY_SIZE];
 
 	string c_ca_file;
 	string c_proxy_server;
@@ -99,9 +101,10 @@ friend class Agent;
 	string c_agent_name;
 
 	int setSubscriptionKey(char * subscriptionKey);
+	int setSecSubscriptionKey(char * secSubscriptionKey);
 
 public:
-	IAS_Connection(int server, uint32_t flags, char * subscriptionKey);
+	IAS_Connection(int server, uint32_t flags, char * subscriptionKey, char * secSubscriptionKey);
 	~IAS_Connection();
 
 	string base_url();
@@ -109,6 +112,7 @@ public:
 	int agent(const char *agent_name);
 
 	string getSubscriptionKey(); 
+	string getSecSubscriptionKey();
 
 	int proxy(const char *server, uint16_t port);
 	void proxy_mode(int mode) { c_proxy_mode= mode; }
