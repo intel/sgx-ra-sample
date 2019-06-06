@@ -100,7 +100,7 @@ friend class Agent;
 	Agent *c_agent;
 	string c_agent_name;
 
-	int setSubscriptionKey(char * subscriptionKey);
+	int setPriSubscriptionKey(char * priSubscriptionKey);
 	int setSecSubscriptionKey(char * secSubscriptionKey);
 
 public:

@@ -151,8 +151,8 @@ int main(int argc, char *argv[])
 
 	static struct option long_opt[] =
 	{
-		{"ias-api-key-file",		required_argument,	0, 'I'},
-		{"ias-sec-api-key-file",		required_argument,	0, 'J'},
+		{"ias-pri-api-key-file",	required_argument,	0, 'I'},
+		{"ias-sec-api-key-file",	required_argument,	0, 'J'},
 		{"ias-signing-cafile",		required_argument,	0, 'A'},
 		{"ca-bundle",			required_argument,	0, 'B'},
 		{"list-agents",			no_argument,		0, 'G'},
@@ -168,8 +168,8 @@ int main(int argc, char *argv[])
 		{"proxy",			required_argument,	0, 'p'},
 		{"api-version",			required_argument,	0, 'r'},
 		{"spid",			required_argument,	0, 's'},
-		{"ias-api-key",			required_argument,	0, 'i'},
-		{"ias-sec-api-key",			required_argument,	0, 'j'},
+		{"ias-pri-api-key",		required_argument,	0, 'i'},
+		{"ias-sec-api-key",		required_argument,	0, 'j'},
 		{"verbose",			no_argument,		0, 'v'},
 		{"no-proxy",			no_argument,		0, 'x'},
 		{"stdio",			no_argument,		0, 'z'},
@@ -487,65 +487,6 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-/*	ias->client_cert(config.cert_file, (char *)config.cert_type);
-	if ( config.cert_passwd_file != NULL ) {
-		char *passwd;
-		char *keyfile;
-		off_t sz;
-
-		if ( ! from_file(NULL, config.cert_passwd_file, &sz) ) {
-			eprintf("can't load password from %s\n", 
-				config.cert_passwd_file);
-			return 1;
-		}
-
-		if ( sz > 0 ) {
-			char *cp;
-
-			try {
-				passwd= new char[sz+1];
-			}
-			catch (...) {
-				eprintf("out of memory\n");
-				return 1;
-			}
-
-			if ( ! from_file((unsigned char *) passwd, config.cert_passwd_file,
-			 	&sz) ) {
-
-				eprintf("can't load password from %s\n", 
-					config.cert_passwd_file);
-				return 1;
-			}
-			passwd[sz]= 0;
-
-			// Remove trailing newline or linefeed.
-
-			cp= strchr(passwd, '\n');
-			if ( cp != NULL ) *cp= 0;
-			cp= strchr(passwd, '\r');
-			if ( cp != NULL ) *cp= 0;
-
-			// If a key file isn't specified, assume it's bundled with
-			// the certificate.
-
-			keyfile= (config.cert_key_file == NULL) ? config.cert_file :
-				config.cert_key_file;
-			if ( debug ) eprintf("+++ using cert key file %s\n", keyfile);
-			ias->client_key(keyfile, passwd);
-
-#ifdef _WIN32
-			SecureZeroMemory(passwd, sz);
-#else
-			// -fno-builtin-memset prevents optimizing this away 
-			memset(passwd, 0, sz);
-#endif
-		}
-	} else if ( config.cert_key_file != NULL ) {
-		// We have a key file but no password.
-		ias->client_key(config.cert_key_file, NULL);
-	}
-*/
 	if ( flag_noproxy ) ias->proxy_mode(IAS_PROXY_NONE);
 	else if (config.proxy_server != NULL) {
 		ias->proxy_mode(IAS_PROXY_FORCE);
@@ -1573,44 +1514,53 @@ void usage ()
 	cerr << "usage: sp [ options ] [ port ]" NL
 "Required:" NL
 "  -A, --ias-signing-cafile=FILE" NL
-"                           Specify the IAS Report Signing CA file." NL
-"One of (required):" NL
-"  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte." NL
-"                             ASCII hex string." NL
+"                           Specify the IAS Report Signing CA file." NNL
+"Required (one of):" NL
+"  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte" NL
+"                           ASCII hex string." NNL
 "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string." NNL
-"One of (required):" NL
-"  -I, --sub-key-file=FILE  Set the IAS Subscription Key from a file containg a 32-byte." NL
-"                             ASCII hex string." NL
-"  -i, --sub-key=HEXSTRING  Set the IAS Subscription Key from a 32-byte ASCII hex string." NNL
+"Required (one of):" NL
+"  -I, --ias-pri-api-key-file=FILE" NL
+"                           Set the IAS Primary Subscription Key from a" NL
+"                           file containing a 32-byte ASCII hex string." NNL
+"  -i, --ias-pri-api-key=HEXSTRING" NL
+"                           Set the IAS Primary Subscription Key from a" NL
+"                           32-byte ASCII hex string." NNL
+"Required (one of):" NL
+"  -J, --ias-sec-api-key-file=FILE" NL
+"                           Set the IAS Secondary Subscription Key from a" NL
+"                           file containing a 32-byte ASCII hex string." NNL
+"  -j, --ias-sec-api-key=HEXSTRING" NL
+"                           Set the IAS Secondary Subscription Key from a" NL
+"                           32-byte ASCII hex string." NNL
 "Optional:" NL
 "  -B, --ca-bundle-file=FILE" NL
 "                           Use the CA certificate bundle at FILE (default:" NL
-"                             " << DEFAULT_CA_BUNDLE << ")" NL
-"  -G, --list-agents        List available user agent names for --user-agent" NL
+"                           " << DEFAULT_CA_BUNDLE << ")" NNL
+"  -G, --list-agents        List available user agent names for --user-agent" NNL
 "  -K, --service-key-file=FILE" NL
 "                           The private key file for the service in PEM" NL
-"                             format (default: use hardcoded key). The " NL
-"                             client must be given the corresponding public" NL
-"                             key. Can't combine with --key." NL
-"  -P, --production         Query the production IAS server instead of dev." NL
+"                           format (default: use hardcoded key). The " NL
+"                           client must be given the corresponding public" NL
+"                           key. Can't combine with --key." NNL
+"  -P, --production         Query the production IAS server instead of dev." NNL
 "  -X, --strict-trust-mode  Don't trust enclaves that receive a " NL
-"                             CONFIGURATION_NEEDED response from IAS " NL
-"                             (default: trust)" NL
-"  -d, --debug              Print debug information to stderr." NL
-"  -g, --user-agent=NAME    Use NAME as the user agent for contacting IAS." NL
+"                           CONFIGURATION_NEEDED response from IAS " NL
+"                           (default: trust)" NNL
+"  -d, --debug              Print debug information to stderr." NNL
+"  -g, --user-agent=NAME    Use NAME as the user agent for contacting IAS." NNL
 "  -k, --key=HEXSTRING      The private key as a hex string. See --key-file" NL
-"                             for notes. Can't combine with --key-file." NL
-"  -l, --linkable           Request a linkable quote (default: unlinkable)." NL
+"                           for notes. Can't combine with --key-file." NNL
+"  -l, --linkable           Request a linkable quote (default: unlinkable)." NNL
 "  -p, --proxy=PROXYURL     Use the proxy server at PROXYURL when contacting" NL
-"                             IAS. Can't combine with --no-proxy\n" NL
-"  -r, --api-version=N      Use version N of the IAS API (default: " << to_string(IAS_API_DEF_VERSION) << ")" NL
-"                             or P12." NL
-"  -v, --verbose            Be verbose. Print message structure details and the" NL
-"                             results of intermediate operations to stderr." NL
+"                           IAS. Can't combine with --no-proxy" NNL
+"  -r, --api-version=N      Use version N of the IAS API (default: " << to_string(IAS_API_DEF_VERSION) << ")" NNL
+"  -v, --verbose            Be verbose. Print message structure details and" NL
+"                           the results of intermediate operations to stderr." NNL
 "  -x, --no-proxy           Do not use a proxy (force a direct connection), " NL
-"                             overriding environment." NL
+"                           overriding environment." NNL
 "  -z  --stdio              Read from stdin and write to stdout instead of" NL
-"                             running as a network server." <<endl;
+"                           running as a network server." <<endl;
 
 	::exit(1);
 }
