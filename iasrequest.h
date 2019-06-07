@@ -82,13 +82,24 @@ void ias_list_agents (FILE *fp);
 class Agent;
 
 class IAS_Connection {
+
 friend class Agent;
+
+public: 
+        enum SubscriptionKeyID
+                {
+                Primary = 0,
+                Secondary,
+                Last
+                };
+
+private:
 	string c_server;
 
-	char c_subscription_key_enc[IAS_SUBSCRIPTION_KEY_SIZE];
-	char c_subscription_key_xor[IAS_SUBSCRIPTION_KEY_SIZE];
-	char c_sec_subscription_key_enc[IAS_SUBSCRIPTION_KEY_SIZE];
-	char c_sec_subscription_key_xor[IAS_SUBSCRIPTION_KEY_SIZE];
+ 	typedef char subkey_t[IAS_SUBSCRIPTION_KEY_SIZE]; 
+
+	subkey_t subscription_key_enc[SubscriptionKeyID::Last];
+	subkey_t subscription_key_xor[SubscriptionKeyID::Last];
 
 	string c_ca_file;
 	string c_proxy_server;
@@ -100,10 +111,12 @@ friend class Agent;
 	Agent *c_agent;
 	string c_agent_name;
 
-	int setPriSubscriptionKey(char * priSubscriptionKey);
-	int setSecSubscriptionKey(char * secSubscriptionKey);
+	int setSubscriptionKey (SubscriptionKeyID id, char * subscriptionKey);
+
+	SubscriptionKeyID currentKeyID = SubscriptionKeyID::Primary;
 
 public:
+
 	IAS_Connection(int server, uint32_t flags, char * subscriptionKey, char * secSubscriptionKey);
 	~IAS_Connection();
 
@@ -112,7 +125,6 @@ public:
 	int agent(const char *agent_name);
 
 	string getSubscriptionKey(); 
-	string getSecSubscriptionKey();
 
 	int proxy(const char *server, uint16_t port);
 	void proxy_mode(int mode) { c_proxy_mode= mode; }

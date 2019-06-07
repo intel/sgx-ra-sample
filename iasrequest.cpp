@@ -83,8 +83,8 @@ IAS_Connection::IAS_Connection(int server_idx, uint32_t flags, char *priSubscrip
 	c_agent_name= "";
 	c_proxy_port= 80;
 	c_store= NULL;
-	setPriSubscriptionKey(priSubscriptionKey); 
-	setSecSubscriptionKey(secSubscriptionKey);
+	setSubscriptionKey(SubscriptionKeyID::Primary, priSubscriptionKey); 
+	setSubscriptionKey(SubscriptionKeyID::Secondary, secSubscriptionKey); 
 }
 
 IAS_Connection::~IAS_Connection()
@@ -141,70 +141,38 @@ string IAS_Connection::proxy_url()
 	return proxy_url;
 }
 
-// Encrypt the subscription key while its stored in memory 
-int IAS_Connection::setPriSubscriptionKey(char * subscriptionKeyPlainText)
+// Encrypt the subscription key while its stored in memory
+int IAS_Connection::setSubscriptionKey(SubscriptionKeyID id, char * subscriptionKeyPlainText)
 {
-	memset(c_subscription_key_enc, 0, sizeof(c_subscription_key_enc));
-	memset(c_subscription_key_xor, 0, sizeof(c_subscription_key_xor));
+        memset(subscription_key_enc[id], 0, sizeof(subscription_key_enc[id]));
+        memset(subscription_key_xor[id], 0, sizeof(subscription_key_xor[id]));
 
-	if (subscriptionKeyPlainText == NULL || (strlen(subscriptionKeyPlainText) != IAS_SUBSCRIPTION_KEY_SIZE))
-	{
-		if ( debug )
-			eprintf("Error Setting subscriptionKey\n");
-		return 0;
-	}
+        if (subscriptionKeyPlainText == NULL || (strlen(subscriptionKeyPlainText) != IAS_SUBSCRIPTION_KEY_SIZE) ||
+	    (id == SubscriptionKeyID::Last))
+        {
+                if ( debug )
+                        eprintf("Error Setting subscriptionKey\n");
+                return 0;
+        }
 
     // Create Random one time pad
-    RAND_bytes((unsigned char *)c_subscription_key_xor, (int) sizeof(c_subscription_key_xor));
+    RAND_bytes((unsigned char *)subscription_key_xor[id], (int) sizeof(subscription_key_xor[id]));
 
-	// XOR Subscription Key with One Time Pad to create an encrypted key
-    for (int i= 0; i < IAS_SUBSCRIPTION_KEY_SIZE; i++) 
-		c_subscription_key_enc[i] = (unsigned char) subscriptionKeyPlainText[i] ^ c_subscription_key_xor[i];
+    // XOR Subscription Key with One Time Pad to create an encrypted key
+    for (int i= 0; i < IAS_SUBSCRIPTION_KEY_SIZE; i++)
+                subscription_key_enc[id][i] = (unsigned char) subscriptionKeyPlainText[i] ^ subscription_key_xor[id][i];
 
-	if ( debug && verbose) {
-		eprintf("\n+++ IAS Primary Subscription Key:\t'%s'\n", subscriptionKeyPlainText);
-		eprintf("+++ IAS Primary Subscription Key (Hex):\t%s\n", hexstring(subscriptionKeyPlainText, IAS_SUBSCRIPTION_KEY_SIZE));
-		eprintf("+++ One-time pad:\t\t\t%s\n", hexstring(c_subscription_key_xor, sizeof(c_subscription_key_xor)));
-		eprintf("+++ Encrypted Primary Subscription Key:\t%s\n\n", hexstring(c_subscription_key_enc,sizeof(c_subscription_key_enc)));
-		}	
-
-    // zero the original subscription key in memory
-	memset(subscriptionKeyPlainText, 0, IAS_SUBSCRIPTION_KEY_SIZE);
-
-	return 1;
-}
-
-// Encrypt the subscription key while its stored in memory 
-int IAS_Connection::setSecSubscriptionKey(char * subscriptionKeyPlainText)
-{
-	memset(c_sec_subscription_key_enc, 0, sizeof(c_sec_subscription_key_enc));
-	memset(c_sec_subscription_key_xor, 0, sizeof(c_sec_subscription_key_xor));
-
-	if (subscriptionKeyPlainText == NULL || (strlen(subscriptionKeyPlainText) != IAS_SUBSCRIPTION_KEY_SIZE))
-	{
-		if ( debug )
-			eprintf("Error Setting SecondarySubscriptionKey\n");
-		return 0;
-	}
-
-	// Create Random one time pad
-	RAND_bytes((unsigned char *)c_sec_subscription_key_xor, (int) sizeof(c_sec_subscription_key_xor));
-
-	// XOR Subscription Key with One Time Pad to create an encrypted key
-	for (int i= 0; i < IAS_SUBSCRIPTION_KEY_SIZE; i++)
-		c_sec_subscription_key_enc[i] = (unsigned char) subscriptionKeyPlainText[i] ^ c_sec_subscription_key_xor[i];
-
-	if ( debug && verbose ) {
-		eprintf("\n+++ IAS Secondary Subscription Key:\t  '%s'\n", subscriptionKeyPlainText);
-		eprintf("+++ IAS Secondary Subscription Key (Hex): %s\n", hexstring(subscriptionKeyPlainText, IAS_SUBSCRIPTION_KEY_SIZE));
-		eprintf("+++ One-time pad:\t\t\t  %s\n", hexstring(c_sec_subscription_key_xor, sizeof(c_sec_subscription_key_xor)));
-		eprintf("+++ Encrypted Secondary SubscriptionKey:  %s\n\n", hexstring(c_sec_subscription_key_enc,sizeof(c_sec_subscription_key_enc)));
-		}
+        if ( debug && verbose) {
+                eprintf("\n+++ IAS Subscription Key[%d]:\t'%s'\n", id, subscriptionKeyPlainText);
+                eprintf("+++ IAS Subscription Key[%d] (Hex):\t%s\n", id, hexstring(subscriptionKeyPlainText, IAS_SUBSCRIPTION_KEY_SIZE));
+                eprintf("+++ One-time pad:\t\t\t%s\n", hexstring(subscription_key_xor[id], sizeof(subscription_key_xor[id])));
+                eprintf("+++ Encrypted Subscription Key[%d]:\t%s\n\n", id, hexstring(subscription_key_enc[id],sizeof(subscription_key_enc[id])));
+                }
 
     // zero the original subscription key in memory
-	memset(subscriptionKeyPlainText, 0, IAS_SUBSCRIPTION_KEY_SIZE);
+    memset(subscriptionKeyPlainText, 0, IAS_SUBSCRIPTION_KEY_SIZE);
 
-	return 1;
+    return 1;
 }
 
 // Decrypt then return the subscription key
@@ -214,45 +182,18 @@ string IAS_Connection::getSubscriptionKey()
 	memset(keyBuff, 0, IAS_SUBSCRIPTION_KEY_SIZE+1);
 
         for ( int i = 0; i < IAS_SUBSCRIPTION_KEY_SIZE; i++ )
-                 keyBuff[i] = (c_subscription_key_enc[i] ^ c_subscription_key_xor[i]);
+                 keyBuff[i] = (subscription_key_enc[currentKeyID][i] ^ subscription_key_xor[currentKeyID][i]);
 
 	string subscriptionKeyBuff(keyBuff);
 
         if ( debug ) {
                 eprintf("\n+++ Reconstructed Subscription Key:\t'%s'\n", subscriptionKeyBuff.c_str());
 		eprintf("+++ IAS Subscription Key (Hex):\t\t%s\n", hexstring(keyBuff, IAS_SUBSCRIPTION_KEY_SIZE));
-                eprintf("+++ One-time pad:\t\t\t%s\n", hexstring(c_subscription_key_xor, sizeof(c_subscription_key_xor)));
-                eprintf("+++ Encrypted SubscriptionKey:\t\t%s\n\n", hexstring(c_subscription_key_enc,sizeof(c_subscription_key_enc)));
+                eprintf("+++ One-time pad:\t\t\t%s\n", hexstring(subscription_key_xor[currentKeyID], sizeof(subscription_key_xor[currentKeyID])));
+                eprintf("+++ Encrypted SubscriptionKey:\t\t%s\n\n", hexstring(subscription_key_enc[currentKeyID],sizeof(subscription_key_enc[currentKeyID])));
                 }
 
-
-
         return subscriptionKeyBuff;
-
-}
-
-// Decrypt then return the secondary subscription key
-string IAS_Connection::getSecSubscriptionKey()
-{
-	char keyBuff[IAS_SUBSCRIPTION_KEY_SIZE+1];
-	memset(keyBuff, 0, IAS_SUBSCRIPTION_KEY_SIZE+1);
-
-        for ( int i = 0; i < IAS_SUBSCRIPTION_KEY_SIZE; i++ )
-                 keyBuff[i] = (c_sec_subscription_key_enc[i] ^ c_sec_subscription_key_xor[i]);
-
-	string subscriptionKeyBuff(keyBuff);
-
-        if ( debug ) {
-                eprintf("\n+++ Reconstructed Subscription Key:\t'%s'\n", subscriptionKeyBuff.c_str());
-		eprintf("+++ IAS Subscription Key (Hex):\t\t%s\n", hexstring(keyBuff, IAS_SUBSCRIPTION_KEY_SIZE));
-                eprintf("+++ One-time pad:\t\t\t%s\n", hexstring(c_sec_subscription_key_xor, sizeof(c_sec_subscription_key_xor)));
-                eprintf("+++ Encrypted SubscriptionKey:\t\t%s\n\n", hexstring(c_sec_subscription_key_enc,sizeof(c_sec_subscription_key_enc)));
-                }
-
-
-
-        return subscriptionKeyBuff;
-
 }
 
 string IAS_Connection::base_url()
