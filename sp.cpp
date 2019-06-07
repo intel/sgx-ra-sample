@@ -84,7 +84,7 @@ typedef struct ra_session_struct {
 
 typedef struct config_struct {
 	sgx_spid_t spid;
-	unsigned char subscription_key[IAS_SUBSCRIPTION_KEY_SIZE+1];
+	unsigned char pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE+1];
 	unsigned char sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE+1];
 	uint16_t quote_type;
 	EVP_PKEY *service_private_key;
@@ -192,8 +192,9 @@ int main(int argc, char *argv[])
 	while (1) {
 		int c;
 		int opt_index = 0;
+		off_t offset = IAS_SUBSCRIPTION_KEY_SIZE;
+		int ret = 0;
 
-//		c = getopt_long(argc, argv, "I:A:B:C:E:GK:PS:XY:dg:hk:lp:r:s:i:t:vxz", long_opt, &opt_index);
 		c = getopt_long(argc, argv, "I:J:A:B:GK:PS:X:dg:hk:lp:r:s:i:j:vxz", long_opt, &opt_index);
 		if (c == -1) break;
 
@@ -202,43 +203,46 @@ int main(int argc, char *argv[])
 			break;
 
 		case 'I':
+			// Get Size of File, should be IAS_SUBSCRIPTION_KEY_SIZE + EOF
+			ret = from_file(NULL, optarg, &offset); 
 
-                       if (strlen(optarg) != IAS_SUBSCRIPTION_KEY_SIZE) {
-                                eprintf("IAS Subscription Key must be %d-byte hex string\n",IAS_SUBSCRIPTION_KEY_SIZE);
+                        if ((offset != IAS_SUBSCRIPTION_KEY_SIZE+1) || (ret == 0)) {
+                                eprintf("IAS Primary Subscription Key must be %d-byte hex string.\n",
+                                        IAS_SUBSCRIPTION_KEY_SIZE);
+				return 1;
+			}
+
+			// Remove the EOF
+			offset--;
+
+			// Read the contents of the file
+                        if (!from_file((unsigned char *)&config.pri_subscription_key, optarg, &offset)) {
+                                eprintf("IAS Primary Subscription Key must be %d-byte hex string.\n",
+                                        IAS_SUBSCRIPTION_KEY_SIZE);
+                                return 1;
+                        }
+                       
+			break;
+
+		case 'J':
+                        // Get Size of File, should be IAS_SUBSCRIPTION_KEY_SIZE + EOF
+                        ret = from_file(NULL, optarg, &offset);
+
+                        if ((offset != IAS_SUBSCRIPTION_KEY_SIZE+1) || (ret == 0)) {
+                                eprintf("IAS Secondary Subscription Key must be %d-byte hex string.\n",
+                                        IAS_SUBSCRIPTION_KEY_SIZE);
                                 return 1;
                         }
 
-			strncpy((char *) config.subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
-			if ( debug ) eprintf("IAS Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
-							config.subscription_key[0],
-							config.subscription_key[1],
-							config.subscription_key[2],
-							config.subscription_key[3],
-							config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
-							config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
-							config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
-							config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ]
-							);
+			// Remove the EOF
+			offset--;
 
-			break;
-		case 'J':
-
-			if (strlen(optarg) != IAS_SUBSCRIPTION_KEY_SIZE) {
-					eprintf("IAS Secondary Subscription Key must be %d-byte hex string\n",IAS_SUBSCRIPTION_KEY_SIZE);
-					return 1;
-			}
-
-			strncpy((char *) config.sec_subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
-			if ( debug ) eprintf("IAS Secondary Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
-							config.sec_subscription_key[0],
-							config.sec_subscription_key[1],
-							config.sec_subscription_key[2],
-							config.sec_subscription_key[3],
-							config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
-							config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
-							config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
-							config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ]
-							);
+                        // Read the contents of the file
+                        if (!from_file((unsigned char *)&config.sec_subscription_key, optarg, &offset)) {
+                                eprintf("IAS Secondary Subscription Key must be %d-byte hex string.\n",
+                                        IAS_SUBSCRIPTION_KEY_SIZE);
+                                return 1;
+                        }
 
 			break;
 
@@ -347,17 +351,7 @@ int main(int argc, char *argv[])
 					return 1;
 			}
 
-			strncpy((char *) config.subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
-                        if ( debug ) eprintf("IAS Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
-					config.subscription_key[0],
-					config.subscription_key[1],
-					config.subscription_key[2],
-					config.subscription_key[3],
-					config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
-					config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
-					config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
-					config.subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ]
-					);
+			strncpy((char *) config.pri_subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
 
 			break;
 
@@ -368,16 +362,6 @@ int main(int argc, char *argv[])
 			}
 
 			strncpy((char *) config.sec_subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
-                        if ( debug ) eprintf("IAS Secondary Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
-					config.sec_subscription_key[0],
-					config.sec_subscription_key[1],
-					config.sec_subscription_key[2],
-					config.sec_subscription_key[3],
-					config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
-					config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
-					config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
-					config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ]
-					);
 
 			break;
 
@@ -416,6 +400,27 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 	}
+
+        if ( debug ) eprintf("+++ IAS Primary Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
+        	config.pri_subscription_key[0],
+                config.pri_subscription_key[1],
+                config.pri_subscription_key[2],
+                config.pri_subscription_key[3],
+                config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
+                config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
+                config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
+                config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ] );
+
+        if ( debug ) eprintf("+++ IAS Secondary Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
+                config.sec_subscription_key[0],
+                config.sec_subscription_key[1],
+                config.sec_subscription_key[2],
+                config.sec_subscription_key[3],
+                config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
+                config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
+                config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
+                config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ] );
+
 
 	/* Use the default CA bundle unless one is provided */
 
@@ -477,7 +482,7 @@ int main(int argc, char *argv[])
 		ias = new IAS_Connection(
 			(flag_prod) ? IAS_SERVER_PRODUCTION : IAS_SERVER_DEVELOPMENT,
 			0,
-			(char *)(config.subscription_key),
+			(char *)(config.pri_subscription_key),
 			(char *)(config.sec_subscription_key)
 		);
 	}

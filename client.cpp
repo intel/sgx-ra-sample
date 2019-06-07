@@ -221,7 +221,7 @@ int main (int argc, char *argv[])
 		case 'P':
 			if ( ! key_load_file(&service_public_key, optarg, KEY_PUBLIC) ) {
 				fprintf(stderr, "%s: ", optarg);
-				crypto_perror("load_key_from_file");
+				crypto_perror("key_load_file");
 				exit(1);
 			} 
 

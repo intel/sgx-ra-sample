@@ -161,7 +161,7 @@ int IAS_Connection::setPriSubscriptionKey(char * subscriptionKeyPlainText)
     for (int i= 0; i < IAS_SUBSCRIPTION_KEY_SIZE; i++) 
 		c_subscription_key_enc[i] = (unsigned char) subscriptionKeyPlainText[i] ^ c_subscription_key_xor[i];
 
-	if ( debug ) {
+	if ( debug && verbose) {
 		eprintf("\n+++ IAS Primary Subscription Key:\t'%s'\n", subscriptionKeyPlainText);
 		eprintf("+++ IAS Primary Subscription Key (Hex):\t%s\n", hexstring(subscriptionKeyPlainText, IAS_SUBSCRIPTION_KEY_SIZE));
 		eprintf("+++ One-time pad:\t\t\t%s\n", hexstring(c_subscription_key_xor, sizeof(c_subscription_key_xor)));
@@ -194,7 +194,7 @@ int IAS_Connection::setSecSubscriptionKey(char * subscriptionKeyPlainText)
 	for (int i= 0; i < IAS_SUBSCRIPTION_KEY_SIZE; i++)
 		c_sec_subscription_key_enc[i] = (unsigned char) subscriptionKeyPlainText[i] ^ c_sec_subscription_key_xor[i];
 
-	if ( debug ) {
+	if ( debug && verbose ) {
 		eprintf("\n+++ IAS Secondary Subscription Key:\t  '%s'\n", subscriptionKeyPlainText);
 		eprintf("+++ IAS Secondary Subscription Key (Hex): %s\n", hexstring(subscriptionKeyPlainText, IAS_SUBSCRIPTION_KEY_SIZE));
 		eprintf("+++ One-time pad:\t\t\t  %s\n", hexstring(c_sec_subscription_key_xor, sizeof(c_sec_subscription_key_xor)));
