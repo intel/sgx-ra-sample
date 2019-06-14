@@ -111,7 +111,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\Program Files\cURL\lib;C:\OpenSSL-Win64\lib\VC\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libcrypto64MDd.lib;%(AdditionalDependencies);libcurl.lib</AdditionalDependencies>
+      <AdditionalDependencies>libcrypto64MDd.lib;WinHttp.lib;%(AdditionalDependencies);libcurl.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>XCOPY /Y $(ProjectDir)..\*.cmd $(OutDir)</Command>
