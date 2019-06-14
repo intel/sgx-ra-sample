@@ -258,8 +258,10 @@ Agent *IAS_Connection::new_agent()
 				newagent= (Agent *) new AgentWget(this);
 			}
 			catch (...) {
+				if ( newagent != NULL ) delete newagent;
 				return NULL;
 			}
+			return newagent;
 		}
 #endif
 #ifdef AGENT_WINHTTP
