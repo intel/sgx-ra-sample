@@ -39,6 +39,7 @@ extern int debug, verbose;
 #define CHUNK_SZ 8192
 #define WGET_NO_ERROR		0
 #define WGET_SERVER_ERROR	8
+#define WGET_AUTH_ERROR		6
 
 string AgentWget::name= "wget";
 
@@ -104,12 +105,6 @@ retry_write:
 		wget_args.push_back("--content-on-error");
 		wget_args.push_back("--no-http-keep-alive");
 
-
-                // construct then add the Ocp-Apim-Subscription-Key subscription key header
-                string subscriptionKeyHeader = "--header=Ocp-Apim-Subscription-Key: ";
-                subscriptionKeyHeader.append(conn->getSubscriptionKey());
-                wget_args.push_back(subscriptionKeyHeader.c_str());
-
 		arg= conn->proxy_server();
 		// Override environment
 		if ( arg != "" ) {
@@ -149,6 +144,11 @@ retry_write:
 		size_t sz, i;
 
 		// Add instance-specific options
+
+                // construct then add the Ocp-Apim-Subscription-Key subscription key header
+                string subscriptionKeyHeader = "--header=Ocp-Apim-Subscription-Key: ";
+                subscriptionKeyHeader.append(conn->getSubscriptionKey());
+                wget_args.push_back(subscriptionKeyHeader.c_str());
 
 		if ( postdata ) {
                 
@@ -240,7 +240,12 @@ retry_wait:
 	if ( WIFEXITED(status) ) {
 		int exitcode= WEXITSTATUS(status);
 
-		if ( exitcode == WGET_NO_ERROR || exitcode == WGET_SERVER_ERROR ) {
+		if ( exitcode == WGET_AUTH_ERROR)
+		{
+			response.statusCode = IAS_UNAUTHORIZED;
+		}
+
+		else if ( exitcode == WGET_NO_ERROR || exitcode == WGET_SERVER_ERROR ) {
 			HttpResponseParser::ParseResult result;
 
 			result= parser.parse(response, sresponse.c_str(),
