@@ -28,7 +28,6 @@ in the License.
 #include "agent.h"
 #ifdef _WIN32
 # define AGENT_WINHTTP
-//#define AGENT_LIBCURL
 #else
 # define AGENT_WGET
 #endif
@@ -37,9 +36,6 @@ in the License.
 #endif
 #ifdef AGENT_WGET
 # include "agent_wget.h"
-#endif
-#ifdef AGENT_LIBCURL
-# include "agent_curl.h"
 #endif
 #include "iasrequest.h"
 #include "logfile.h"
@@ -69,9 +65,6 @@ static string url_decode(string str);
 void ias_list_agents (FILE *fp)
 {
 	fprintf(fp, "Available user agents:\n");
-#ifdef AGENT_LIBCURL
-	fprintf(fp, "%s\n", AgentCurl::name.c_str());
-#endif
 #ifdef AGENT_WGET
 	fprintf(fp, "%s\n", AgentWget::name.c_str());
 #endif
@@ -100,12 +93,6 @@ IAS_Connection::~IAS_Connection()
 
 int IAS_Connection::agent(const char *agent_name)
 {
-#ifdef AGENT_LIBCURL
-	if ( AgentCurl::name == agent_name ) {
-		c_agent_name= agent_name;
-		return 1;
-	}
-#endif
 #ifdef AGENT_WGET
 	if ( AgentWget::name == agent_name ) {
 		c_agent_name= agent_name;
@@ -240,18 +227,6 @@ Agent *IAS_Connection::new_agent()
 	// If we've requested a specific agent, use that one
 
 	if ( c_agent_name.length() ) {
-#ifdef AGENT_LIBCURL
-		if ( c_agent_name == AgentCurl::name ) {
-			try {
-				newagent= (Agent *) new AgentCurl(this);
-			}
-			catch (...) {
-				if ( newagent != NULL ) delete newagent;
-				return NULL;
-			}
-			return newagent;
-		}
-#endif		
 #ifdef AGENT_WGET
 		if ( c_agent_name == AgentWget::name ) {
 			try {
@@ -279,17 +254,6 @@ Agent *IAS_Connection::new_agent()
 	} else {
 		// Otherwise, take the first available using this hardcoded
 		// order of preference.
-
-#ifdef AGENT_LIBCURL
-		if ( debug ) eprintf("+++ Trying agent_curl\n");
-		try {
-			newagent= (Agent *) new AgentCurl(this);
-		}
-		catch (...) { 
-			if ( newagent != NULL ) delete newagent;
-			newagent= NULL;
-		}
-#endif
 #ifdef AGENT_WGET
 		if ( newagent == NULL ) {
 			if ( debug ) eprintf("+++ Trying agent_wget\n");
