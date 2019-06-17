@@ -327,53 +327,55 @@ The `-p` and `-P` options let you override the service provider's public key for
 
 ```
 usage: sp [ options ] [ port ]
-Required:
-  -A, --ias-signing-cafile=FILE
-                           Specify the IAS Report Signing CA file.
-  -C, --ias-cert-file=FILE Specify the IAS client certificate to use when
-                             communicating with IAS.
-
-One of (required):
-  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte.
-                             ASCII hex string.
-  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string.
-
-Optional:
-  -B, --ca-bundle-file=FILE
-                           Use the CA certificate bundle at FILE (default:
-                             /etc/ssl/certs/ca-certificates.crt)
-  -E, --ias-cert-passwd=FILE
-                           Use password in FILE for the IAS client
-                             certificate.
-  -G, --list-agents        List available user agent names for --user-agent
-  -K, --service-key-file=FILE
-                           The private key file for the service in PEM
-                             format (default: use hardcoded key). The
-                             client must be given the corresponding public
-                             key. Can't combine with --key.
-  -P, --production         Query the production IAS server instead of dev.
-  -X, --strict-trust-mode  Don't trust enclaves that receive a
-                             CONFIGURATION_NEEDED response from IAS
-                             (default: trust)
-  -Y, --ias-cert-key=FILE  The private key file for the IAS client certificate.
-  -d, --debug              Print debug information to stderr.
-  -g, --user-agent=NAME    Use NAME as the user agent for contacting IAS.
-  -k, --key=HEXSTRING      The private key as a hex string. See --key-file
-                             for notes. Can't combine with --key-file.
-  -l, --linkable           Request a linkable quote (default: unlinkable).
-  -p, --proxy=PROXYURL     Use the proxy server at PROXYURL when contacting
-                             IAS. Can't combine with --no-proxy
-
-  -r, --api-version=N      Use version N of the IAS API (default: 2)
-  -t, --ias-cert-type=TYPE The client certificate type. Can be PEM (default)
-                             or P12.
-  -v, --verbose            Be verbose. Print message structure details and the
-                             results of intermediate operations to stderr.
-  -x, --no-proxy           Do not use a proxy (force a direct connection),
-                             overriding environment.
-  -z  --stdio              Read from stdin and write to stdout instead of
-                             running as a network server.
-```
+Required: NL
+  -A, --ias-signing-cafile=FILE NL
+                           Specify the IAS Report Signing CA file. NNL
+Required (one of): NL
+  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte NL
+                           ASCII hex string. NNL
+  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string. NNL
+Required (one of): NL
+  -I, --ias-pri-api-key-file=FILE NL
+                           Set the IAS Primary Subscription Key from a NL
+                           file containing a 32-byte ASCII hex string. NNL
+  -i, --ias-pri-api-key=HEXSTRING NL
+                           Set the IAS Primary Subscription Key from a NL
+                           32-byte ASCII hex string. NNL
+Required (one of): NL
+  -J, --ias-sec-api-key-file=FILE NL
+                           Set the IAS Secondary Subscription Key from a NL
+                           file containing a 32-byte ASCII hex string. NNL
+  -j, --ias-sec-api-key=HEXSTRING NL
+                           Set the IAS Secondary Subscription Key from a NL
+                           32-byte ASCII hex string. NNL
+Optional: NL
+  -B, --ca-bundle-file=FILE NL
+                           Use the CA certificate bundle at FILE (default: NL
+                            << DEFAULT_CA_BUNDLE << ) NNL
+  -G, --list-agents        List available user agent names for --user-agent NNL
+  -K, --service-key-file=FILE NL
+                           The private key file for the service in PEM NL
+                           format (default: use hardcoded key). The  NL
+                           client must be given the corresponding public NL
+                           key. Can't combine with --key. NNL
+  -P, --production         Query the production IAS server instead of dev. NNL
+  -X, --strict-trust-mode  Don't trust enclaves that receive a  NL
+                           CONFIGURATION_NEEDED response from IAS  NL
+                           (default: trust) NNL
+  -d, --debug              Print debug information to stderr. NNL
+  -g, --user-agent=NAME    Use NAME as the user agent for contacting IAS. NNL
+  -k, --key=HEXSTRING      The private key as a hex string. See --key-file NL
+                           for notes. Can't combine with --key-file. NNL
+  -l, --linkable           Request a linkable quote (default: unlinkable). NNL
+  -p, --proxy=PROXYURL     Use the proxy server at PROXYURL when contacting NL
+                           IAS. Can't combine with --no-proxy NNL
+  -r, --api-version=N      Use version N of the IAS API (default:  << to_string(IAS_API_DEF_VERSION) << ) NNL
+  -v, --verbose            Be verbose. Print message structure details and NL
+                           the results of intermediate operations to stderr. NNL
+  -x, --no-proxy           Do not use a proxy (force a direct connection),  NL
+                           overriding environment. NNL
+  -z  --stdio              Read from stdin and write to stdout instead of NL
+                           running as a network server.
 
 You set the user agent with `-g` (a list of supported agents can be obtained from `-G`). On Linux, this is one of either **wget** or **libcurl** (unless the latter is disabled in the build configuration). On Windows, **libcurl** is the only agent.
 
