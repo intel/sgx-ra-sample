@@ -19,8 +19,8 @@ SPID=0123456789ABCDEF0123456789ABCDEF
 
 
 # Set to a non-zero value if this SPID is associated with linkable 
-# quotes. If you change this, you'll need to change SPID and
-# IAS_CLIENT_CERT_FILE, too.
+# quotes. If you change this, you'll need to change SPID,
+# IAS_PRIMARY_SUBSCRIPTION_KEY and IAS_SECONDARY_SUBSCRIPTION_KEY too.
 
 LINKABLE=0
 

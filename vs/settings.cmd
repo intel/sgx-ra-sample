@@ -20,8 +20,8 @@ SET RA_SPID=00000000000000000000000000000000
 
 
 :: Set to a non-zero value if this SPID is associated with linkable 
-:: quotes. If you change this, you'll need to change SPID and
-:: IAS_CLIENT_CERT_FILE, too.
+:: quotes. If you change this, you'll need to change SPID,
+:: IAS_PRIMARY_SUBSCRIPTION_KEY and IAS_SECONDARY_SUBSCRIPTION_KEY too.
 
 SET RA_LINKABLE=0
 
@@ -48,43 +48,28 @@ SET RA_USE_PLATFORM_SERVICES=0
 :: Service provider (server) options
 ::======================================================================
 
+:: Intel Attestation Service Primary Subscription Key
+:: More Info: https://api.portal.trustedservices.intel.com/EPID-attestation
+:: Associated SPID above is required
 
-:: Your IAS client certificate file. [REQUIRED]
+SET RA_IAS_PRIMARY_SUBSCRIPTION_KEY=
 
-SET RA_IAS_CLIENT_CERT_FILE="certificate.pem"
+:: Intel Attestation Service  Secondary Subscription Key
+:: This will be used in case the primary subscription key does not work
 
+SET RA_IAS_SECONDARY_SUBSCRIPTION_KEY=
 
-:: Your IAS client certificate type. This defaults to PEM if you leave
-:: it blank. Can be either PEM or P12.
-
-:: SET RA_IAS_CLIENT_CERT_TYPE=
-
-
-:: If your IAS client certificate's key is separate from your 
-:: certificate, set the filename here. Otherwise, leave it 
-:: blank.
-
-SET RA_IAS_CLIENT_CERT_KEY_FILE="private_key.pem"
-
-
-:: If your IAS client certificate's key is encrypted, put the password
-:: in a file, and set the filename here.
-
-SET RA_IAS_CLIENT_CERT_KEY_PASSWORD_FILE=""
-
-
-:: The path to the Intel IAS SGX Report Signing CA file. You are sent 
-:: this certificate when you apply for access to SGX Developer Services at 
+:: The Intel IAS SGX Report Signing CA file. You are sent this certificate
+:: when you apply for access to SGX Developer Services at 
 :: http://software.intel.com/sgx [REQUIRED]
 
-
-SET RA_IAS_REPORT_SIGNING_CA_FILE="IASReportSigningCACert.pem"
+SET RA_IAS_REPORT_SIGNING_CA_FILE=
 
 
 :: Set to the URL for your proxy server to force the use of a proxy
 :: when communicating with IAS (overriding any environment variables).
 
-SET RA_IAS_PROXY_URL=""
+:: SET RA_IAS_PROXY_URL=
 
 
 :: Set to non-zero to disable the use of a proxy server and force a
@@ -92,14 +77,6 @@ SET RA_IAS_PROXY_URL=""
 :: environment variables).
 
 :: SET RA_IAS_DISABLE_PROXY=0
-
-
-:: Set to non-zero to enforce a strict attestation policy, which rejects 
-:: enclaves that result in a CONFIGURATION_NEEDED response from IAS when
-:: verifying attestation evidence. Strict mode is DISABLED by default.
-
-:: SET RA_POLICY_STRICT_TRUST=1
-
 
 ::======================================================================
 :: Debugging options

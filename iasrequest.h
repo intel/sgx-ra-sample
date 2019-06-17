@@ -103,6 +103,7 @@ private:
 
 	string c_ca_file;
 	string c_proxy_server;
+	uint16_t c_server_port;
 	uint16_t c_proxy_port;
 	int c_proxy_mode;
 	uint32_t c_flags;
