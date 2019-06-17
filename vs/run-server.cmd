@@ -21,7 +21,7 @@ IF "%RA_DEBUG%" NEQ "0" SET debug=-d
 
 @ECHO ON
 
-sp.exe -i %RA_IAS_PRIMARY_SUBSCRIPTION_KEY% -j %RA_IAS_SECONDARY_SUBSCRIPTION_KEY% -s %RA_SPID% -A %RA_IAS_REPORT_SIGNING_CA_FILE% -C %RA_IAS_CLIENT_CERT_FILE% %sp_production% %sp_noproxy% %sp_proxy% %ra_link_opt% %strict_trust% %verbose% %debug% %*
+sp.exe -i %RA_IAS_PRIMARY_SUBSCRIPTION_KEY% -j %RA_IAS_SECONDARY_SUBSCRIPTION_KEY% -s %RA_SPID% -A %RA_IAS_REPORT_SIGNING_CA_FILE% %sp_production% %sp_noproxy% %sp_proxy% %ra_link_opt% %strict_trust% %verbose% %debug% %*
 
 @ECHO OFF
 
