@@ -1223,11 +1223,38 @@ int get_sigrl (IAS_Connection *ias, int version, sgx_epid_group_id_t gid,
 		delete req;
 		return 0;
 	}
+ 
+        ias_error_t ret = IAS_OK;
 
-	if ( req->sigrl(*(uint32_t *) gid, sigrlstr) != IAS_OK ) {
-		delete req;
-		return 0;
+	while (1) {
+
+		ret =  req->sigrl(*(uint32_t *) gid, sigrlstr);
+		if ( debug ) {
+			eprintf("+++ RET = %zu\n, ret");
+			eprintf("+++ SubscriptionKeyID = %d\n",(int)ias->getSubscriptionKeyID());
+                }
+	
+		if ( ret == IAS_UNAUTHORIZED && (ias->getSubscriptionKeyID() == IAS_Connection::SubscriptionKeyID::Primary))
+		{
+
+		        if ( debug ) {
+				eprintf("+++ IAS Primary Subscription Key failed with IAS_UNAUTHORIZED\n");
+				eprintf("+++ Retrying with IAS Secondary Subscription Key\n");
+			}	
+
+			// Retry with Secondary Subscription Key
+			ias->SetSubscriptionKeyID(IAS_Connection::SubscriptionKeyID::Secondary);
+			continue;
+		}	
+		else if (ret != IAS_OK ) {
+
+			delete req;
+			return 0;
+		}
+
+		break;
 	}
+
 
 	*sig_rl= strdup(sigrlstr.c_str());
 	if ( *sig_rl == NULL ) {
