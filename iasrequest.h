@@ -125,6 +125,8 @@ public:
 	int agent(const char *agent_name);
 
 	string getSubscriptionKey(); 
+ 	SubscriptionKeyID getSubscriptionKeyID() { return currentKeyID; }
+	void SetSubscriptionKeyID(SubscriptionKeyID id) { currentKeyID = id;}
 
 	int proxy(const char *server, uint16_t port);
 	void proxy_mode(int mode) { c_proxy_mode= mode; }

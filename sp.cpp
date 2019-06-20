@@ -97,6 +97,10 @@ typedef struct config_struct {
 	X509 *signing_ca;
 	unsigned int apiver;
 	int strict_trust;
+	sgx_measurement_t req_mrsigner;
+	sgx_prod_id_t req_isv_product_id;
+	sgx_isv_svn_t min_isvsvn;
+	int allow_debug_enclave;
 } config_t;
 
 void usage();
@@ -138,6 +142,9 @@ int main(int argc, char *argv[])
 	char flag_noproxy= 0;
 	char flag_prod= 0;
 	char flag_stdio= 0;
+	char flag_isv_product_id= 0;
+	char flag_min_isvsvn= 0;
+	char flag_mrsigner= 0;
 	char *sigrl = NULL;
 	config_t config;
 	int oops;
@@ -151,28 +158,32 @@ int main(int argc, char *argv[])
 
 	static struct option long_opt[] =
 	{
+		{"ias-signing-cafile",		required_argument,	0, 'A'},
+		{"ca-bundle",				required_argument,	0, 'B'},
+		{"no-debug-enclave",		no_argument,		0, 'D'},
+		{"list-agents",				no_argument,		0, 'G'},
 		{"ias-pri-api-key-file",	required_argument,	0, 'I'},
 		{"ias-sec-api-key-file",	required_argument,	0, 'J'},
-		{"ias-signing-cafile",		required_argument,	0, 'A'},
-		{"ca-bundle",			required_argument,	0, 'B'},
-		{"list-agents",			no_argument,		0, 'G'},
 		{"service-key-file",		required_argument,	0, 'K'},
-		{"production",			no_argument,		0, 'P'},
-		{"spid-file",			required_argument,	0, 'S'},
+		{"mrsigner",				required_argument,  0, 'N'},
+		{"production",				no_argument,		0, 'P'},
+		{"isv-product-id",			required_argument,	0, 'R'},
+		{"spid-file",				required_argument,	0, 'S'},
+		{"min-isv-svn",				required_argument,  0, 'V'},
 		{"strict-trust-mode",		no_argument,		0, 'X'},
-		{"debug",			no_argument,		0, 'd'},
-		{"user-agent",			required_argument,	0, 'g'},
-		{"help",			no_argument, 		0, 'h'},
-		{"key",				required_argument,	0, 'k'},
-		{"linkable",			no_argument,		0, 'l'},
-		{"proxy",			required_argument,	0, 'p'},
-		{"api-version",			required_argument,	0, 'r'},
-		{"spid",			required_argument,	0, 's'},
-		{"ias-pri-api-key",		required_argument,	0, 'i'},
-		{"ias-sec-api-key",		required_argument,	0, 'j'},
-		{"verbose",			no_argument,		0, 'v'},
-		{"no-proxy",			no_argument,		0, 'x'},
-		{"stdio",			no_argument,		0, 'z'},
+		{"debug",					no_argument,		0, 'd'},
+		{"user-agent",				required_argument,	0, 'g'},
+		{"help",					no_argument, 		0, 'h'},
+		{"ias-pri-api-key",			required_argument,	0, 'i'},
+		{"ias-sec-api-key",			required_argument,	0, 'j'},
+		{"key",						required_argument,	0, 'k'},
+		{"linkable",				no_argument,		0, 'l'},
+		{"proxy",					required_argument,	0, 'p'},
+		{"api-version",				required_argument,	0, 'r'},
+		{"spid",					required_argument,	0, 's'},
+		{"verbose",					no_argument,		0, 'v'},
+		{"no-proxy",				no_argument,		0, 'x'},
+		{"stdio",					no_argument,		0, 'z'},
 		{ 0, 0, 0, 0 }
 	};
 
@@ -185,7 +196,13 @@ int main(int argc, char *argv[])
 
 	memset(&config, 0, sizeof(config));
 
-        config.apiver= IAS_API_DEF_VERSION;
+	config.apiver= IAS_API_DEF_VERSION;
+
+	/*
+	 * For demo purposes only. A production/release enclave should
+	 * never allow debug-mode enclaves to attest.
+	 */
+	config.allow_debug_enclave= 1;
 
 	/* Parse our options */
 
@@ -194,56 +211,17 @@ int main(int argc, char *argv[])
 		int opt_index = 0;
 		off_t offset = IAS_SUBSCRIPTION_KEY_SIZE;
 		int ret = 0;
+		char *eptr= NULL;
+		unsigned long val;
 
-		c = getopt_long(argc, argv, "I:J:A:B:GK:PS:X:dg:hk:lp:r:s:i:j:vxz", long_opt, &opt_index);
+		c = getopt_long(argc, argv,
+			"A:B:DGI:J:K:N:PR:S:V:X:dg:hk:lp:r:s:i:j:vxz",
+			long_opt, &opt_index);
 		if (c == -1) break;
 
 		switch (c) {
+
 		case 0:
-			break;
-
-		case 'I':
-			// Get Size of File, should be IAS_SUBSCRIPTION_KEY_SIZE + EOF
-			ret = from_file(NULL, optarg, &offset); 
-
-                        if ((offset != IAS_SUBSCRIPTION_KEY_SIZE+1) || (ret == 0)) {
-                                eprintf("IAS Primary Subscription Key must be %d-byte hex string.\n",
-                                        IAS_SUBSCRIPTION_KEY_SIZE);
-				return 1;
-			}
-
-			// Remove the EOF
-			offset--;
-
-			// Read the contents of the file
-                        if (!from_file((unsigned char *)&config.pri_subscription_key, optarg, &offset)) {
-                                eprintf("IAS Primary Subscription Key must be %d-byte hex string.\n",
-                                        IAS_SUBSCRIPTION_KEY_SIZE);
-                                return 1;
-                        }
-                       
-			break;
-
-		case 'J':
-                        // Get Size of File, should be IAS_SUBSCRIPTION_KEY_SIZE + EOF
-                        ret = from_file(NULL, optarg, &offset);
-
-                        if ((offset != IAS_SUBSCRIPTION_KEY_SIZE+1) || (ret == 0)) {
-                                eprintf("IAS Secondary Subscription Key must be %d-byte hex string.\n",
-                                        IAS_SUBSCRIPTION_KEY_SIZE);
-                                return 1;
-                        }
-
-			// Remove the EOF
-			offset--;
-
-                        // Read the contents of the file
-                        if (!from_file((unsigned char *)&config.sec_subscription_key, optarg, &offset)) {
-                                eprintf("IAS Secondary Subscription Key must be %d-byte hex string.\n",
-                                        IAS_SUBSCRIPTION_KEY_SIZE);
-                                return 1;
-                        }
-
 			break;
 
 		case 'A':
@@ -261,6 +239,7 @@ int main(int argc, char *argv[])
 			++flag_ca;
 
 			break;
+
 		case 'B':
 			config.ca_bundle = strdup(optarg);
 			if (config.ca_bundle == NULL) {
@@ -269,13 +248,89 @@ int main(int argc, char *argv[])
 			}
 
 			break;
+
+		case 'D':
+			config.allow_debug_enclave= 0;
+			break;
 		case 'G':
 			ias_list_agents(stdout);
 			return 1;
 
-                case 'P':
-                        flag_prod = 1;
-                        break;
+		case 'I':
+			// Get Size of File, should be IAS_SUBSCRIPTION_KEY_SIZE + EOF
+			ret = from_file(NULL, optarg, &offset); 
+
+			if ((offset != IAS_SUBSCRIPTION_KEY_SIZE+1) || (ret == 0)) {
+				eprintf("IAS Primary Subscription Key must be %d-byte hex string.\n",
+					IAS_SUBSCRIPTION_KEY_SIZE);
+				return 1;
+			}
+
+			// Remove the EOF
+			offset--;
+
+			// Read the contents of the file
+			if (!from_file((unsigned char *)&config.pri_subscription_key, optarg, &offset)) {
+				eprintf("IAS Primary Subscription Key must be %d-byte hex string.\n",
+					IAS_SUBSCRIPTION_KEY_SIZE);
+					return 1;
+			}
+			break;
+
+		case 'J':
+			// Get Size of File, should be IAS_SUBSCRIPTION_KEY_SIZE + EOF
+			ret = from_file(NULL, optarg, &offset);
+
+			if ((offset != IAS_SUBSCRIPTION_KEY_SIZE+1) || (ret == 0)) {
+				eprintf("IAS Secondary Subscription Key must be %d-byte hex string.\n",
+					IAS_SUBSCRIPTION_KEY_SIZE);
+				return 1;
+			}
+
+			// Remove the EOF
+			offset--;
+
+			// Read the contents of the file
+			if (!from_file((unsigned char *)&config.sec_subscription_key, optarg, &offset)) {
+				eprintf("IAS Secondary Subscription Key must be %d-byte hex string.\n",
+					IAS_SUBSCRIPTION_KEY_SIZE);
+					return 1;
+			}
+
+			break;
+
+		case 'K':
+			if (!key_load_file(&config.service_private_key, optarg, KEY_PRIVATE)) {
+				crypto_perror("key_load_file");
+				eprintf("%s: could not load EC private key\n", optarg);
+				return 1;
+			}
+			break;
+
+		case 'N':
+			if (!from_hexstring((unsigned char *)&config.req_mrsigner,
+				optarg, 32)) {
+
+				eprintf("MRSIGNER must be 64-byte hex string\n");
+				return 1;
+			}
+			++flag_mrsigner;
+			break;
+
+        case 'P':
+			flag_prod = 1;
+			break;
+
+		case 'R':
+			eptr= NULL;
+			val= strtoul(optarg, &eptr, 10);
+			if ( *eptr != '\0' || val > 0xFFFF ) {
+				eprintf("Product Id must be a positive integer <= 65535\n");
+				return 1;
+			}
+			config.req_isv_product_id= val;
+			++flag_isv_product_id;
+			break;
 
 		case 'S':
 			if (!from_hexstring_file((unsigned char *)&config.spid, optarg, 16)) {
@@ -285,19 +340,26 @@ int main(int argc, char *argv[])
 			++flag_spid;
 
 			break;
-		case 'K':
-			if (!key_load_file(&config.service_private_key, optarg, KEY_PRIVATE)) {
-				crypto_perror("key_load_file");
-				eprintf("%s: could not load EC private key\n", optarg);
+
+		case 'V':
+			eptr= NULL;
+			val= strtoul(optarg, &eptr, 10);
+			if ( *eptr != '\0' || val > (unsigned long) 0xFFFF ) {
+				eprintf("Minimum ISV SVN must be a positive integer <= 65535\n");
 				return 1;
 			}
+			config.min_isvsvn= val;
+			++flag_min_isvsvn;
 			break;
+
 		case 'X':
 			config.strict_trust= 1;
 			break;
+
 		case 'd':
 			debug = 1;
 			break;
+
 		case 'g':
 			config.user_agent= strdup(optarg);
 			if ( config.user_agent == NULL ) {
@@ -305,6 +367,28 @@ int main(int argc, char *argv[])
 				return 1;
 			}
 			break;
+
+		case 'i':
+			if (strlen(optarg) != IAS_SUBSCRIPTION_KEY_SIZE) {
+				eprintf("IAS Subscription Key must be %d-byte hex string\n",IAS_SUBSCRIPTION_KEY_SIZE);
+				return 1;
+			}
+
+			strncpy((char *) config.pri_subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
+
+			break;
+
+		case 'j':
+			if (strlen(optarg) != IAS_SUBSCRIPTION_KEY_SIZE) {
+				eprintf("IAS Secondary Subscription Key must be %d-byte hex string\n",
+				IAS_SUBSCRIPTION_KEY_SIZE);
+				return 1;
+			}
+
+			strncpy((char *) config.sec_subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
+
+			break;
+
 		case 'k':
 			if (!key_load(&config.service_private_key, optarg, KEY_PRIVATE)) {
 				crypto_perror("key_load");
@@ -312,9 +396,11 @@ int main(int argc, char *argv[])
 				return 1;
 			}
 			break;
+
 		case 'l':
 			config.quote_type = SGX_LINKABLE_SIGNATURE;
 			break;
+
 		case 'p':
 			if ( flag_noproxy ) usage();
 			if (!get_proxy(&config.proxy_server, &config.proxy_port, optarg)) {
@@ -323,6 +409,7 @@ int main(int argc, char *argv[])
 			}
 			// Break the URL into host and port. This is a simplistic algorithm.
 			break;
+
 		case 'r':
 			config.apiver= atoi(optarg);
 			if ( config.apiver < IAS_MIN_VERSION || config.apiver >
@@ -333,6 +420,7 @@ int main(int argc, char *argv[])
 				return 1;
 			}
 			break;
+
 		case 's':
 			if (strlen(optarg) < 32) {
 				eprintf("SPID must be 32-byte hex string\n");
@@ -345,36 +433,19 @@ int main(int argc, char *argv[])
 			++flag_spid;
 			break;
 
-        case 'i':
-			if (strlen(optarg) != IAS_SUBSCRIPTION_KEY_SIZE) {
-					eprintf("IAS Subscription Key must be %d-byte hex string\n",IAS_SUBSCRIPTION_KEY_SIZE);
-					return 1;
-			}
-
-			strncpy((char *) config.pri_subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
-
-			break;
-
-        case 'j':
-			if (strlen(optarg) != IAS_SUBSCRIPTION_KEY_SIZE) {
-					eprintf("IAS Secondary Subscription Key must be %d-byte hex string\n",IAS_SUBSCRIPTION_KEY_SIZE);
-					return 1;
-			}
-
-			strncpy((char *) config.sec_subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
-
-			break;
-
 		case 'v':
 			verbose = 1;
 			break;
+
 		case 'x':
 			if ( config.proxy_server != NULL ) usage();
 			flag_noproxy=1;
 			break;
+
 		case 'z':
 			flag_stdio= 1;
 			break;
+
 		case 'h':
 		case '?':
 		default:
@@ -401,25 +472,29 @@ int main(int argc, char *argv[])
 		}
 	}
 
-        if ( debug ) eprintf("+++ IAS Primary Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
-        	config.pri_subscription_key[0],
-                config.pri_subscription_key[1],
-                config.pri_subscription_key[2],
-                config.pri_subscription_key[3],
-                config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
-                config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
-                config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
-                config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ] );
+	if ( debug ) {
+		eprintf("+++ IAS Primary Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
+			config.pri_subscription_key[0],
+        	config.pri_subscription_key[1],
+        	config.pri_subscription_key[2],
+        	config.pri_subscription_key[3],
+        	config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
+        	config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
+        	config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
+        	config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ]
+		);
 
-        if ( debug ) eprintf("+++ IAS Secondary Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
-                config.sec_subscription_key[0],
-                config.sec_subscription_key[1],
-                config.sec_subscription_key[2],
-                config.sec_subscription_key[3],
-                config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
-                config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
-                config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
-                config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ] );
+		eprintf("+++ IAS Secondary Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
+        	config.sec_subscription_key[0],
+        	config.sec_subscription_key[1],
+        	config.sec_subscription_key[2],
+        	config.sec_subscription_key[3],
+        	config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
+        	config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
+        	config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
+        	config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ] 
+		);
+	}
 
 
 	/* Use the default CA bundle unless one is provided */
@@ -467,6 +542,21 @@ int main(int argc, char *argv[])
 
 	if (!flag_ca) {
 		eprintf("--ias-signing-cafile is required\n");
+		flag_usage = 1;
+	}
+
+	if ( ! flag_isv_product_id ) {
+		eprintf("--isv-product-id is required\n");
+		flag_usage = 1;
+	}
+	
+	if ( ! flag_min_isvsvn ) {
+		eprintf("--min-isvsvn is required\n");
+		flag_usage = 1;
+	}
+	
+	if ( ! flag_mrsigner ) {
+		eprintf("--mrsigner is required\n");
 		flag_usage = 1;
 	}
 
@@ -836,11 +926,12 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 #ifndef _WIN32
 /* Windows implementation is not available yet */
 
-		if ( ! verify_enclave_identity(r) ) {
-			eprintf("Enclave not recognized.\n");
-			free(b64quote);
-			free(msg3);
-			return 0;
+		if ( ! verify_enclave_identity(config->req_mrsigner, 
+			config->req_isv_product_id, config->min_isvsvn, 
+			config->allow_debug_enclave, r) ) {
+
+			eprintf("Invalid enclave.\n");
+			msg4->status= NotTrusted;
 		}
 #endif
 
@@ -1203,11 +1294,38 @@ int get_sigrl (IAS_Connection *ias, int version, sgx_epid_group_id_t gid,
 		delete req;
 		return 0;
 	}
+ 
+        ias_error_t ret = IAS_OK;
 
-	if ( req->sigrl(*(uint32_t *) gid, sigrlstr) != IAS_OK ) {
-		delete req;
-		return 0;
+	while (1) {
+
+		ret =  req->sigrl(*(uint32_t *) gid, sigrlstr);
+		if ( debug ) {
+			eprintf("+++ RET = %zu\n, ret");
+			eprintf("+++ SubscriptionKeyID = %d\n",(int)ias->getSubscriptionKeyID());
+                }
+	
+		if ( ret == IAS_UNAUTHORIZED && (ias->getSubscriptionKeyID() == IAS_Connection::SubscriptionKeyID::Primary))
+		{
+
+		        if ( debug ) {
+				eprintf("+++ IAS Primary Subscription Key failed with IAS_UNAUTHORIZED\n");
+				eprintf("+++ Retrying with IAS Secondary Subscription Key\n");
+			}	
+
+			// Retry with Secondary Subscription Key
+			ias->SetSubscriptionKeyID(IAS_Connection::SubscriptionKeyID::Secondary);
+			continue;
+		}	
+		else if (ret != IAS_OK ) {
+
+			delete req;
+			return 0;
+		}
+
+		break;
 	}
+
 
 	*sig_rl= strdup(sigrlstr.c_str());
 	if ( *sig_rl == NULL ) {
@@ -1388,7 +1506,7 @@ int get_attestation_report(IAS_Connection *ias, int version,
 	} else {
 		if ( verbose ) eprintf("A Platform Info Blob (PIB) was NOT provided by the IAS\n");
 	}
-                 
+
 		delete req;
 		return 1;
 	}
@@ -1569,4 +1687,6 @@ void usage ()
 
 	::exit(1);
 }
+
+/* vim: ts=4: */
 
