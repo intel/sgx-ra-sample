@@ -41,7 +41,8 @@ fi
 # Parse our settings file
 #----------------------------------------------------------------------------
 
-source settings
+. ./settings
+. ./policy
 
 # Optional settings
 
@@ -87,6 +88,9 @@ if [ "$POLICY_STRICT_TRUST" != "" -a "0$POLICY_STRICT_TRUST" -ne 0 ]; then
 	sp_strict_trust="-X"
 fi
 
+if [ "$ALLOW_DEBUG_ENCLAVE" -eq 0 ]; then
+	flag_no_debug_enclave=-D
+fi
 
 # Debugging options
 
@@ -117,9 +121,12 @@ then
 		-i $IAS_PRIMARY_SUBSCRIPTION_KEY \
 		-j $IAS_SECONDARY_SUBSCRIPTION_KEY \
 		-A "$IAS_REPORT_SIGNING_CA_FILE" \
+		-N $MRSIGNER \
+		-V $MIN_ISVSVN \
+		-R $PRODID \
 		$sp_noproxy $sp_proxy  \
 		$flag_linkable $sp_strict_trust $flag_debug $flag_verbose \
-                $sp_production \
+                $sp_production $flag_no_debug_enclave \
 		"$@" 
 else
 	echo "$PROG: unrecognized instance (expected run-client or run-server)" >&2

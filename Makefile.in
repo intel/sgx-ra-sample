@@ -392,7 +392,7 @@ SGXSSL_BINDIR = @SGXSSL_BINDIR@
 SUBDIRS = Enclave 
 AM_CXXFLAGS = -std=c++11 
 CLEANFILES = Enclave_u.c Enclave_u.h Enclave.edl Enclave.signed.so \
-	enclave_sigstruct.h
+	policy
 
 common = byteorder.c common.cpp crypto.c hexutil.c fileio.c base64.c \
 	msgio.cpp logfile.c
@@ -402,7 +402,7 @@ client_SOURCES = client.cpp sgx_detect_linux.c sgx_stub.c quote_size.c \
 
 nodist_client_SOURCES = Enclave_u.c Enclave_u.h
 EXTRA_client_DEPENDENCIES = Enclave.signed.so
-BUILT_SOURCES = Enclave_u.c Enclave_u.h enclave_sigstruct.h
+BUILT_SOURCES = Enclave_u.c Enclave_u.h policy
 client_LDFLAGS = $(AM_LDFLAGS) @OPENSSL_LDFLAGS@
 sp_SOURCES = sp.cpp agent_wget.cpp iasrequest.cpp enclave_verify.c \
 	$(common) $(am__append_1)
@@ -1020,9 +1020,9 @@ Enclave/Enclave.signed.so:
 
 server: sp
 
-enclave_sigstruct.h: Enclave.signed.so
+policy: policy.in Enclave.signed.so
 	$(SGX_SIGN) dump -cssfile enclave_sigstruct_raw -dumpfile /dev/null -enclave Enclave.signed.so
-	xxd -i enclave_sigstruct_raw > $@ && rm -f enclave_sigstruct_raw
+	sed -e "s^@MRSIGNER@^`dd skip=128 count=384 bs=1 if=enclave_sigstruct_raw 2>/dev/null|sha256sum -b|cut -d' ' -f1`^" policy.in > policy && rm -f enclave_sigstruct_raw
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

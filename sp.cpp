@@ -97,6 +97,10 @@ typedef struct config_struct {
 	X509 *signing_ca;
 	unsigned int apiver;
 	int strict_trust;
+	sgx_measurement_t req_mrsigner;
+	sgx_prod_id_t req_isv_product_id;
+	sgx_isv_svn_t min_isvsvn;
+	int allow_debug_enclave;
 } config_t;
 
 void usage();
@@ -138,6 +142,9 @@ int main(int argc, char *argv[])
 	char flag_noproxy= 0;
 	char flag_prod= 0;
 	char flag_stdio= 0;
+	char flag_isv_product_id= 0;
+	char flag_min_isvsvn= 0;
+	char flag_mrsigner= 0;
 	char *sigrl = NULL;
 	config_t config;
 	int oops;
@@ -153,15 +160,16 @@ int main(int argc, char *argv[])
 	{
 		{"ias-signing-cafile",		required_argument,	0, 'A'},
 		{"ca-bundle",				required_argument,	0, 'B'},
+		{"no-debug-enclave",		no_argument,		0, 'D'},
 		{"list-agents",				no_argument,		0, 'G'},
 		{"ias-pri-api-key-file",	required_argument,	0, 'I'},
 		{"ias-sec-api-key-file",	required_argument,	0, 'J'},
 		{"service-key-file",		required_argument,	0, 'K'},
 		{"mrsigner",				required_argument,  0, 'N'},
 		{"production",				no_argument,		0, 'P'},
-		{"produdt-id",				required_argument,	0, 'R'},
+		{"isv-product-id",			required_argument,	0, 'R'},
 		{"spid-file",				required_argument,	0, 'S'},
-		{"min-isvsvn",				required_argument,  0, 'V'},
+		{"min-isv-svn",				required_argument,  0, 'V'},
 		{"strict-trust-mode",		no_argument,		0, 'X'},
 		{"debug",					no_argument,		0, 'd'},
 		{"user-agent",				required_argument,	0, 'g'},
@@ -188,7 +196,13 @@ int main(int argc, char *argv[])
 
 	memset(&config, 0, sizeof(config));
 
-config.apiver= IAS_API_DEF_VERSION;
+	config.apiver= IAS_API_DEF_VERSION;
+
+	/*
+	 * For demo purposes only. A production/release enclave should
+	 * never allow debug-mode enclaves to attest.
+	 */
+	config.allow_debug_enclave= 1;
 
 	/* Parse our options */
 
@@ -197,9 +211,11 @@ config.apiver= IAS_API_DEF_VERSION;
 		int opt_index = 0;
 		off_t offset = IAS_SUBSCRIPTION_KEY_SIZE;
 		int ret = 0;
+		char *eptr= NULL;
+		unsigned long val;
 
 		c = getopt_long(argc, argv,
-			"A:B:GI:J:K:N:PR:S:V:X:dg:hk:lp:r:s:i:j:vxz",
+			"A:B:DGI:J:K:N:PR:S:V:X:dg:hk:lp:r:s:i:j:vxz",
 			long_opt, &opt_index);
 		if (c == -1) break;
 
@@ -233,6 +249,9 @@ config.apiver= IAS_API_DEF_VERSION;
 
 			break;
 
+		case 'D':
+			config.allow_debug_enclave= 0;
+			break;
 		case 'G':
 			ias_list_agents(stdout);
 			return 1;
@@ -288,9 +307,30 @@ config.apiver= IAS_API_DEF_VERSION;
 			}
 			break;
 
+		case 'N':
+			if (!from_hexstring((unsigned char *)&config.req_mrsigner,
+				optarg, 32)) {
+
+				eprintf("MRSIGNER must be 64-byte hex string\n");
+				return 1;
+			}
+			++flag_mrsigner;
+			break;
+
         case 'P':
-                flag_prod = 1;
-                break;
+			flag_prod = 1;
+			break;
+
+		case 'R':
+			eptr= NULL;
+			val= strtoul(optarg, &eptr, 10);
+			if ( *eptr != '\0' || val > 0xFFFF ) {
+				eprintf("Product Id must be a positive integer <= 65535\n");
+				return 1;
+			}
+			config.req_isv_product_id= val;
+			++flag_isv_product_id;
+			break;
 
 		case 'S':
 			if (!from_hexstring_file((unsigned char *)&config.spid, optarg, 16)) {
@@ -299,6 +339,17 @@ config.apiver= IAS_API_DEF_VERSION;
 			}
 			++flag_spid;
 
+			break;
+
+		case 'V':
+			eptr= NULL;
+			val= strtoul(optarg, &eptr, 10);
+			if ( *eptr != '\0' || val > (unsigned long) 0xFFFF ) {
+				eprintf("Minimum ISV SVN must be a positive integer <= 65535\n");
+				return 1;
+			}
+			config.min_isvsvn= val;
+			++flag_min_isvsvn;
 			break;
 
 		case 'X':
@@ -421,25 +472,29 @@ config.apiver= IAS_API_DEF_VERSION;
 		}
 	}
 
-if ( debug ) eprintf("+++ IAS Primary Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
-	config.pri_subscription_key[0],
-        config.pri_subscription_key[1],
-        config.pri_subscription_key[2],
-        config.pri_subscription_key[3],
-        config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
-        config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
-        config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
-        config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ] );
+	if ( debug ) {
+		eprintf("+++ IAS Primary Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
+			config.pri_subscription_key[0],
+        	config.pri_subscription_key[1],
+        	config.pri_subscription_key[2],
+        	config.pri_subscription_key[3],
+        	config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
+        	config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
+        	config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
+        	config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ]
+		);
 
-if ( debug ) eprintf("+++ IAS Secondary Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
-        config.sec_subscription_key[0],
-        config.sec_subscription_key[1],
-        config.sec_subscription_key[2],
-        config.sec_subscription_key[3],
-        config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
-        config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
-        config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
-        config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ] );
+		eprintf("+++ IAS Secondary Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
+        	config.sec_subscription_key[0],
+        	config.sec_subscription_key[1],
+        	config.sec_subscription_key[2],
+        	config.sec_subscription_key[3],
+        	config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
+        	config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
+        	config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
+        	config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ] 
+		);
+	}
 
 
 	/* Use the default CA bundle unless one is provided */
@@ -487,6 +542,21 @@ if ( debug ) eprintf("+++ IAS Secondary Subscription Key set to '%c%c%c%c.......
 
 	if (!flag_ca) {
 		eprintf("--ias-signing-cafile is required\n");
+		flag_usage = 1;
+	}
+
+	if ( ! flag_isv_product_id ) {
+		eprintf("--isv-product-id is required\n");
+		flag_usage = 1;
+	}
+	
+	if ( ! flag_min_isvsvn ) {
+		eprintf("--min-isvsvn is required\n");
+		flag_usage = 1;
+	}
+	
+	if ( ! flag_mrsigner ) {
+		eprintf("--mrsigner is required\n");
 		flag_usage = 1;
 	}
 
@@ -856,11 +926,12 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 #ifndef _WIN32
 /* Windows implementation is not available yet */
 
-		if ( ! verify_enclave_identity(r) ) {
-			eprintf("Enclave not recognized.\n");
-			free(b64quote);
-			free(msg3);
-			return 0;
+		if ( ! verify_enclave_identity(config->req_mrsigner, 
+			config->req_isv_product_id, config->min_isvsvn, 
+			config->allow_debug_enclave, r) ) {
+
+			eprintf("Invalid enclave.\n");
+			msg4->status= NotTrusted;
 		}
 #endif
 

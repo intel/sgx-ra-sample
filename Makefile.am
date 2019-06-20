@@ -57,8 +57,7 @@ AM_CPPFLAGS += -fno-builtin-memset @OPENSSL_CPPFLAGS@
 ## any edger8r generated files here.
 
 CLEANFILES = Enclave_u.c Enclave_u.h Enclave.edl Enclave.signed.so \
-	enclave_sigstruct.h
-
+	policy
 
 ## The build target
 
@@ -85,16 +84,16 @@ client_LDFLAGS= $(AM_LDFLAGS) @OPENSSL_LDFLAGS@
 ## sp
 
 sp_SOURCES = sp.cpp agent_wget.cpp iasrequest.cpp enclave_verify.c $(common)
-BUILT_SOURCES += enclave_sigstruct.h
+BUILT_SOURCES += policy
 EXTRA_sp_DEPENDENCIES = Enclave.signed.so
 if AGENT_CURL
 sp_SOURCES += agent_curl.cpp
 endif
 
 ## Extract our enclave identity metatdata into a header file
-enclave_sigstruct.h: Enclave.signed.so
+policy: policy.in Enclave.signed.so
 	$(SGX_SIGN) dump -cssfile enclave_sigstruct_raw -dumpfile /dev/null -enclave Enclave.signed.so
-	xxd -i enclave_sigstruct_raw > $@ && rm -f enclave_sigstruct_raw
+	sed -e "s^@MRSIGNER@^`dd skip=128 count=384 bs=1 if=enclave_sigstruct_raw 2>/dev/null|sha256sum -b|cut -d' ' -f1`^" policy.in > policy && rm -f enclave_sigstruct_raw
 
 sp_LDFLAGS= $(AM_LDFLAGS) @OPENSSL_LDFLAGS@ @CURL_LDFLAGS@
 
