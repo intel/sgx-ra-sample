@@ -1,0 +1,482 @@
+C and C++;CL.FFM.ASSIGN;3;Warning;;C/C++
+C and C++;CL.FFM.COPY;3;Warning;;C/C++
+C and C++;CL.SELF-ASSIGN;2;Error;;C/C++
+C and C++;CL.SHALLOW.ASSIGN;2;Error;;C/C++
+C and C++;CL.SHALLOW.COPY;2;Error;;C/C++
+C and C++;LOCRET.ARG;1;Critical;;C/C++
+C and C++;LOCRET.GLOB;1;Critical;;C/C++
+C and C++;LOCRET.RET;1;Critical;;C/C++
+C and C++;UFM.DEREF.MIGHT;1;Critical;;C/C++
+C and C++;UFM.DEREF.MUST;1;Critical;;C/C++
+C and C++;UFM.FFM.MIGHT;1;Critical;;C/C++
+C and C++;UFM.FFM.MUST;1;Critical;;C/C++
+C and C++;UFM.RETURN.MIGHT;2;Error;;C/C++
+C and C++;UFM.RETURN.MUST;2;Error;;C/C++
+C and C++;UFM.USE.MIGHT;2;Error;;C/C++
+C and C++;UFM.USE.MUST;2;Error;;C/C++
+C and C++;SV.BANNED.RECOMMENDED.ALLOCA;4;Review;;C/C++
+C and C++;SV.BANNED.RECOMMENDED.NUMERIC;4;Review;;C/C++
+C and C++;SV.BANNED.RECOMMENDED.OEM;4;Review;;C/C++
+C and C++;SV.BANNED.RECOMMENDED.PATH;4;Review;;C/C++
+C and C++;SV.BANNED.RECOMMENDED.SCANF;4;Review;;C/C++
+C and C++;SV.BANNED.RECOMMENDED.SPRINTF;4;Review;;C/C++
+C and C++;SV.BANNED.RECOMMENDED.STRLEN;4;Review;;C/C++
+C and C++;SV.BANNED.RECOMMENDED.TOKEN;4;Review;;C/C++
+C and C++;SV.BANNED.RECOMMENDED.WINDOW;4;Review;;C/C++
+C and C++;SV.BANNED.REQUIRED.CONCAT;4;Review;;C/C++
+C and C++;SV.BANNED.REQUIRED.COPY;4;Review;;C/C++
+C and C++;SV.BANNED.REQUIRED.GETS;4;Review;;C/C++
+C and C++;SV.BANNED.REQUIRED.ISBAD;4;Review;;C/C++
+C and C++;SV.BANNED.REQUIRED.SPRINTF;4;Review;;C/C++
+C and C++;ABV.ANY_SIZE_ARRAY;1;Critical;;C/C++
+C and C++;ABV.GENERAL;1;Critical;;C/C++
+C and C++;ABV.ITERATOR;1;Critical;;C/C++
+C and C++;ABV.MEMBER;1;Critical;;C/C++
+C and C++;ABV.STACK;1;Critical;;C/C++
+C and C++;ABV.TAINTED;1;Critical;;C/C++
+C and C++;ABV.UNICODE.BOUND_MAP;1;Critical;;C/C++
+C and C++;ABV.UNICODE.FAILED_MAP;1;Critical;;C/C++
+C and C++;ABV.UNICODE.NNTS_MAP;1;Critical;;C/C++
+C and C++;ABV.UNICODE.SELF_MAP;1;Critical;;C/C++
+C and C++;ABV.UNKNOWN_SIZE;1;Critical;;C/C++
+C and C++;NNTS.MIGHT;1;Critical;;C/C++
+C and C++;NNTS.MUST;1;Critical;;C/C++
+C and C++;NNTS.TAINTED;1;Critical;;C/C++
+C and C++;RABV.CHECK;1;Critical;;C/C++
+C and C++;RN.INDEX;1;Critical;;C/C++
+C and C++;SV.FMT_STR.BAD_SCAN_FORMAT;2;Error;;C/C++
+C and C++;SV.STRBO.BOUND_COPY.OVERFLOW;1;Critical;;C/C++
+C and C++;SV.STRBO.BOUND_COPY.UNTERM;2;Error;;C/C++
+C and C++;SV.STRBO.BOUND_SPRINTF;1;Critical;;C/C++
+C and C++;SV.STRBO.UNBOUND_COPY;1;Critical;;C/C++
+C and C++;SV.STRBO.UNBOUND_SPRINTF;1;Critical;;C/C++
+C and C++;SV.UNBOUND_STRING_INPUT.CIN;1;Critical;;C/C++
+C and C++;SV.UNBOUND_STRING_INPUT.FUNC;1;Critical;;C/C++
+C and C++;CWARN.ALIGNMENT;4;Review;;C/C++
+C and C++;CWARN.BITOP.SIZE;4;Review;;C/C++
+C and C++;CWARN.COPY.NOASSIGN;4;Review;;C/C++
+C and C++;CWARN.DTOR.NONVIRT.DELETE;2;Error;;C/C++
+C and C++;CWARN.DTOR.NONVIRT.NOTEMPTY;2;Error;;C/C++
+C and C++;CWARN.INCL.ABSOLUTE;4;Review;;C/C++
+C and C++;CWARN.INCL.NO_INTERFACE;4;Review;;C/C++
+C and C++;CWARN.MEM.NONPOD;4;Review;;C/C++
+C and C++;CWARN.MEMBER.INIT.ORDER;4;Review;;C/C++
+C and C++;CWARN.NOEFFECT.OUTOFRANGE;3;Warning;;C/C++
+C and C++;CWARN.NOEFFECT.SELF_ASSIGN;4;Review;;C/C++
+C and C++;CWARN.NOEFFECT.UCMP.GE;4;Review;;C/C++
+C and C++;CWARN.NOEFFECT.UCMP.GE.MACRO;4;Review;;C/C++
+C and C++;CWARN.NOEFFECT.UCMP.LT;4;Review;;C/C++
+C and C++;CWARN.NOEFFECT.UCMP.LT.MACRO;4;Review;;C/C++
+C and C++;CWARN.NULLCHECK.FUNCNAME;4;Review;;C/C++
+C and C++;CWARN.OVERRIDE.CONST;4;Review;;C/C++
+C and C++;CWARN.PASSBYVALUE.ARG;4;Review;;C/C++
+C and C++;CWARN.PASSBYVALUE.EXC;4;Review;;C/C++
+C and C++;LS.CALL;3;Warning;;C/C++
+C and C++;LS.CALL.STRING;3;Warning;;C/C++
+C and C++;BSTR.CAST.C;4;Review;;C/C++
+C and C++;BSTR.CAST.CPP;4;Review;;C/C++
+C and C++;BSTR.FUNC.ALLOC;4;Review;;C/C++
+C and C++;BSTR.FUNC.FREE;4;Review;;C/C++
+C and C++;BSTR.FUNC.LEN;4;Review;;C/C++
+C and C++;BSTR.FUNC.REALLOC;4;Review;;C/C++
+C and C++;BSTR.IA.ASSIGN;4;Review;;C/C++
+C and C++;BSTR.IA.INIT;4;Review;;C/C++
+C and C++;BSTR.OPS.ARITHM;4;Review;;C/C++
+C and C++;BSTR.OPS.COMP;4;Review;;C/C++
+C and C++;BSTR.OPS.EQS;4;Review;;C/C++
+C and C++;VA_UNUSED.GEN;4;Review;;C/C++
+C and C++;VA_UNUSED.INIT;4;Review;;C/C++
+C and C++;CONC.DL;2;Error;;C/C++
+C and C++;CONC.NO_UNLOCK;2;Error;;C/C++
+C and C++;CONC.SLEEP;3;Warning;;C/C++
+C and C++;SV.BFC.USING_STRUCT;4;Review;;C/C++
+C and C++;SV.USAGERULES.SPOOFING;4;Review;;C/C++
+C and C++;SV.RVT.RETVAL_NOTTESTED;4;Review;;C/C++
+C and C++;CL.FMM;3;Warning;;C/C++
+C and C++;FMM.MIGHT;2;Error;;C/C++
+C and C++;FMM.MUST;1;Critical;;C/C++
+C and C++;FNH.MIGHT;1;Critical;;C/C++
+C and C++;FNH.MUST;2;Error;;C/C++
+C and C++;FUM.GEN.MIGHT;1;Critical;;C/C++
+C and C++;FUM.GEN.MUST;1;Critical;;C/C++
+C and C++;ITER.CONTAINER.MODIFIED;3;Warning;;C/C++
+C and C++;ITER.END.DEREF.MIGHT;3;Warning;;C/C++
+C and C++;ITER.END.DEREF.MUST;3;Warning;;C/C++
+C and C++;ITER.INAPPROPRIATE;4;Review;;C/C++
+C and C++;ITER.INAPPROPRIATE.MULTIPLE;4;Review;;C/C++
+C and C++;DBZ.CONST;1;Critical;;C/C++
+C and C++;DBZ.CONST.CALL;1;Critical;;C/C++
+C and C++;DBZ.GENERAL;1;Critical;;C/C++
+C and C++;DBZ.ITERATOR;1;Critical;;C/C++
+C and C++;SV.LPP.CONST;3;Warning;;C/C++
+C and C++;SV.LPP.VAR;3;Warning;;C/C++
+C and C++;SV.SIP.CONST;3;Warning;;C/C++
+C and C++;SV.SIP.VAR;3;Warning;;C/C++
+C and C++;CL.MLK;3;Warning;;C/C++
+C and C++;CL.MLK.ASSIGN;3;Warning;;C/C++
+C and C++;CL.MLK.VIRTUAL;2;Error;;C/C++
+C and C++;FREE.INCONSISTENT;3;Warning;;C/C++
+C and C++;MLK.MIGHT;2;Error;;C/C++
+C and C++;MLK.MUST;2;Error;;C/C++
+C and C++;MLK.RET.MIGHT;2;Error;;C/C++
+C and C++;MLK.RET.MUST;2;Error;;C/C++
+C and C++;CL.ASSIGN.NON_CONST_ARG;4;Review;;C/C++
+C and C++;CL.ASSIGN.RETURN_CONST;4;Review;;C/C++
+C and C++;CL.ASSIGN.VOID;4;Review;;C/C++
+C and C++;FUNCRET.GEN;1;Critical;;C/C++
+C and C++;FUNCRET.IMPLICIT;2;Error;;C/C++
+C and C++;RETVOID.GEN;2;Error;;C/C++
+C and C++;RETVOID.IMPLICIT;2;Error;;C/C++
+C and C++;VOIDRET;2;Error;;C/C++
+C and C++;NPD.CHECK.CALL.MIGHT;1;Critical;;C/C++
+C and C++;NPD.CHECK.CALL.MUST;1;Critical;;C/C++
+C and C++;NPD.CHECK.MIGHT;1;Critical;;C/C++
+C and C++;NPD.CHECK.MUST;1;Critical;;C/C++
+C and C++;NPD.CONST.CALL;1;Critical;;C/C++
+C and C++;NPD.CONST.DEREF;1;Critical;;C/C++
+C and C++;NPD.FUNC.CALL.MIGHT;1;Critical;;C/C++
+C and C++;NPD.FUNC.CALL.MUST;1;Critical;;C/C++
+C and C++;NPD.FUNC.MIGHT;1;Critical;;C/C++
+C and C++;NPD.FUNC.MUST;1;Critical;;C/C++
+C and C++;NPD.GEN.CALL.MIGHT;1;Critical;;C/C++
+C and C++;NPD.GEN.CALL.MUST;1;Critical;;C/C++
+C and C++;NPD.GEN.MIGHT;1;Critical;;C/C++
+C and C++;NPD.GEN.MUST;1;Critical;;C/C++
+C and C++;RNPD.CALL;1;Critical;;C/C++
+C and C++;RNPD.DEREF;1;Critical;;C/C++
+C and C++;CWARN.BAD.PTR.ARITH;4;Review;;C/C++
+C and C++;CWARN.BOOLOP.INC;4;Review;;C/C++
+C and C++;CWARN.CAST.VIRTUAL_INHERITANCE;4;Review;;C/C++
+C and C++;CWARN.CMPCHR.EOF;4;Review;;C/C++
+C and C++;CWARN.CONSTCOND.DO;4;Review;;C/C++
+C and C++;CWARN.CONSTCOND.IF;4;Review;;C/C++
+C and C++;CWARN.CONSTCOND.SWITCH;4;Review;;C/C++
+C and C++;CWARN.CONSTCOND.TERNARY;4;Review;;C/C++
+C and C++;CWARN.CONSTCOND.WHILE;4;Review;;C/C++
+C and C++;CWARN.EMPTY.LABEL;4;Review;;C/C++
+C and C++;CWARN.EMPTY.TYPEDEF;4;Review;;C/C++
+C and C++;CWARN.FUNCADDR;2;Error;;C/C++
+C and C++;CWARN.HIDDEN.PARAM;4;Review;;C/C++
+C and C++;CWARN.IMPLICITINT;4;Review;;C/C++
+C and C++;CWARN.INLINE.NONFUNC;4;Review;;C/C++
+C and C++;CWARN.MEMSET.SIZEOF.PTR;4;Review;;C/C++
+C and C++;CWARN.PACKED.TYPEDEF;4;Review;;C/C++
+C and C++;CWARN.RET.MAIN;4;Review;;C/C++
+C and C++;CWARN.SIGNEDBIT;4;Review;;C/C++
+C and C++;SV.PIPE.CONST;3;Warning;;C/C++
+C and C++;SV.PIPE.VAR;3;Warning;;C/C++
+C and C++;PORTING.BITFIELDS;4;Review;;C/C++
+C and C++;PORTING.BSWAP.MACRO;4;Review;;C/C++
+C and C++;PORTING.BYTEORDER.SIZE;4;Review;;C/C++
+C and C++;PORTING.CAST.FLTPNT;4;Review;;C/C++
+C and C++;PORTING.CAST.PTR;4;Review;;C/C++
+C and C++;PORTING.CAST.PTR.FLTPNT;4;Review;;C/C++
+C and C++;PORTING.CAST.PTR.SIZE;4;Review;;C/C++
+C and C++;PORTING.CAST.SIZE;4;Review;;C/C++
+C and C++;PORTING.CMPSPEC.EFFECTS.ASSIGNMENT;4;Review;;C/C++
+C and C++;PORTING.CMPSPEC.TYPE.BOOL;4;Review;;C/C++
+C and C++;PORTING.CMPSPEC.TYPE.LONGLONG;4;Review;;C/C++
+C and C++;PORTING.MACRO.NUMTYPE;4;Review;;C/C++
+C and C++;PORTING.OPTS;4;Review;;C/C++
+C and C++;PORTING.PRAGMA.ALIGN;4;Review;;C/C++
+C and C++;PORTING.PRAGMA.PACK;4;Review;;C/C++
+C and C++;PORTING.SIGNED.CHAR;4;Review;;C/C++
+C and C++;PORTING.STORAGE.STRUCT;4;Review;;C/C++
+C and C++;PORTING.STRUCT.BOOL;4;Review;;C/C++
+C and C++;PORTING.UNIONS;4;Review;;C/C++
+C and C++;PORTING.UNSIGNEDCHAR.OVERFLOW.FALSE;4;Review;;C/C++
+C and C++;PORTING.UNSIGNEDCHAR.OVERFLOW.TRUE;4;Review;;C/C++
+C and C++;PORTING.UNSIGNEDCHAR.RELOP;4;Review;;C/C++
+C and C++;PORTING.VAR.EFFECTS;4;Review;;C/C++
+C and C++;SV.DLLPRELOAD.NONABSOLUTE.DLL;2;Error;;C/C++
+C and C++;SV.DLLPRELOAD.NONABSOLUTE.EXE;2;Error;;C/C++
+C and C++;SV.DLLPRELOAD.SEARCHPATH;2;Error;;C/C++
+C and C++;SV.FMT_STR.PRINT_FORMAT_MISMATCH.BAD;2;Error;;C/C++
+C and C++;SV.FMT_STR.PRINT_FORMAT_MISMATCH.UNDESIRED;4;Review;;C/C++
+C and C++;SV.FMT_STR.PRINT_IMPROP_LENGTH;2;Error;;C/C++
+C and C++;SV.FMT_STR.PRINT_PARAMS_WRONGNUM.FEW;2;Error;;C/C++
+C and C++;SV.FMT_STR.PRINT_PARAMS_WRONGNUM.MANY;2;Error;;C/C++
+C and C++;SV.FMT_STR.UNKWN_FORMAT;3;Warning;;C/C++
+C and C++;SV.BRM.HKEY_LOCAL_MACHINE;4;Review;;C/C++
+C and C++;RH.LEAK;2;Error;;C/C++
+C and C++;SV.INCORRECT_RESOURCE_HANDLING.URH;3;Warning;;C/C++
+C and C++;SV.INCORRECT_RESOURCE_HANDLING.WRONG_STATUS;3;Warning;;C/C++
+C and C++;SV.FMT_STR.SCAN_FORMAT_MISMATCH.BAD;2;Error;;C/C++
+C and C++;SV.FMT_STR.SCAN_FORMAT_MISMATCH.UNDESIRED;2;Error;;C/C++
+C and C++;SV.FMT_STR.SCAN_IMPROP_LENGTH;2;Error;;C/C++
+C and C++;SV.FMT_STR.SCAN_PARAMS_WRONGNUM.FEW;2;Error;;C/C++
+C and C++;SV.FMT_STR.SCAN_PARAMS_WRONGNUM.MANY;2;Error;;C/C++
+C and C++;SV.FMT_STR.UNKWN_FORMAT.SCAN;3;Warning;;C/C++
+C and C++;SPECTRE.VARIANT1;3;Warning;;C/C++
+C and C++;STRONG.TYPE.ASSIGN;4;Review;;C/C++
+C and C++;STRONG.TYPE.ASSIGN.ARG;4;Review;;C/C++
+C and C++;STRONG.TYPE.ASSIGN.CONST;4;Review;;C/C++
+C and C++;STRONG.TYPE.ASSIGN.INIT;4;Review;;C/C++
+C and C++;STRONG.TYPE.ASSIGN.RETURN;4;Review;;C/C++
+C and C++;STRONG.TYPE.ASSIGN.ZERO;4;Review;;C/C++
+C and C++;STRONG.TYPE.EXTRACT;4;Review;;C/C++
+C and C++;STRONG.TYPE.JOIN.CMP;4;Review;;C/C++
+C and C++;STRONG.TYPE.JOIN.CONST;4;Review;;C/C++
+C and C++;STRONG.TYPE.JOIN.EQ;4;Review;;C/C++
+C and C++;STRONG.TYPE.JOIN.OTHER;4;Review;;C/C++
+C and C++;STRONG.TYPE.JOIN.ZERO;4;Review;;C/C++
+C and C++;ASSIGCOND.CALL;3;Warning;;C/C++
+C and C++;ASSIGCOND.GEN;3;Warning;;C/C++
+C and C++;BYTEORDER.HTON.SEND;3;Warning;;C/C++
+C and C++;BYTEORDER.HTON.WRITE;3;Warning;;C/C++
+C and C++;BYTEORDER.NTOH.READ;3;Warning;;C/C++
+C and C++;BYTEORDER.NTOH.RECV;3;Warning;;C/C++
+C and C++;EFFECT;4;Review;;C/C++
+C and C++;INCONSISTENT.LABEL;4;Review;;C/C++
+C and C++;INCORRECT.ALLOC_SIZE;3;Warning;;C/C++
+C and C++;LA_UNUSED;4;Review;;C/C++
+C and C++;NUM.OVERFLOW;3;Warning;;C/C++
+C and C++;PRECISION.LOSS;4;Review;;C/C++
+C and C++;PRECISION.LOSS.CALL;4;Review;;C/C++
+C and C++;SEMICOL;4;Review;;C/C++
+C and C++;SV.CODE_INJECTION.SHELL_EXEC;3;Warning;;C/C++
+C and C++;SV.FIU.PROCESS_VARIANTS;4;Review;;C/C++
+C and C++;SV.FMTSTR.GENERIC;1;Critical;;C/C++
+C and C++;SV.TOCTOU.FILE_ACCESS;4;Review;;C/C++
+C and C++;SV.USAGERULES.PERMISSIONS;4;Review;;C/C++
+C and C++;SV.USAGERULES.PROCESS_VARIANTS;4;Review;;C/C++
+C and C++;UNUSED.FUNC.WARN;4;Review;;C/C++
+C and C++;INFINITE_LOOP.GLOBAL;2;Error;;C/C++
+C and C++;INFINITE_LOOP.LOCAL;2;Error;;C/C++
+C and C++;INFINITE_LOOP.MACRO;2;Error;;C/C++
+C and C++;INVARIANT_CONDITION.GEN;3;Warning;;C/C++
+C and C++;INVARIANT_CONDITION.UNREACH;3;Warning;;C/C++
+C and C++;UNREACH.GEN;3;Warning;;C/C++
+C and C++;UNREACH.RETURN;3;Warning;;C/C++
+C and C++;UNREACH.SIZEOF;3;Warning;;C/C++
+C and C++;UNUSED.FUNC.GEN;4;Review;;C/C++
+C and C++;LV_UNUSED.GEN;4;Review;;C/C++
+C and C++;SV.STR_PAR.UNDESIRED_STRING_PARAMETER;4;Review;;C/C++
+C and C++;SV.TAINTED.ALLOC_SIZE;2;Error;;C/C++
+C and C++;SV.TAINTED.BINOP;3;Warning;;C/C++
+C and C++;SV.TAINTED.CALL.BINOP;3;Warning;;C/C++
+C and C++;SV.TAINTED.CALL.DEREF;3;Warning;;C/C++
+C and C++;SV.TAINTED.CALL.INDEX_ACCESS;2;Error;;C/C++
+C and C++;SV.TAINTED.CALL.LOOP_BOUND;2;Error;;C/C++
+C and C++;SV.TAINTED.DEREF;3;Warning;;C/C++
+C and C++;SV.TAINTED.FMTSTR;1;Critical;;C/C++
+C and C++;SV.TAINTED.INDEX_ACCESS;1;Critical;;C/C++
+C and C++;SV.TAINTED.INJECTION;3;Warning;;C/C++
+C and C++;SV.TAINTED.LOOP_BOUND;2;Error;;C/C++
+C and C++;SV.TAINTED.PATH_TRAVERSAL;1;Critical;;C/C++
+C and C++;SV.TAINTED.SECURITY_DECISION;3;Warning;;C/C++
+C and C++;UNINIT.CTOR.MIGHT;1;Critical;;C/C++
+C and C++;UNINIT.CTOR.MUST;2;Error;;C/C++
+C and C++;UNINIT.HEAP.MIGHT;1;Critical;;C/C++
+C and C++;UNINIT.HEAP.MUST;1;Critical;;C/C++
+C and C++;UNINIT.STACK.ARRAY.MIGHT;1;Critical;;C/C++
+C and C++;UNINIT.STACK.ARRAY.MUST;1;Critical;;C/C++
+C and C++;UNINIT.STACK.ARRAY.PARTIAL.MUST;1;Critical;;C/C++
+C and C++;UNINIT.STACK.MIGHT;1;Critical;;C/C++
+C and C++;UNINIT.STACK.MUST;1;Critical;;C/C++
+C and C++;HCC;2;Error;;C/C++
+C and C++;HCC.PWD;2;Error;;C/C++
+C and C++;HCC.USER;2;Error;;C/C++
+C and C++;RCA;2;Error;;C/C++
+C and C++;RCA.HASH.SALT.EMPTY;2;Error;;C/C++
+C and C++;SV.PCC.CONST;4;Review;;C/C++
+C and C++;SV.PCC.INVALID_TEMP_PATH;4;Review;;C/C++
+C and C++;SV.PCC.MISSING_TEMP_CALLS.MUST;4;Review;;C/C++
+C and C++;SV.PCC.MISSING_TEMP_FILENAME;4;Review;;C/C++
+C and C++;SV.PCC.MODIFIED_BEFORE_CREATE;4;Review;;C/C++
+C and C++;SV.WEAK_CRYPTO.WEAK_HASH;4;Review;;C/C++
+Java;ANDROID.LIFECYCLE.SV.FRAGMENTINJ;1;Critical;;Java
+Java;ANDROID.LIFECYCLE.SV.GETEXTRA;3;Warning;;Java
+Java;ANDROID.NPE;4;Review;;Java
+Java;ANDROID.RLK.MEDIAPLAYER;1;Critical;;Java
+Java;ANDROID.RLK.MEDIARECORDER;1;Critical;;Java
+Java;ANDROID.RLK.SQLCON;1;Critical;;Java
+Java;ANDROID.RLK.SQLOBJ;1;Critical;;Java
+Java;ANDROID.UF.BITMAP;2;Error;;Java
+Java;ANDROID.UF.CAMERA;2;Error;;Java
+Java;ANDROID.UF.MEDIAPLAYER;2;Error;;Java
+Java;ANDROID.UF.MEDIARECORDER;2;Error;;Java
+Java;SV.CLONE.SUP;4;Review;;Java
+Java;SV.CSRF.GET;4;Review;;Java
+Java;SV.CSRF.ORIGIN;4;Review;;Java
+Java;SV.CSRF.TOKEN;4;Review;;Java
+Java;SV.XSS.DB;2;Error;;Java
+Java;SV.XSS.REF;2;Error;;Java
+Java;SV.DATA.BOUND;3;Warning;;Java
+Java;SV.DATA.DB;2;Error;;Java
+Java;SV.LDAP;2;Error;;Java
+Java;SV.SQL;2;Error;;Java
+Java;SV.SQL.DBSOURCE;3;Warning;;Java
+Java;SV.DOS.ARRINDEX;3;Warning;;Java
+Java;SV.DOS.ARRSIZE;3;Warning;;Java
+Java;SV.DOS.TMPFILEDEL;3;Warning;;Java
+Java;SV.DOS.TMPFILEEXIT;3;Warning;;Java
+Java;SV.INT_OVF;2;Error;;Java
+Java;CMP.CLASS;4;Review;;Java
+Java;CMP.OBJ;4;Review;;Java
+Java;CMP.STR;4;Review;;Java
+Java;CMPF.FLOAT;4;Review;;Java
+Java;COV.CMP;4;Review;;Java
+Java;EHC.EQ;4;Review;;Java
+Java;EHC.HASH;4;Review;;Java
+Java;RI.IGNOREDCALL;4;Review;;Java
+Java;RI.IGNOREDNEW;4;Review;;Java
+Java;RR.IGNORED;4;Review;;Java
+Java;SV.IL.DEV;3;Warning;;Java
+Java;SV.IL.FILE;3;Warning;;Java
+Java;SV.SENSITIVE.DATA;2;Error;;Java
+Java;SV.SENSITIVE.OBJ;2;Error;;Java
+Java;FSC.PRT;4;Review;;Java
+Java;FSC.PRV;4;Review;;Java
+Java;FSC.PUB;4;Review;;Java
+Java;JD.METHOD.CBS;4;Review;;Java
+Java;JD.OVER;4;Review;;Java
+Java;MNA.CAP;4;Review;;Java
+Java;RTC.CALL;4;Review;;Java
+Java;UMC.EXIT;4;Review;;Java
+Java;UMC.GC;4;Review;;Java
+Java;UMC.SYSERR;4;Review;;Java
+Java;UMC.SYSOUT;4;Review;;Java
+Java;ESCMP.EMPTYSTR;4;Review;;Java
+Java;FIN.EMPTY;3;Warning;;Java
+Java;STRCON.LOOP;4;Review;;Java
+Java;SYNCH.NESTED;4;Review;;Java
+Java;SYNCH.NESTEDS;4;Review;;Java
+Java;UC.BOOLB;4;Review;;Java
+Java;UC.BOOLS;4;Review;;Java
+Java;UC.STRS;4;Review;;Java
+Java;UC.STRV;4;Review;;Java
+Java;UMC.TOSTRING;4;Review;;Java
+Java;ECC.EMPTY;4;Review;;Java
+Java;EXC.BROADTHROWS;4;Review;;Java
+Java;JD.CATCH;4;Review;;Java
+Java;JD.FINRET;4;Review;;Java
+Java;JD.UNCAUGHT;4;Review;;Java
+Java;JD.CAST.COL;4;Review;;Java
+Java;JD.CAST.KEY;4;Review;;Java
+Java;JD.CAST.SUSP;4;Review;;Java
+Java;JD.CAST.UPCAST;4;Review;;Java
+Java;JD.CONCUR;3;Warning;;Java
+Java;JD.NEXT;4;Review;;Java
+Java;JD.UNMOD;2;Error;;Java
+Java;NPE.COND;1;Critical;;Java
+Java;NPE.CONST;1;Critical;;Java
+Java;NPE.RET;1;Critical;;Java
+Java;NPE.RET.UTIL;1;Critical;;Java
+Java;NPE.STAT;4;Review;;Java
+Java;SV.EXEC;2;Error;;Java
+Java;SV.EXEC.DIR;2;Error;;Java
+Java;SV.EXEC.ENV;2;Error;;Java
+Java;SV.EXEC.LOCAL;3;Warning;;Java
+Java;SV.PATH;3;Warning;;Java
+Java;SV.PATH.INJ;3;Warning;;Java
+Java;SV.SCRIPT;2;Error;;Java
+Java;SV.TMPFILE;3;Warning;;Java
+Java;JD.IFBAD;3;Warning;;Java
+Java;JD.IFEMPTY;3;Warning;;Java
+Java;JD.RC.EXPR.CHECK;4;Review;;Java
+Java;JD.RC.EXPR.DEAD;4;Review;;Java
+Java;JD.UN.MET;4;Review;;Java
+Java;JD.UN.PMET;3;Warning;;Java
+Java;JD.VNU;4;Review;;Java
+Java;JD.VNU.NULL;4;Review;;Java
+Java;REDUN.DEF;4;Review;;Java
+Java;REDUN.EQ;4;Review;;Java
+Java;REDUN.EQNULL;4;Review;;Java
+Java;REDUN.FINAL;4;Review;;Java
+Java;REDUN.NULL;4;Review;;Java
+Java;REDUN.OP;4;Review;;Java
+Java;RNU.THIS;4;Review;;Java
+Java;RLK.AWT;1;Critical;;Java
+Java;RLK.FIELD;4;Review;;Java
+Java;RLK.HIBERNATE;1;Critical;;Java
+Java;RLK.IMAGEIO;1;Critical;;Java
+Java;RLK.IN;1;Critical;;Java
+Java;RLK.JNDI;1;Critical;;Java
+Java;RLK.MAIL;1;Critical;;Java
+Java;RLK.MICRO;1;Critical;;Java
+Java;RLK.NIO;1;Critical;;Java
+Java;RLK.OUT;1;Critical;;Java
+Java;RLK.SOCK;1;Critical;;Java
+Java;RLK.SQLCON;1;Critical;;Java
+Java;RLK.SQLOBJ;1;Critical;;Java
+Java;RLK.SWT;1;Critical;;Java
+Java;RLK.ZIP;1;Critical;;Java
+Java;SV.SERIAL.INON;4;Review;;Java
+Java;SV.SERIAL.NON;4;Review;;Java
+Java;SV.SERIAL.NOREAD;4;Review;;Java
+Java;SV.SERIAL.NOWRITE;4;Review;;Java
+Java;SV.SERIAL.SIG;4;Review;;Java
+Java;SV.CLEXT.CLLOADER;4;Review;;Java
+Java;SV.CLEXT.POLICY;4;Review;;Java
+Java;SV.STRBUF.CLEAN;3;Warning;;Java
+Java;SV.USE.POLICY;4;Review;;Java
+Java;SV.STRUTS.NOTRESET;4;Review;;Java
+Java;SV.STRUTS.NOTVALID;4;Review;;Java
+Java;SV.STRUTS.PRIVATE;4;Review;;Java
+Java;SV.STRUTS.RESETMET;4;Review;;Java
+Java;SV.STRUTS.STATIC;4;Review;;Java
+Java;SV.STRUTS.VALIDMET;4;Review;;Java
+Java;FIN.NOSUPER;3;Warning;;Java
+Java;JD.BITCMP;3;Warning;;Java
+Java;JD.BITMASK;3;Warning;;Java
+Java;JD.BITR;3;Warning;;Java
+Java;JD.CALL.WRONGSTATIC;4;Review;;Java
+Java;JD.EQ.ARR;4;Review;;Java
+Java;JD.EQ.UTA;4;Review;;Java
+Java;JD.EQ.UTC;4;Review;;Java
+Java;JD.INF.AREC;4;Review;;Java
+Java;JD.INST.TRUE;4;Review;;Java
+Java;JD.LIST.ADD;4;Review;;Java
+Java;JD.ST.POS;4;Review;;Java
+Java;JD.UMC.FINALIZE;3;Warning;;Java
+Java;JD.UMC.RUNFIN;3;Warning;;Java
+Java;MNA.CNS;4;Review;;Java
+Java;MNA.SUS;4;Review;;Java
+Java;JD.LOCK;2;Error;;Java
+Java;JD.LOCK.NOTIFY;4;Review;;Java
+Java;JD.LOCK.SLEEP;4;Review;;Java
+Java;JD.LOCK.WAIT;4;Review;;Java
+Java;JD.SYNC.DCL;4;Review;;Java
+Java;JD.SYNC.IN;4;Review;;Java
+Java;JD.THREAD.RUN;4;Review;;Java
+Java;JD.UMC.WAIT;4;Review;;Java
+Java;SV.SHARED.VAR;4;Review;;Java
+Java;SV.CLASSDEF.INJ;2;Error;;Java
+Java;SV.CLASSLOADER.INJ;2;Error;;Java
+Java;SV.CLLOADER;4;Review;;Java
+Java;SV.ECV;4;Review;;Java
+Java;SV.SOCKETS;4;Review;;Java
+Java;SV.UMC.EXIT;4;Review;;Java
+Java;SV.UMC.JDBC;4;Review;;Java
+Java;SV.UMC.THREADS;4;Review;;Java
+Java;SV.UMD.MAIN;4;Review;;Java
+Java;SV.EMAIL;2;Error;;Java
+Java;SV.HTTP_SPLIT;2;Error;;Java
+Java;SV.LOG_FORGING;3;Warning;;Java
+Java;SV.TAINT;3;Warning;;Java
+Java;SV.TAINT_NATIVE;3;Warning;;Java
+Java;SV.XPATH;2;Error;;Java
+Java;UF.IMAGEIO;2;Error;;Java
+Java;UF.IN;2;Error;;Java
+Java;UF.JNDI;2;Error;;Java
+Java;UF.MAIL;2;Error;;Java
+Java;UF.MICRO;2;Error;;Java
+Java;UF.NIO;2;Error;;Java
+Java;UF.OUT;2;Error;;Java
+Java;UF.SOCK;2;Error;;Java
+Java;UF.SQLCON;2;Error;;Java
+Java;UF.SQLOBJ;2;Error;;Java
+Java;UF.ZIP;2;Error;;Java
+Java;SV.EXPOSE.FIELD;4;Review;;Java
+Java;SV.EXPOSE.FIN;4;Review;;Java
+Java;SV.EXPOSE.IFIELD;4;Review;;Java
+Java;SV.EXPOSE.MUTABLEFIELD;4;Review;;Java
+Java;SV.EXPOSE.RET;4;Review;;Java
+Java;SV.EXPOSE.STORE;4;Review;;Java
+Java;SV.HASH.NO_SALT;3;Warning;;Java
+Java;SV.PASSWD.HC;2;Error;;Java
+Java;SV.PASSWD.HC.EMPTY;2;Error;;Java
+Java;SV.PASSWD.PLAIN;2;Error;;Java
+Java;SV.RANDOM;4;Review;;Java
+Java;SV.WEAK.CRYPT;3;Warning;;Java

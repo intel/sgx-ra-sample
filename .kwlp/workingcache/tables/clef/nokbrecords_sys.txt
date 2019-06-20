@@ -1,0 +1,12 @@
+/usr/include/c++/7/bits/exception_ptr.h
+/usr/include/c++/7/bits/functexcept.h
+/usr/include/c++/7/bits/hash_bytes.h
+/usr/include/c++/7/bits/ios_base.h
+/usr/include/c++/7/bits/locale_facets.tcc
+/usr/include/c++/7/bits/predefined_ops.h
+/usr/include/c++/7/bits/stl_tree.h
+/usr/include/c++/7/exception
+/usr/include/c++/7/stdexcept
+/usr/include/c++/7/system_error
+/usr/include/errno.h
+/usr/include/pthread.h

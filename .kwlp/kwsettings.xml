@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectsettings version="1.0">
+  <filters>
+    <filter type="filter.status" enabled="true" stringValue="Analyze|true|Fix|true" />
+    <filter type="filter.severity" enabled="true" stringValue="1|true|2|true" />
+    <filter type="filter.fileset" enabled="false" stringValue="" />
+    <filter type="filter.fileselection" enabled="false" stringValue="" />
+    <filter type="filter.owner" enabled="false" stringValue="&lt;no owner&gt;|true" />
+    <filter type="filter.showonlylocal" enabled="false" />
+    <filter type="filter.taxonomy" enabled="false" stringValue="C and C++|true|Java|true" />
+  </filters>
+  <property key="ignoreBuildErrors" value="false"/>
+</projectsettings>

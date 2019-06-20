@@ -1,0 +1,9 @@
+libsgx_tcrypto.a.kb
+libsgx_tcxx.a.kb
+libsgx_tkey_exchange.a.kb
+libsgx_trts.a.kb
+libsgx_tservice.a.kb
+libsgx_tstdc.a.kb
+libsgx_uae_service.so.kb
+libsgx_ukey_exchange.a.kb
+libsgx_urts.so.kb
