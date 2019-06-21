@@ -38,7 +38,6 @@
     <ProjectGuid>{B3A2EB36-46B7-4E03-8F5B-0A0789E65B81}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>sgxquotecreator</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
     <ProjectName>client</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

@@ -60,7 +60,7 @@
     <ClInclude Include="..\..\win32\getopt.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\agent_winhttp.h">
+    <ClInclude Include="..\..\win32\agent_winhttp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -98,12 +98,13 @@
     <ClCompile Include="..\..\msgio.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\agent_winhttp.cpp">
+    <ClCompile Include="..\..\win32\agent_winhttp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\run-server.cmd" />
     <None Include="..\settings.cmd" />
+    <None Include="..\policy.in" />
   </ItemGroup>
 </Project>

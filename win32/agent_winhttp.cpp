@@ -16,12 +16,12 @@ in the License.
 */
 
 #include <sys/types.h>
-#include "httpparser/response.h"
-#include "httpparser/httpresponseparser.h"
+#include "../httpparser/response.h"
+#include "../httpparser/httpresponseparser.h"
 #include "agent_winhttp.h"
-#include "agent.h"
-#include "common.h"
-#include "iasrequest.h"
+#include "../agent.h"
+#include "../common.h"
+#include "../iasrequest.h"
 #include <windows.h>
 #include <winhttp.h>
 #pragma comment(lib, "winhttp")

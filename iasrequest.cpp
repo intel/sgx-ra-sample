@@ -32,7 +32,7 @@ in the License.
 # define AGENT_WGET
 #endif
 #ifdef AGENT_WINHTTP
-# include "agent_winhttp.h"
+# include "win32/agent_winhttp.h"
 #endif
 #ifdef AGENT_WGET
 # include "agent_wget.h"

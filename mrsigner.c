@@ -54,6 +54,7 @@ int main(int argc, char *argv[])
 	unsigned char modulus[MODULUS_SIZE];
 	unsigned char mrsigner[32]; /* Size of SHA-256 hash */
 	FILE *fp;
+	size_t bread;
 
 	/* Command line options */
 
@@ -90,10 +91,15 @@ int main(int argc, char *argv[])
 
 	cssfile= argv[1];
 
+#ifdef _WIN32
+	if (fopen_s(&fp, cssfile, "rb") != 0) {
+		fprintf(stderr, "fopen_s: ");
+#else
 	fp= fopen(cssfile, "r");
 	if ( fp == NULL ) {
 		fprintf(stderr, "%s: ", cssfile);
 		perror("fopen");
+#endif
 		exit(1);
 	}
 
@@ -107,7 +113,8 @@ int main(int argc, char *argv[])
 
 	/* Read the modulus */
 
-	if ( fread(modulus, MODULUS_SIZE, 1, fp) != 1 ) {
+	bread = fread(modulus, 1, (size_t) MODULUS_SIZE, fp);
+	if ( bread != MODULUS_SIZE ) {
 		fprintf(stderr, "%s: not a valid sigstruct (file too small)\n",
 			cssfile);
 		exit(1);

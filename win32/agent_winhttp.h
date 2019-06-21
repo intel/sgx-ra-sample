@@ -18,10 +18,10 @@ in the License.
 #ifndef __AGENTWINHTTP__H
 #define __AGENTWINHTTP__H
 
-#include "httpparser/response.h"
-#include "iasrequest.h"
-#include "agent.h"
-#include "settings.h"
+#include "../httpparser/response.h"
+#include "../iasrequest.h"
+#include "../agent.h"
+#include "../settings.h"
 
 using namespace std;
 
