@@ -57,13 +57,14 @@ AM_CPPFLAGS += -fno-builtin-memset @OPENSSL_CPPFLAGS@
 ## any edger8r generated files here.
 
 CLEANFILES = Enclave_u.c Enclave_u.h Enclave.edl Enclave.signed.so \
-	policy
+	policy enclave_sigstruct_raw 
+
 
 ## The build target
 
 server: sp
 
-bin_PROGRAMS = client sp 
+bin_PROGRAMS = client sp mrsigner
 
 ## You can't use $(wildcard ...) with automake so all source files 
 ## have to be explicitly listed.
@@ -90,12 +91,18 @@ if AGENT_CURL
 sp_SOURCES += agent_curl.cpp
 endif
 
-## Extract our enclave identity metatdata into a header file
-policy: policy.in Enclave.signed.so
+## mrsigner (helper app)
+
+mrsigner_SOURCES = mrsigner.cpp crypto.c hexutil.c
+
+## Extract the enclave SIGSTRUCT and use it to calculate MRSIGNER
+policy: mrsigner policy.in Enclave.signed.so
 	$(SGX_SIGN) dump -cssfile enclave_sigstruct_raw -dumpfile /dev/null -enclave Enclave.signed.so
-	sed -e "s^@MRSIGNER@^`dd skip=128 count=384 bs=1 if=enclave_sigstruct_raw 2>/dev/null|sha256sum -b|cut -d' ' -f1`^" policy.in > policy && rm -f enclave_sigstruct_raw
+	sed -e "s^@MRSIGNER@^`./mrsigner enclave_sigstruct_raw`^" policy.in > policy
+	rm -f enclave_sigstruct_raw
 
 sp_LDFLAGS= $(AM_LDFLAGS) @OPENSSL_LDFLAGS@ @CURL_LDFLAGS@
+mrsigner_LDFLAGS= $(AM_LDFLAGS) @OPENSSL_LDFLAGS@
 
 ## Library flags. At minimum, an Intel SGX application will need:
 ##
