@@ -2,6 +2,7 @@ logfile.c_13.o
 base64.c_11.o
 quote_size.c_5.o
 byteorder.c_6.o
+Enclave_u.c_22.o
 msgio.cpp_12.o
 fileio.c_10.o
 client.cpp_2.o
@@ -9,5 +10,4 @@ sgx_stub.c_4.o
 common.cpp_7.o
 sgx_detect_linux.c_3.o
 crypto.c_8.o
-Enclave_u.c_14.o
 hexutil.c_9.o

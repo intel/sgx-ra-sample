@@ -13,6 +13,7 @@
 /nfs/home/johnm/git/sgx-ra-sample/hexutil.c;/nfs/home/johnm/git/sgx-ra-sample/hexutil.c
 /nfs/home/johnm/git/sgx-ra-sample/logfile.c;/nfs/home/johnm/git/sgx-ra-sample/logfile.c
 /nfs/home/johnm/git/sgx-ra-sample/common.cpp;/nfs/home/johnm/git/sgx-ra-sample/common.cpp
+/nfs/home/johnm/git/sgx-ra-sample/mrsigner.c;/nfs/home/johnm/git/sgx-ra-sample/mrsigner.c
 /nfs/home/johnm/git/sgx-ra-sample/crypto.c;/nfs/home/johnm/git/sgx-ra-sample/crypto.c
 /nfs/home/johnm/git/sgx-ra-sample/enclave_verify.c;/nfs/home/johnm/git/sgx-ra-sample/enclave_verify.c
 /nfs/home/johnm/git/sgx-ra-sample/Enclave/Enclave.cpp;/nfs/home/johnm/git/sgx-ra-sample/Enclave/Enclave.cpp

@@ -1,12 +1,13 @@
 /nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/modern/obj/quote_size.c_5.o;/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/obj/quote_size.c_5.o
 /nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/modern/obj/iasrequest.cpp_17.o;/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/obj/iasrequest.cpp_17.o
 /nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/modern/obj/logfile.c_13.o;/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/obj/logfile.c_13.o
-/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/modern/obj/Enclave_u.c_14.o;/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/obj/Enclave_u.c_14.o
 /nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/modern/obj/sp.cpp_15.o;/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/obj/sp.cpp_15.o
+/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/modern/obj/Enclave_u.c_22.o;/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/obj/Enclave_u.c_22.o
 /nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/modern/obj/client.cpp_2.o;/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/obj/client.cpp_2.o
 /nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/modern/obj/msgio.cpp_12.o;/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/obj/msgio.cpp_12.o
 /nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/modern/obj/fileio.c_10.o;/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/obj/fileio.c_10.o
-/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/modern/obj/Enclave_t.c_0.o;/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/obj/Enclave_t.c_0.o
+/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/modern/obj/mrsigner.c_20.o;/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/obj/mrsigner.c_20.o
+/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/modern/obj/Enclave_t.c_21.o;/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/obj/Enclave_t.c_21.o
 /nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/modern/obj/crypto.c_8.o;/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/obj/crypto.c_8.o
 /nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/modern/obj/enclave_verify.c_18.o;/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/obj/enclave_verify.c_18.o
 /nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/modern/obj/hexutil.c_9.o;/nfs/home/johnm/git/sgx-ra-sample/.kwlp/workingcache/tables/obj/hexutil.c_9.o

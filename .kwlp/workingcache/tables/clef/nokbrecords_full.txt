@@ -93,12 +93,10 @@ List of functions with unknown behavior (and their header files)
     OPENSSL_sk_is_sorted;    /usr/include/openssl/stack.h
     OPENSSL_sk_new;    /usr/include/openssl/stack.h
     OPENSSL_sk_new_null;    /usr/include/openssl/stack.h
-    OPENSSL_sk_new_reserve;    /usr/include/openssl/stack.h
     OPENSSL_sk_num;    /usr/include/openssl/stack.h
     OPENSSL_sk_pop;    /usr/include/openssl/stack.h
     OPENSSL_sk_pop_free;    /usr/include/openssl/stack.h
     OPENSSL_sk_push;    /usr/include/openssl/stack.h
-    OPENSSL_sk_reserve;    /usr/include/openssl/stack.h
     OPENSSL_sk_set;    /usr/include/openssl/stack.h
     OPENSSL_sk_set_cmp_func;    /usr/include/openssl/stack.h
     OPENSSL_sk_shift;    /usr/include/openssl/stack.h
@@ -181,6 +179,7 @@ List of functions with unknown behavior (and their header files)
 <SYSTEM>    std::_Fnv_hash_bytes;    /usr/include/c++/7/bits/hash_bytes.h
 <SYSTEM>    std::_Hash_bytes;    /usr/include/c++/7/bits/hash_bytes.h
 <SYSTEM>    std::_Rb_tree_increment;    /usr/include/c++/7/bits/stl_tree.h
+<SYSTEM>    std::_Rb_tree_insert_and_rebalance;    /usr/include/c++/7/bits/stl_tree.h
 <SYSTEM>    std::_V2::error_category::equivalent;    /usr/include/c++/7/system_error
 <SYSTEM>    std::_V2::generic_category;    /usr/include/c++/7/system_error
 <SYSTEM>    std::_V2::system_category;    /usr/include/c++/7/system_error

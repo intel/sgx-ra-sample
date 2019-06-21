@@ -18,3 +18,4 @@
 /nfs/home/johnm/git/sgx-ra-sample/iasrequest.o;/nfs/home/johnm/git/sgx-ra-sample/iasrequest.cpp;0
 /nfs/home/johnm/git/sgx-ra-sample/enclave_verify.o;/nfs/home/johnm/git/sgx-ra-sample/enclave_verify.c;0
 /nfs/home/johnm/git/sgx-ra-sample/agent_curl.o;/nfs/home/johnm/git/sgx-ra-sample/agent_curl.cpp;0
+/nfs/home/johnm/git/sgx-ra-sample/mrsigner.o;/nfs/home/johnm/git/sgx-ra-sample/mrsigner.c;0

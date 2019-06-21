@@ -1,6 +1,6 @@
-/nfs/home/johnm/git/sgx-ra-sample/Enclave/Enclave_t.o;/nfs/home/johnm/git/sgx-ra-sample/Enclave/Enclave_t.c;0;1;4;14
+/nfs/home/johnm/git/sgx-ra-sample/Enclave/Enclave_t.o;/nfs/home/johnm/git/sgx-ra-sample/Enclave/Enclave_t.c;0;1;4;22
 /nfs/home/johnm/git/sgx-ra-sample/Enclave/Enclave.o;/nfs/home/johnm/git/sgx-ra-sample/Enclave/Enclave.cpp;0
-/nfs/home/johnm/git/sgx-ra-sample/client.o;/nfs/home/johnm/git/sgx-ra-sample/client.cpp;0;3;4;5;7;8;9;10;11;12;13;14
+/nfs/home/johnm/git/sgx-ra-sample/client.o;/nfs/home/johnm/git/sgx-ra-sample/client.cpp;0;1;3;4;5;7;8;9;10;11;12;13
 /nfs/home/johnm/git/sgx-ra-sample/sgx_detect_linux.o;/nfs/home/johnm/git/sgx-ra-sample/sgx_detect_linux.c;0;4
 /nfs/home/johnm/git/sgx-ra-sample/sgx_stub.o;/nfs/home/johnm/git/sgx-ra-sample/sgx_stub.c;0
 /nfs/home/johnm/git/sgx-ra-sample/quote_size.o;/nfs/home/johnm/git/sgx-ra-sample/quote_size.c;0;4
@@ -15,6 +15,7 @@
 /nfs/home/johnm/git/sgx-ra-sample/Enclave_u.o;/nfs/home/johnm/git/sgx-ra-sample/Enclave_u.c;0;4
 /nfs/home/johnm/git/sgx-ra-sample/sp.o;/nfs/home/johnm/git/sgx-ra-sample/sp.cpp;0;6;7;8;9;10;11;12;13;17;18
 /nfs/home/johnm/git/sgx-ra-sample/agent_wget.o;/nfs/home/johnm/git/sgx-ra-sample/agent_wget.cpp;0;7;17
-/nfs/home/johnm/git/sgx-ra-sample/iasrequest.o;/nfs/home/johnm/git/sgx-ra-sample/iasrequest.cpp;0;7;8;9;11;19
+/nfs/home/johnm/git/sgx-ra-sample/iasrequest.o;/nfs/home/johnm/git/sgx-ra-sample/iasrequest.cpp;0;7;8;9;11
 /nfs/home/johnm/git/sgx-ra-sample/enclave_verify.o;/nfs/home/johnm/git/sgx-ra-sample/enclave_verify.c;0;7;9
 /nfs/home/johnm/git/sgx-ra-sample/agent_curl.o;/nfs/home/johnm/git/sgx-ra-sample/agent_curl.cpp;0;17
+/nfs/home/johnm/git/sgx-ra-sample/mrsigner.o;/nfs/home/johnm/git/sgx-ra-sample/mrsigner.c;0;8;9

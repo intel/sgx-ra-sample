@@ -5,7 +5,6 @@ CMAC_CTX_new -  CHECKRET 0
 new[] ,unsigned\ long\ int,  CHECKRET 0
 curl_easy_init -  CHECKRET 0
 EVP_sha256 -  CHECKRET 0
-strchr ,char*,int,  CHECKRET 0
 BN_new -  CHECKRET 0
 fopen -  CHECKRET 0
 inet_ntop -  CHECKRET 0
@@ -33,6 +32,7 @@ getenv -  CHECKRET 0
 BN_lebin2bn -  CHECKRET 0
 EVP_aes_128_cbc -  CHECKRET 0
 key_private_from_bytes -  CHECKRET 0
+strchr -  CHECKRET 0
 BIO_s_mem -  CHECKRET 0
 fgets -  CHECKRET 0
 _load_symbol -  CHECKRET 1
