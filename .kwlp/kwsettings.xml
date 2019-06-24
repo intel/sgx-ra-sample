@@ -9,5 +9,5 @@
     <filter type="filter.showonlylocal" enabled="false" />
     <filter type="filter.taxonomy" enabled="false" stringValue="C and C++|true|Java|true" />
   </filters>
-  <property key="ignoreBuildErrors" value="false"/>
+  <property key="ignoreBuildErrors" value="true"/>
 </projectsettings>

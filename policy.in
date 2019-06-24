@@ -1,5 +1,11 @@
-# Enclave policy file. Determines which enclaves are accept by theservice
-# provider (after their quote data has been verified).
+# Enclave policy file. Determines which enclaves are accept by the
+# service provider (after their quote data has been verified).
+#
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# This file is generated from policy.in after the signed enclave file is
+# created. MRSIGNER is calculated from Enclave.signed.so, and the
+# other values are hardcoded. 
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # This hex string should match the signer of the enclave. This is used to
 # prevents unauthorized enclaves (those from unrecognized ISVs/developers)

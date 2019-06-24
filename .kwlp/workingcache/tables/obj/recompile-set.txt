@@ -1,3 +1,1 @@
-/nfs/home/johnm/git/sgx-ra-sample/Enclave_u.o
-/nfs/home/johnm/git/sgx-ra-sample/mrsigner.o
 /nfs/home/johnm/git/sgx-ra-sample/Enclave/Enclave_t.o
