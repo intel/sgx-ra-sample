@@ -7,7 +7,6 @@
   * [Linux*](#build-linux)
     * [Linux build notes](#build-linux-notes)
   * [Windows*](#build-win)
-    * [Windows build notes](#build-win-notes)
 * [Running (Quick-start)](#running-quick)
 * [Running (Advanced)](#running-adv)
 * [Sample Output](#output)
@@ -30,53 +29,19 @@ For more information on developing applications with Intel SGX, visit the [Intel
 
 ## <a name="new"></a>What's New
 
-### v2.2.2
+See the [full release history](CHANGES.md).
 
-Released on 9/28/2018.
+### v3.0
 
- * Verify that the report version matches the API version when
-   retrieving attestation evidence. This applies to IAS API v3
-   and later.
+Release on 7/x/2019.
 
- * (Linux) Add basic signal-handling to the server to gracefully shutdown
-   the listening socket on an interrupt. This should prevent "address already
-   in use" errors if the server is interrupted and then restarted rapidly.
+ * Switch from user certificate authentication to API subscription keys, per
+   version 3 of the Attestation API.
 
- * (Linux) Don't complain if OPENSSL_LIBDIR is not set in the wrapper scripts
-   run-client and run-server.
+ * (Windows) Provide native client agent via WinHTTP, replacing libcurl.
 
-### v2.2.1
-
-Released on 9/18/2018.
-
- * Added verification of the enclave report by computing the SHA256
-   hash of Ga || Gb || VK and comparing the result to the first
-   32 bytes of quote.report\_body.report\_data. Also verify next 32
-   bytes of report_data is a block of 0x00's
-
- * Created an ra_session_t data structure to separate session data
-   from global configuration variables.
-
-### v2.1
-
-Released on 9/7/2018.
-
- * Added -X switch (--strict-trust-mode) so the service provider can choose
-   whether or not to trust enclaves that result in a CONFIGURATION_NEEDED
-   status from IAS. Previously, any result that was not OK resulted in a
-   "not trusted" result.
-
- * Added Trusted_Complicated and NotTrusted_Complicated response codes.
-   When a trust result is complicated, the client can be brought into
-   full compliance by taking action that's reported in the Platform
-   Information Block (PIB).
-
- * Added derivations of the MK and SK keys in the client and server so.
-
- * Added POLICY_STRICT_TRUST variable to settings files for both Linux
-   and Windows (see -X, above)
-
- * Various tweaks to documentation and comments.
+ * Add Enclave verification policy checks for: MRSIGNER, ProdId, and ISVSVN.
+   Also add option to reject enclaves that are built in Debug mode.
 
 ## <a name="license"></a>License
 
@@ -101,7 +66,7 @@ The service provider's remote attestation server _does not require Intel SGX har
 
 * Ensure that you have built and installed the Intel SGX packages:
 
-  * [Intel SGX Software Development Kit and Platform Software package for Linux](https://github.com/intel/linux-sgx)
+  * [Intel SGX Software Development Kit and Platform Software package for Linux](https://github.com/intel/linux-sgx) 2.5 or later
   * [Intel SGX Driver for Linux](https://github.com/intel/linux-sgx)
 
 
@@ -147,7 +112,8 @@ First, prepare the build system (GNU* automake and autoconf) by running `bootstr
   $ make
   ```
 
-As this is a code sample and not a full application, 'make install' not recommended.
+As this is a code sample and not a production application, 'make install' is
+not implemented.
 
 Both `make clean` and `make distclean` are supported.
 
@@ -181,17 +147,11 @@ You can build the client for simulation mode using `--enable-sgx-simulation`. No
 
   * Windows 10 64-bit
   * Microsoft* Visual Studio 2015 (Professional edition or better)
-  * [Intel SGX SDK and Platform Software for Windows](https://software.intel.com/en-us/sgx-sdk/download)
-
+  * [Intel SGX SDK and Platform Software for Windows](https://software.intel.com/en-us/sgx-sdk/download) v2.3 or later
 
 * Install OpenSSL 1.1.0 for Windows. The [Win64 OpenSSL v1.1.0 package from Shining Light Productions](https://slproweb.com/products/Win32OpenSSL.html) is recommended. **Select the option to copy the DLL's to your Windows system directory.**
 
 * Download [applink.c](https://github.com/openssl/openssl/blob/master/ms/applink.c) from GitHub and install it to OpenSSL's `include\openssl` directory.
-
-* Install libcurl 7 for Windows. The [cURL distribution from Confused by Code](http://www.confusedbycode.com/curl/) is recommended because it was built against OpenSSL using Visual Studio 2015, has no external dependencies, and is packaged with an installer. It includes a certificate bundle, libraries, and the headers necessary for development (though **you'll need to choose the advanced install option to include the headers**). Note that this is an older build of cURL (7.46.0 as of this writing). You may be able to find newer builds of the complete libcurl package.
-
-* Copy `libcurl.dll` to your Windows system directory (generally `C:\WINDOWS\SYSTEM32`).
-
 
 #### Configure and Compile
 
@@ -211,16 +171,10 @@ You can build the client for simulation mode using `--enable-sgx-simulation`. No
 
   * Open the **sp** project properties
 
-  * Navigate to "C/C++ -> General" and edit "Additional Include Directories" to include your curl and OpenSSL include paths. These are pre-set to `C:\Program Files\cURL\include` and `C:\OpenSSL-Win64\include` which are the default locations for the recommended packages.
-
   * Navigate to "Linker -> Additional Library Directories" and edit "Additional Library Directories" to include your curl and OpenSSL library paths. These are pre-set to `C:\Program Files\cURL\lib` and `C:\OpenSSL-Win64\lib\VC\` which are the default locations for the recommended packages.
 
 
 * Build the Solution. The binaries will be written to `vs\x64\Debug`
-
-#### <a name="build-win-notes"></a>Windows build notes
-
-The Windows sample uses libcurl instead of Windows native APIs for contacting IAS. At this time, the Intel Attestation Service development server (which most ISV's use during their application and service testing phase) is not compatible with WinHTTP/WinInet due to the amount of data sent by IAS during the TLS handshake.
 
 ## <a name="running-quick"></a>Running the Sample (Quick Start Guide)
 
@@ -233,7 +187,7 @@ The client and server use a very simplistic network protocol with _no error hand
 Two wrapper scripts, `run-client` and `run-server` are provided for convenience. These are Bourne shell scripts that do the following:
 
 * Set LD_LIBRARY_PATH
-* Parse the `settings` file (which is sourced as a shell script)
+* Parse the `settings` and `policy` files (which are sourced as shell scripts)
 * Execute the client or server application with the corresponding command-line options
 
 You can pass command-line options to the underlying executables via the wrapper scripts.
@@ -254,11 +208,18 @@ To execute:
   ./run-client [ options ] [ host[:post] ]
   ```
 
+The `policy` file is automatically generated for you from the Enclave metadata
+in `Enclave_config.xml` and the signed enclave, `Enclave.signed.so`. In order to test
+the policy validation functions, you can edit the parameters in this file and
+restart the server. Your changes will be lost, however, if you do a
+`make clean`.
+
 ### Windows
 
 Two wrapper scripts, `run-client.cmd` and `run-server.cmd` are provided for convenience. These are Windows CMD-style batch files that do the following:
 
-* Parse the `settings.cmd` file (which is called as a batch file)
+* Parse the `settings.cmd` and `policy.cmd` files (which are called as batch files)
+
 * Execute the client.exe or sp.exe applications with the corresponding command-line options.
 
 You can pass command-line options to the underlying executables via the wrapper scripts. Note that it expects UNIX-style syntax (dashes), not Windows-style (slashes).
@@ -279,6 +240,12 @@ To execute:
   run-client [ options ] [ host[:port] ]
   ```
 
+The `policy.cmd` file is automatically generated for you from the Enclave metadata
+in `Enclave_config.xml and the signed enclave, `Enclave.signed.dll`. In order to test
+the policy validation functions, you can edit the parameters in this file and
+restart the server. Your changes will be lost, however, if you clean or rebuild
+the project.
+
 ## <a name="running-adv"></a>Running the Sample (Advanced Options)
 
 Use verbose mode (`-v`) to see additional details about the messages sent between the client and server. This information is printed to stderr.
@@ -292,27 +259,40 @@ usage: client [ options ] [ host[:port] ]
 
 Required:
   -N, --nonce-file=FILE    Set a nonce from a file containing a 32-byte
-                             ASCII hex string
+                           ASCII hex string
+
   -P, --pubkey-file=FILE   File containing the public key of the service
-                             provider.
+                           provider.
+
   -S, --spid-file=FILE     Set the SPID from a file containing a 32-byte
-                             ASCII hex string
+                           ASCII hex string
+
   -d, --debug              Show debugging information
+
   -e, --epid-gid           Get the EPID Group ID instead of performing
-                             an attestation.
+                           an attestation.
+
   -l, --linkable           Specify a linkable quote (default: unlinkable)
+
   -m, --pse-manifest       Include the PSE manifest in the quote
+
   -n, --nonce=HEXSTRING    Set a nonce from a 32-byte ASCII hex string
+
   -p, --pubkey=HEXSTRING   Specify the public key of the service provider
-                             as an ASCII hex string instead of using the
-                             default.
+                           as an ASCII hex string instead of using the
+                           default.
+
   -q                       Generate a quote instead of performing an
-                             attestation.
+                           attestation.
+
   -r                       Generate a nonce using RDRAND
+
   -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string
+
   -v, --verbose            Print decoded RA messages to stderr
+
   -z                       Read from stdin and write to stdout instead
-                             connecting to a server.
+                           connecting to a server.
 
 ```
 By default, the client connects to a server running on localhost, port 7777, and attempts a remote attestation.
@@ -327,69 +307,106 @@ The `-p` and `-P` options let you override the service provider's public key for
 
 ```
 usage: sp [ options ] [ port ]
-Required: NL
-  -A, --ias-signing-cafile=FILE NL
-                           Specify the IAS Report Signing CA file. NNL
-Required (one of): NL
-  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte NL
-                           ASCII hex string. NNL
-  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string. NNL
-Required (one of): NL
-  -I, --ias-pri-api-key-file=FILE NL
-                           Set the IAS Primary Subscription Key from a NL
-                           file containing a 32-byte ASCII hex string. NNL
-  -i, --ias-pri-api-key=HEXSTRING NL
-                           Set the IAS Primary Subscription Key from a NL
-                           32-byte ASCII hex string. NNL
-Required (one of): NL
-  -J, --ias-sec-api-key-file=FILE NL
-                           Set the IAS Secondary Subscription Key from a NL
-                           file containing a 32-byte ASCII hex string. NNL
-  -j, --ias-sec-api-key=HEXSTRING NL
-                           Set the IAS Secondary Subscription Key from a NL
-                           32-byte ASCII hex string. NNL
-Optional: NL
-  -B, --ca-bundle-file=FILE NL
-                           Use the CA certificate bundle at FILE (default: NL
-                            << DEFAULT_CA_BUNDLE << ) NNL
-  -G, --list-agents        List available user agent names for --user-agent NNL
-  -K, --service-key-file=FILE NL
-                           The private key file for the service in PEM NL
-                           format (default: use hardcoded key). The  NL
-                           client must be given the corresponding public NL
-                           key. Can't combine with --key. NNL
-  -P, --production         Query the production IAS server instead of dev. NNL
-  -X, --strict-trust-mode  Don't trust enclaves that receive a  NL
-                           CONFIGURATION_NEEDED response from IAS  NL
-                           (default: trust) NNL
-  -d, --debug              Print debug information to stderr. NNL
-  -g, --user-agent=NAME    Use NAME as the user agent for contacting IAS. NNL
-  -k, --key=HEXSTRING      The private key as a hex string. See --key-file NL
-                           for notes. Can't combine with --key-file. NNL
-  -l, --linkable           Request a linkable quote (default: unlinkable). NNL
-  -p, --proxy=PROXYURL     Use the proxy server at PROXYURL when contacting NL
-                           IAS. Can't combine with --no-proxy NNL
-  -r, --api-version=N      Use version N of the IAS API (default:  << to_string(IAS_API_DEF_VERSION) << ) NNL
-  -v, --verbose            Be verbose. Print message structure details and NL
-                           the results of intermediate operations to stderr. NNL
-  -x, --no-proxy           Do not use a proxy (force a direct connection),  NL
-                           overriding environment. NNL
-  -z  --stdio              Read from stdin and write to stdout instead of NL
+Required:
+  -A, --ias-signing-cafile=FILE
+                           Specify the IAS Report Signing CA file.
+
+  -N, --mrsigner=HEXSTRING
+                           Specify the MRSIGNER value of encalves that
+                           are allowed to attest. Enclaves signed by
+                           other signing keys are rejected.
+
+  -R, --isv-product-id=INT
+                           Specify the ISV Product Id for the service.
+                           Only Enclaves built with this Product Id
+                           will be accepted.
+
+  -V, --min-isv-svn=INT
+                           The minimum ISV SVN that the service provider
+                           will accept. Enclaves with a lower ISV SVN
+                           are rejected.
+
+Required (one of):
+  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte
+                           ASCII hex string.
+
+  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string.
+
+Required (one of):
+  -I, --ias-pri-api-key-file=FILE
+                           Set the IAS Primary Subscription Key from a
+                           file containing a 32-byte ASCII hex string.
+
+  -i, --ias-pri-api-key=HEXSTRING
+                           Set the IAS Primary Subscription Key from a
+                           32-byte ASCII hex string.
+
+Required (one of):
+
+  -J, --ias-sec-api-key-file=FILE
+                           Set the IAS Secondary Subscription Key from a
+                           file containing a 32-byte ASCII hex string.
+
+  -j, --ias-sec-api-key=HEXSTRING
+                           Set the IAS Secondary Subscription Key from a
+                           32-byte ASCII hex string.
+
+Optional:
+  -B, --ca-bundle-file=FILE
+                           Use the CA certificate bundle at FILE (default:
+                           /etc/ssl/certs/ca-certificates.crt)
+
+  -D, --no-debug-enclave   Reject Debug-mode enclaves (default: accept)
+
+  -G, --list-agents        List available user agent names for --user-agent
+
+  -K, --service-key-file=FILE
+                           The private key file for the service in PEM
+                           format (default: use hardcoded key). The
+                           client must be given the corresponding public
+                           key. Can't combine with --key.
+
+  -P, --production         Query the production IAS server instead of dev.
+
+  -X, --strict-trust-mode  Don't trust enclaves that receive a
+                           CONFIGURATION_NEEDED response from IAS
+                           (default: trust)
+
+  -d, --debug              Print debug information to stderr.
+
+  -g, --user-agent=NAME    Use NAME as the user agent for contacting IAS.
+
+  -k, --key=HEXSTRING      The private key as a hex string. See --key-file
+                           for notes. Can't combine with --key-file.
+
+  -l, --linkable           Request a linkable quote (default: unlinkable).
+
+  -p, --proxy=PROXYURL     Use the proxy server at PROXYURL when contacting
+                           IAS. Can't combine with --no-proxy
+
+  -r, --api-version=N      Use version N of the IAS API (default: 3)
+
+  -v, --verbose            Be verbose. Print message structure details and
+                           the results of intermediate operations to stderr.
+
+  -x, --no-proxy           Do not use a proxy (force a direct connection),
+                           overriding environment.
+
+  -z  --stdio              Read from stdin and write to stdout instead of
                            running as a network server.
+```
 
-You set the user agent with `-g` (a list of supported agents can be obtained from `-G`). On Linux, this is one of either **wget** or **libcurl** (unless the latter is disabled in the build configuration). On Windows, **libcurl** is the only agent.
+You set the user agent with `-g` (a list of supported agents can be obtained from `-G`). On Linux, this is one of either **wget** or **libcurl** (unless the latter is disabled in the build configuration). On Windows, **winhttp** is the only agent.
 
-By default, the server uses protocol version 2 when communicating with IAS. This can be changed with `-r`. Version 1 has been deprecated.
+By default, the server uses protocol version 3 when communicating with IAS. This can be changed with `-r`. Versions 1 and 2 have been deprecated.
 
 You can override the service provider private key with `-k` or `-K`. As with the client, this key would normally be hardcoded into the server to prevent it from handling unauthorized clients.
-
-The certificate used by the server when communicating with IAS must be from a recognized CA. If you use a self-signed certificate, the signing CA must be added to your CA bundle or it will be rejected (a full certificate chain in the client certificate file is allowed).
 
 You can force the server to use a proxy when communicating with IAS via `-p`, or to use a direct connection via `-x`.
 
 As with the client, the server can be run in interactive mode via `-z`, accepting input from stdin and writing to stdout. This makes it possible to copy and paste output from the client to the server, and visa-versa.
 
-By default, the server trsuts enclaves that result in a CONFIGURATION_NEEDED response from IAS. Enable strict mode with `-X` to mark these enclaves as untrusted. This is a policy decision: the service provider should decide whether or not to trust the enclave in this circumstance.
+By default, the server trusts enclaves that result in a CONFIGURATION_NEEDED response from IAS. Enable strict mode with `-X` to mark these enclaves as untrusted. This is a policy decision: the service provider should decide whether or not to trust the enclave in this circumstance.
 
 
 ## <a name="output"></a>Sample output
