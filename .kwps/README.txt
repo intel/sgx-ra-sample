@@ -1,1 +1,0 @@
-Klocwork project settings
