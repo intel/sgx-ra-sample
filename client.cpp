@@ -1013,6 +1013,10 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 	}
 
 	b64quote = (LPTSTR)(malloc(sz_b64quote));
+	if (b64quote == NULL) {
+		perror("malloc");
+		return 1;
+	}
 	if (CryptBinaryToString((BYTE *) quote, sz, CRYPT_STRING_BASE64|CRYPT_STRING_NOCRLF, b64quote, &sz_b64quote) == FALSE) {
 		fprintf(stderr, "CryptBinaryToString: could not get Base64 encoded quote length\n");
 		return 1;
@@ -1025,6 +1029,12 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 		}
 
 		b64manifest = (LPTSTR)(malloc(sz_b64manifest));
+		if (b64manifest == NULL) {
+			free(b64quote);
+			perror("malloc");
+			return 1;
+		}
+
 		if (CryptBinaryToString((BYTE *)pse_manifest, (uint32_t)(pse_manifest_sz), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, b64manifest, &sz_b64manifest) == FALSE) {
 			fprintf(stderr, "CryptBinaryToString: could not get Base64 encoded manifest length\n");
 			return 1;
