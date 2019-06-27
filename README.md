@@ -171,8 +171,7 @@ You can build the client for simulation mode using `--enable-sgx-simulation`. No
 
   * Open the **sp** project properties
 
-  * Navigate to "Linker -> Additional Library Directories" and edit "Additional Library Directories" to include your curl and OpenSSL library paths. These are pre-set to `C:\Program Files\cURL\lib` and `C:\OpenSSL-Win64\lib\VC\` which are the default locations for the recommended packages.
-
+  * Navigate to "Linker -> Additional Library Directories" and edit "Additional Library Directories" to include your OpenSSL library path. This is pre-set to `C:\OpenSSL-Win64\lib\VC\` which is the default install location.
 
 * Build the Solution. The binaries will be written to `vs\x64\Debug`
 
@@ -181,6 +180,34 @@ You can build the client for simulation mode using `--enable-sgx-simulation`. No
 By default, the server listens on port 7777 and the client connects to localhost. The server will make use of system proxy settings when contacting IAS.
 
 The client and server use a very simplistic network protocol with _no error handling and no encryption_. Messages are sent using base 16 encoding (printed hex strings) for easy reading and interpretation. The intent here is to demonstrate the RA procedures and the modified Sigma protocol, not model a real-world application. _It's assumed that a real ISV would integrate RA flows into their existing service infrastructure (e.g. a REST API implemented over a TLS session)._
+
+### Enclave Verification Policy
+
+The build process automatically generates a file named ```policy``` on Linux (```policy.cmd``` on
+Windows) which contains the enclave verification policy settings. The server validates the enclave
+by examining the contents of the report, and ensuring the following attributes in the report match
+those specified in the policy file:
+
+ * The enclave's MRSIGNER value (this is a SHA256 hash generated from the signing key)
+
+ * The Product ID number ('''ProdID''' in `Enclave.config.xml`)
+
+ * The software vendor's enclave version number ('''ISVSVN''' in `Enclave.config.xml`)
+
+ * Whether or not the enclave was built in debug mode
+
+The policy file is prepopulated with the correct values. By modifying the parameters in the
+policy file, you can create requirements that the enclave report doesn't meet and thus
+trigger attestation failures.
+
+This demonstrates one of the key functions of remote attestation: the client enclave can be
+rejected if it originates from an unrecognized signer, containes an unrecognized product identifier,
+or if it's simply too old. The first prevents unauthorized and unknown enclaves from using the
+service. The latter two allows software venders to force end users to update their software.
+
+The policy file is also set to specifically allow debug-mode enclaves. ''This is acceptable
+for a code sample, but a debug-mode enclave should never, ever be accepted by production service
+provider!''
 
 ### Linux
 
@@ -407,7 +434,6 @@ You can force the server to use a proxy when communicating with IAS via `-p`, or
 As with the client, the server can be run in interactive mode via `-z`, accepting input from stdin and writing to stdout. This makes it possible to copy and paste output from the client to the server, and visa-versa.
 
 By default, the server trusts enclaves that result in a CONFIGURATION_NEEDED response from IAS. Enable strict mode with `-X` to mark these enclaves as untrusted. This is a policy decision: the service provider should decide whether or not to trust the enclave in this circumstance.
-
 
 ## <a name="output"></a>Sample output
 

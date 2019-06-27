@@ -1,14 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>
-    </LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-i 12f2b7041f224e9d9e85c3efb8e2cb53 -j 0b64f54689824659b6394ca8b4f83074 -s 9C18B569BED99592C0A482DF006DAC9F -A IASReportSigningCACert.pem   --proxy=http://proxy-us.intel.com:911/ -l -X -v  --mrsigner=bd71c6380ef77c5417e8b2d1ce2d4b6504b9f418e5049342440cfff2443d95bd --isv-product-id=0 --min-isv-svn=1</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>
-    </LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-i 12f2b7041f224e9d9e85c3efb8e2cb53 -j 0b64f54689824659b6394ca8b4f83074 -s 9C18B569BED99592C0A482DF006DAC9F -A IASReportSigningCACert.pem   --proxy=http://proxy-us.intel.com:911/ -l -X -v  --mrsigner=bd71c6380ef77c5417e8b2d1ce2d4b6504b9f418e5049342440cfff2443d95bd --isv-product-id=0 --min-isv-svn=1</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
