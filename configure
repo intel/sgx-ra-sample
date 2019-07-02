@@ -635,6 +635,7 @@ AGENT_CURL_SRC
 OPENSSL_LIBDIR
 OPENSSL_LDFLAGS
 OPENSSL_CPPFLAGS
+have_xxd
 EGREP
 GREP
 SGX_HW_SIM_FALSE
@@ -4758,16 +4759,6 @@ else
 fi
 
 
-if test "$openssl" != ""; then :
-
-	old_LDFLAGS="$LDFLAGS"
-	old_LIBS="$LIBS"
-	old_CPPFLAGS="$CPPFLAGS"
-	LDFLAGS="$LDFLAGS -L${openssl}/lib"
-	CPPFLAGS="$CPPFLAGS -I${openssl}/include"
-
-fi
-
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for grep that handles long lines and -e" >&5
@@ -4899,6 +4890,75 @@ fi
 $as_echo "$ac_cv_path_EGREP" >&6; }
  EGREP="$ac_cv_path_EGREP"
 
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <$SGXSDK/include/sgx_uae_service.h>
+
+_ACEOF
+if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
+  $EGREP "bool refresh_att_key" >/dev/null 2>&1; then :
+
+
+$as_echo "#define UAE_SERVICE_HAS_BOOL 1" >>confdefs.h
+
+
+fi
+rm -f conftest*
+
+
+# Extract the first word of "xxd", so it can be a program name with args.
+set dummy xxd; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_path_have_xxd+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  case $have_xxd in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_have_xxd="$have_xxd" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_have_xxd="$as_dir/$ac_word$ac_exec_ext"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+have_xxd=$ac_cv_path_have_xxd
+if test -n "$have_xxd"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $have_xxd" >&5
+$as_echo "$have_xxd" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+if test "$have_xxd" = ""; then :
+  as_fn_error $? "xxd not installed" "$LINENO" 5
+fi
+
+if test "$openssl" != ""; then :
+
+	old_LDFLAGS="$LDFLAGS"
+	old_LIBS="$LIBS"
+	old_CPPFLAGS="$CPPFLAGS"
+	LDFLAGS="$LDFLAGS -L${openssl}/lib"
+
+fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ANSI C header files" >&5
 $as_echo_n "checking for ANSI C header files... " >&6; }

@@ -39,6 +39,7 @@ extern int debug, verbose;
 #define CHUNK_SZ 8192
 #define WGET_NO_ERROR		0
 #define WGET_SERVER_ERROR	8
+#define WGET_AUTH_ERROR		6
 
 string AgentWget::name= "wget";
 
@@ -104,26 +105,6 @@ retry_write:
 		wget_args.push_back("--content-on-error");
 		wget_args.push_back("--no-http-keep-alive");
 
-		arg= "--certificate=";
-		arg+= conn->client_cert_file();
-		wget_args.push_back(arg);
-
-		arg= "--certificate-type=";
-		arg+= conn->client_cert_type();
-		wget_args.push_back(arg);
-
-		arg= conn->client_key_file();
-		if ( arg != "" ) {
-			arg= "--private-key=" + arg;
-			wget_args.push_back(arg);
-
-			// Sanity assumption: the same type for both cert and key
-			arg= "--private-key-type=";
-			arg+= conn->client_cert_type();
-			wget_args.push_back(arg);
-
-		}
-
 		arg= conn->proxy_server();
 		// Override environment
 		if ( arg != "" ) {
@@ -164,7 +145,15 @@ retry_write:
 
 		// Add instance-specific options
 
+                // construct then add the Ocp-Apim-Subscription-Key subscription key header
+                string subscriptionKeyHeader = "--header=Ocp-Apim-Subscription-Key: ";
+                subscriptionKeyHeader.append(conn->getSubscriptionKey());
+                wget_args.push_back(subscriptionKeyHeader.c_str());
+
 		if ( postdata ) {
+                
+                        string contentTypeHeader = "--header=Content-Type: application/json";
+                        wget_args.push_back(contentTypeHeader.c_str());
 			arg= "--post-file=";
 			arg+= tmpfile;
 			wget_args.push_back(arg);
@@ -180,13 +169,17 @@ retry_write:
 
 		if ( debug ) eprintf("+++ Exec:");
 		argv= (char **) malloc(sizeof(char *)*(sz+1));
+		if ( argv == NULL ) {
+			perror("malloc");
+			exit(1);
+		}
 		for(i= 0; i< sz; ++i) {
 			argv[i]= strdup(wget_args[i].c_str());
-			if ( debug ) eprintf(" %s", argv[i]);
 			if ( argv[i] == NULL ) {
 				perror("strdup");
 				exit(1);
 			}
+			if ( debug ) eprintf(" %s", argv[i]);
 		}
 		argv[sz]= 0;
 		if ( debug ) eprintf("\n");
@@ -201,6 +194,7 @@ retry_dup:
 		}
 		close(pipefd[1]);
 		close(pipefd[0]);
+
 
 		execvp("wget", argv);
 		perror("execvp: wget");
@@ -246,7 +240,12 @@ retry_wait:
 	if ( WIFEXITED(status) ) {
 		int exitcode= WEXITSTATUS(status);
 
-		if ( exitcode == WGET_NO_ERROR || exitcode == WGET_SERVER_ERROR ) {
+		if ( exitcode == WGET_AUTH_ERROR)
+		{
+			response.statusCode = IAS_UNAUTHORIZED;
+		}
+
+		else if ( exitcode == WGET_NO_ERROR || exitcode == WGET_SERVER_ERROR ) {
 			HttpResponseParser::ParseResult result;
 
 			result= parser.parse(response, sresponse.c_str(),

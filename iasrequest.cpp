@@ -27,15 +27,15 @@ in the License.
 #include "common.h"
 #include "agent.h"
 #ifdef _WIN32
-# define AGENT_LIBCURL
+# define AGENT_WINHTTP
 #else
 # define AGENT_WGET
 #endif
+#ifdef AGENT_WINHTTP
+# include "win32/agent_winhttp.h"
+#endif
 #ifdef AGENT_WGET
 # include "agent_wget.h"
-#endif
-#ifdef AGENT_LIBCURL
-# include "agent_curl.h"
 #endif
 #include "iasrequest.h"
 #include "logfile.h"
@@ -65,45 +65,43 @@ static string url_decode(string str);
 void ias_list_agents (FILE *fp)
 {
 	fprintf(fp, "Available user agents:\n");
-#ifdef AGENT_LIBCURL
-	fprintf(fp, "%s\n", AgentCurl::name.c_str());
-#endif
 #ifdef AGENT_WGET
 	fprintf(fp, "%s\n", AgentWget::name.c_str());
 #endif
+#ifdef AGENT_WINHTTP
+	fprintf(fp, "%s\n", AgentWinHttp::name.c_str());
+#endif
 }
 
-IAS_Connection::IAS_Connection(int server_idx, uint32_t flags)
+IAS_Connection::IAS_Connection(int server_idx, uint32_t flags, char *priSubscriptionKey, char *secSubscriptionKey)
 {
 	c_server= ias_servers[server_idx];
-	c_cert_type= "PEM";
 	c_flags= flags;
-	c_pwlen= 0;
-	c_key_passwd= NULL;
-	c_xor= NULL;
 	c_server_port= IAS_PORT;
 	c_proxy_mode= IAS_PROXY_AUTO;
 	c_agent= NULL;
 	c_agent_name= "";
+	c_proxy_port= 80;
+	c_store= NULL;
+	setSubscriptionKey(SubscriptionKeyID::Primary, priSubscriptionKey); 
+	setSubscriptionKey(SubscriptionKeyID::Secondary, secSubscriptionKey); 
 }
 
 IAS_Connection::~IAS_Connection()
 {
-	if ( c_key_passwd != NULL ) delete[] c_key_passwd;
-	if ( c_xor != NULL ) delete[] c_xor;
 }
 
 int IAS_Connection::agent(const char *agent_name)
 {
-#ifdef AGENT_LIBCURL
-	if ( AgentCurl::name == agent_name ) {
+#ifdef AGENT_WGET
+	if ( AgentWget::name == agent_name ) {
 		c_agent_name= agent_name;
 		return 1;
 	}
 #endif
-#ifdef AGENT_WGET
-	if ( AgentWget::name == agent_name ) {
-		c_agent_name= agent_name;
+#ifdef AGENT_WINHTTP
+	if (AgentWinHttp::name == agent_name) {
+		c_agent_name = agent_name;
 		return 1;
 	}
 #endif
@@ -143,79 +141,59 @@ string IAS_Connection::proxy_url()
 	return proxy_url;
 }
 
-int IAS_Connection::client_cert(const char *file, const char *certtype)
+// Encrypt the subscription key while its stored in memory
+int IAS_Connection::setSubscriptionKey(SubscriptionKeyID id, char * subscriptionKeyPlainText)
 {
-	int rv= 1;
-	try {
-		c_cert_file= file;
-		if ( certtype != NULL ) c_cert_type= certtype;
-	}
-	catch (...) {
-		rv= 0;
-	}
-	return rv;
+        memset(subscription_key_enc[id], 0, sizeof(subscription_key_enc[id]));
+        memset(subscription_key_xor[id], 0, sizeof(subscription_key_xor[id]));
+
+        if (subscriptionKeyPlainText == NULL || (strlen(subscriptionKeyPlainText) != IAS_SUBSCRIPTION_KEY_SIZE) ||
+	    (id == SubscriptionKeyID::Last))
+        {
+                if ( debug )
+                        eprintf("Error Setting subscriptionKey\n");
+                return 0;
+        }
+
+    // Create Random one time pad
+    RAND_bytes((unsigned char *)subscription_key_xor[id], (int) sizeof(subscription_key_xor[id]));
+
+    // XOR Subscription Key with One Time Pad to create an encrypted key
+    for (int i= 0; i < IAS_SUBSCRIPTION_KEY_SIZE; i++)
+                subscription_key_enc[id][i] = (unsigned char) subscriptionKeyPlainText[i] ^ subscription_key_xor[id][i];
+
+        if ( debug && verbose) {
+                eprintf("\n+++ IAS Subscription Key[%d]:\t'%s'\n", id, subscriptionKeyPlainText);
+                eprintf("+++ IAS Subscription Key[%d] (Hex):\t%s\n", id, hexstring(subscriptionKeyPlainText, IAS_SUBSCRIPTION_KEY_SIZE));
+                eprintf("+++ One-time pad:\t\t\t%s\n", hexstring(subscription_key_xor[id], sizeof(subscription_key_xor[id])));
+                eprintf("+++ Encrypted Subscription Key[%d]:\t%s\n\n", id, hexstring(subscription_key_enc[id],sizeof(subscription_key_enc[id])));
+                }
+
+    // zero the original subscription key in memory
+    memset(subscriptionKeyPlainText, 0, IAS_SUBSCRIPTION_KEY_SIZE);
+
+    return 1;
 }
 
-int IAS_Connection::client_key(const char *file, const char *passwd)
+// Decrypt then return the subscription key
+string IAS_Connection::getSubscriptionKey()
 {
-	size_t i;
+	char keyBuff[IAS_SUBSCRIPTION_KEY_SIZE+1];
+	memset(keyBuff, 0, IAS_SUBSCRIPTION_KEY_SIZE+1);
 
-	try {
-		c_key_file= file;
-	}
-	catch (...) {
-		return 0;
-	}
+        for ( int i = 0; i < IAS_SUBSCRIPTION_KEY_SIZE; i++ )
+                 keyBuff[i] = (subscription_key_enc[currentKeyID][i] ^ subscription_key_xor[currentKeyID][i]);
 
-	if ( passwd != NULL ) {
-		c_pwlen= strlen(passwd);
-		try {
-			c_key_passwd= new unsigned char[c_pwlen];
-			c_xor= new unsigned char[c_pwlen];
-		}
-		catch (...) { 
-			if ( c_key_passwd != NULL ) delete[] c_key_passwd;
-			return 0;
-		}
+	string subscriptionKeyBuff(keyBuff);
 
-		RAND_bytes(c_xor, (int) c_pwlen);
-		for (i= 0; i< c_pwlen; ++i) c_key_passwd[i]=
-			(unsigned char) passwd[i]^c_xor[i];
-	}
+        if ( debug ) {
+                eprintf("\n+++ Reconstructed Subscription Key:\t'%s'\n", subscriptionKeyBuff.c_str());
+		eprintf("+++ IAS Subscription Key (Hex):\t\t%s\n", hexstring(keyBuff, IAS_SUBSCRIPTION_KEY_SIZE));
+                eprintf("+++ One-time pad:\t\t\t%s\n", hexstring(subscription_key_xor[currentKeyID], sizeof(subscription_key_xor[currentKeyID])));
+                eprintf("+++ Encrypted SubscriptionKey:\t\t%s\n\n", hexstring(subscription_key_enc[currentKeyID],sizeof(subscription_key_enc[currentKeyID])));
+                }
 
-	if ( debug ) {
-		eprintf("+++ Password:           %s\n", hexstring(passwd, c_pwlen));
-		eprintf("+++ One-time pad:       %s\n", hexstring(c_xor, c_pwlen));
-		eprintf("+++ Encrypted password: %s\n", hexstring(c_key_passwd,
-			c_pwlen));
-	}
-	return 1;
-}
-
-int IAS_Connection::client_key_passwd(char **passwd, size_t *pwlen)
-{
-	size_t i;
-	char *ch;
-
-	*pwlen= c_pwlen;
-
-	if ( c_pwlen == 0 ) {
-		*passwd= NULL;
-		return 1;
-	}
-
-	try {
-		*passwd= new char[c_pwlen+1];
-	}
-	catch (...) {
-		return 0;
-	}
-
-	for (i= 0, ch= *passwd; i< c_pwlen; ++i, ++ch) 
-		 *ch= (char) (c_key_passwd[i] ^ c_xor[i]);
-	*ch= 0;
-
-	return 1;
+        return subscriptionKeyBuff;
 }
 
 string IAS_Connection::base_url()
@@ -227,7 +205,7 @@ string IAS_Connection::base_url()
 		url+= to_string(c_server_port);
 	}
 
-	url+= "/attestation/sgx/v";
+	url+= "/attestation/v";
 
 	return url;
 }
@@ -249,44 +227,52 @@ Agent *IAS_Connection::new_agent()
 	// If we've requested a specific agent, use that one
 
 	if ( c_agent_name.length() ) {
-#ifdef AGENT_LIBCURL
-		if ( c_agent_name == AgentCurl::name ) {
-			try {
-				newagent= (Agent *) new AgentCurl(this);
-			}
-			catch (...) {
-				return NULL;
-			}
-		}
-#endif		
 #ifdef AGENT_WGET
 		if ( c_agent_name == AgentWget::name ) {
 			try {
 				newagent= (Agent *) new AgentWget(this);
 			}
 			catch (...) {
+				if ( newagent != NULL ) delete newagent;
 				return NULL;
 			}
+			return newagent;
+		}
+#endif
+#ifdef AGENT_WINHTTP
+		if (c_agent_name == AgentWinHttp::name) {
+			try {
+				newagent = (Agent *) new AgentWinHttp(this);
+			}
+			catch (...) {
+				if ( newagent != NULL ) delete newagent;
+				return NULL;
+			}
+			return newagent;
 		}
 #endif
 	} else {
 		// Otherwise, take the first available using this hardcoded
 		// order of preference.
-
-#ifdef AGENT_LIBCURL
-		if ( debug ) eprintf("+++ Trying agent_curl\n");
-		try {
-			newagent= (Agent *) new AgentCurl(this);
-		}
-		catch (...) { newagent= NULL; }
-#endif
 #ifdef AGENT_WGET
 		if ( newagent == NULL ) {
 			if ( debug ) eprintf("+++ Trying agent_wget\n");
 			try {
 				newagent= (Agent *) new AgentWget(this);
 			}
-			catch (...) { newagent= NULL; }
+			catch (...) { 
+				if ( newagent != NULL ) delete newagent;
+				newagent= NULL;
+			}
+		}
+#endif
+#ifdef AGENT_WINHTTP
+		if (newagent == NULL) {
+			if (debug) eprintf("+++ Trying agent_winhttp\n");
+			try {
+				newagent = (Agent *) new AgentWinHttp(this);
+			}
+			catch (...) { newagent = NULL; }
 		}
 #endif
 	}
@@ -319,6 +305,11 @@ ias_error_t IAS_Request::sigrl(uint32_t gid, string &sigrl)
 	string url= r_conn->base_url();
 	Agent *agent= r_conn->new_agent();
 
+	if ( agent == NULL ) {
+		eprintf("Could not allocate agent object");
+		return IAS_QUERY_FAILED;
+	}
+
 	snprintf(sgid, 9, "%08x", gid);
 
 	url+= to_string(r_api_version);
@@ -341,11 +332,14 @@ ias_error_t IAS_Request::sigrl(uint32_t gid, string &sigrl)
 		if ( response.statusCode == IAS_OK ) {
 			sigrl= response.content_string();
 		} 
+
 	} else {
 		eprintf("Could not query IAS\n");
+		delete agent;
 		return IAS_QUERY_FAILED;
 	}
 
+	delete agent;
 	return response.statusCode;
 }
 
@@ -370,6 +364,11 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 	EVP_PKEY *pkey= NULL;
 	Agent *agent= r_conn->new_agent();
 	
+	if ( agent == NULL ) {
+		eprintf("Could not allocate agent object");
+		return IAS_QUERY_FAILED;
+	}
+
 	try {
 		for (imap= payload.begin(); imap!= payload.end(); ++imap) {
 			if ( imap != payload.begin() ) {
@@ -387,6 +386,7 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 		url+= "/report";
 	}
 	catch (...) {
+		delete agent;
 		return IAS_QUERY_FAILED;
 	}
 
@@ -404,10 +404,14 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 		}
 	} else {
 		eprintf("Could not query IAS\n");
+		delete agent;
 		return IAS_QUERY_FAILED;
 	}
 
-	if ( response.statusCode != IAS_OK ) return response.statusCode;
+	if ( response.statusCode != IAS_OK ) {
+		delete agent;
+		return response.statusCode;
+	}
 
 	/*
 	 * The response body has the attestation report. The headers have
@@ -426,6 +430,7 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 	certchain= response.headers_as_string("X-IASReport-Signing-Certificate");
 	if ( certchain == "" ) {
 		eprintf("Header X-IASReport-Signing-Certificate not found\n");
+		delete agent;
 		return IAS_BAD_CERTIFICATE;
 	}
 
@@ -435,6 +440,7 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 	}
 	catch (...) {
 		eprintf("invalid URL encoding in header X-IASReport-Signing-Certificate\n");
+		delete agent;
 		return IAS_BAD_CERTIFICATE;
 	}
 
@@ -458,6 +464,7 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 
 		if ( ! cert_load(&cert, certchain.substr(cstart, len).c_str()) ) {
 			crypto_perror("cert_load");
+			delete agent;
 			return IAS_BAD_CERTIFICATE;
 		}
 
@@ -471,6 +478,7 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 	certar= (X509**) malloc(sizeof(X509 *)*(count+1));
 	if ( certar == 0 ) {
 		perror("malloc");
+		delete agent;
 		return IAS_INTERNAL_ERROR;
 	}
 	for (i= 0; i< count; ++i) certar[i]= certvec[i];
@@ -481,7 +489,8 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 	stack= cert_stack_build(certar);
 	if ( stack == NULL ) {
 		crypto_perror("cert_stack_build");
-		return IAS_INTERNAL_ERROR;
+		status= IAS_INTERNAL_ERROR;
+		goto cleanup;
 	}
 
 	// Now verify the signing certificate
@@ -533,7 +542,6 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 	pkey= X509_get_pubkey(sign_cert);
 	if ( pkey == NULL ) {
 		eprintf("Could not extract public key from certificate\n");
-		free(sig);
 		status= IAS_INTERNAL_ERROR;
 		goto cleanup;
 	}
@@ -553,7 +561,6 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 	if ( ! sha256_verify((const unsigned char *) content.c_str(),
 		content.length(), sig, sigsz, pkey, &rv) ) {
 
-		free(sig);
 		crypto_perror("sha256_verify");
 		eprintf("Could not validate signature\n");
 		status= IAS_BAD_SIGNATURE;
@@ -583,6 +590,7 @@ cleanup:
 	free(certar);
 	for (i= 0; i<count; ++i) X509_free(certvec[i]);
 	free(sig);
+	delete agent;
 
 	return status;
 }
