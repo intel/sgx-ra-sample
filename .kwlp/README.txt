@@ -1,1 +1,0 @@
-Klocwork local project

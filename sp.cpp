@@ -1638,6 +1638,18 @@ void usage ()
 "Required:" NL
 "  -A, --ias-signing-cafile=FILE" NL
 "                           Specify the IAS Report Signing CA file." NNL
+"  -N, --mrsigner=HEXSTRING" NL
+"                           Specify the MRSIGNER value of encalves that" NL
+"                           are allowed to attest. Enclaves signed by" NL
+"                           other signing keys are rejected." NNL
+"  -R, --isv-product-id=INT" NL
+"                           Specify the ISV Product Id for the service." NL
+"                           Only Enclaves built with this Product Id" NL
+"                           will be accepted." NNL
+"  -V, --min-isv-svn=INT" NL
+"                           The minimum ISV SVN that the service provider" NL
+"                           will accept. Enclaves with a lower ISV SVN" NL
+"                           are rejected." NNL
 "Required (one of):" NL
 "  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte" NL
 "                           ASCII hex string." NNL
@@ -1660,6 +1672,7 @@ void usage ()
 "  -B, --ca-bundle-file=FILE" NL
 "                           Use the CA certificate bundle at FILE (default:" NL
 "                           " << DEFAULT_CA_BUNDLE << ")" NNL
+"  -D, --no-debug-enclave   Reject Debug-mode enclaves (default: accept)" NNL
 "  -G, --list-agents        List available user agent names for --user-agent" NNL
 "  -K, --service-key-file=FILE" NL
 "                           The private key file for the service in PEM" NL

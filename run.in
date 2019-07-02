@@ -88,7 +88,7 @@ if [ "$POLICY_STRICT_TRUST" != "" -a "0$POLICY_STRICT_TRUST" -ne 0 ]; then
 	sp_strict_trust="-X"
 fi
 
-if [ "$ALLOW_DEBUG_ENCLAVE" -eq 0 ]; then
+if [ "$ALLOW_DEBUG_ENCLAVE" != "" -a "0$ALLOW_DEBUG_ENCLAVE" -eq 0 ]; then
 	flag_no_debug_enclave=-D
 fi
 
