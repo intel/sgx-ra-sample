@@ -58,6 +58,8 @@ The service provider's remote attestation server _does not require Intel SGX har
 
 #### Prerequisites
 
+* Obtain a subscription key for the [Intel SGX Attestation Service Utilizing Enhanced Privacy ID (EPID)](https://api.portal.trustedservices.intel.com/)
+
 * Ensure that you have one of the following operating systems:
 
   * CentOS 7.4 (64-bit)

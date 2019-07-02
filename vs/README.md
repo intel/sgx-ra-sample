@@ -53,6 +53,8 @@ The service provider's remote attestation server _does not require Intel SGX har
 
 #### Prerequisites
 
+* Obtain a subscription key for the [Intel SGX Attestation Service Utilizing Enhanced Privacy ID (EPID)](https://api.portal.trustedservices.intel.com/)
+
 * Ensure you have the following:
 
   * Windows 10 64-bit
