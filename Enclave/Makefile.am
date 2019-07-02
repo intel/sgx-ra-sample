@@ -64,6 +64,11 @@ ENCLAVE_KEY=$(ENCLAVE)_private.pem
 
 AM_CPPFLAGS += -I..
 
+## Override LIBS coming from the app configuration, as they don't
+## apply to the enclave.
+
+LIBS=
+
 ## Additional files to remove with 'make clean'. This list needs
 ## to include your edger8r genreated files.
 

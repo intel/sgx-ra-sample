@@ -48,11 +48,13 @@ using namespace std;
 #define IAS_SERVER_DEVELOPMENT	0
 #define IAS_SERVER_PRODUCTION	1
 
+#define IAS_SUBSCRIPTION_KEY_SIZE 32
+
 /* The IAS development server hostname */
-#define IAS_SERVER_DEVELOPMENT_HOST     "test-as.sgx.trustedservices.intel.com"
+#define IAS_SERVER_DEVELOPMENT_HOST     "api.trustedservices.intel.com/sgx/dev"
 
 /* The IAS production server hostname */
-#define IAS_SERVER_PRODUCTION_HOST      "as.sgx.trustedservices.intel.com"
+#define IAS_SERVER_PRODUCTION_HOST      "api.trustedservices.intel.com/sgx"
 
 #define IAS_PORT	443
 
@@ -80,15 +82,26 @@ void ias_list_agents (FILE *fp);
 class Agent;
 
 class IAS_Connection {
+
 friend class Agent;
+
+public: 
+        enum SubscriptionKeyID
+                {
+                Primary = 0,
+                Secondary,
+                Last
+                };
+
+private:
 	string c_server;
-	string c_cert_file;
-	string c_key_file;
-	string c_cert_type;
+
+ 	typedef char subkey_t[IAS_SUBSCRIPTION_KEY_SIZE]; 
+
+	subkey_t subscription_key_enc[SubscriptionKeyID::Last];
+	subkey_t subscription_key_xor[SubscriptionKeyID::Last];
+
 	string c_ca_file;
-	unsigned char *c_key_passwd;	
-	unsigned char *c_xor;
-	size_t c_pwlen;
 	string c_proxy_server;
 	uint16_t c_server_port;
 	uint16_t c_proxy_port;
@@ -98,13 +111,22 @@ friend class Agent;
 	Agent *c_agent;
 	string c_agent_name;
 
+	int setSubscriptionKey (SubscriptionKeyID id, char * subscriptionKey);
+
+	SubscriptionKeyID currentKeyID = SubscriptionKeyID::Primary;
+
 public:
-	IAS_Connection(int server, uint32_t flags);
+
+	IAS_Connection(int server, uint32_t flags, char * subscriptionKey, char * secSubscriptionKey);
 	~IAS_Connection();
 
 	string base_url();
 
 	int agent(const char *agent_name);
+
+	string getSubscriptionKey(); 
+ 	SubscriptionKeyID getSubscriptionKeyID() { return currentKeyID; }
+	void SetSubscriptionKeyID(SubscriptionKeyID id) { currentKeyID = id;}
 
 	int proxy(const char *server, uint16_t port);
 	void proxy_mode(int mode) { c_proxy_mode= mode; }
@@ -113,13 +135,6 @@ public:
 	uint16_t proxy_port() { return c_proxy_port; }
 	string proxy_url();
 
-	int client_cert(const char *file, const char *certtype);
-	string client_cert_file() { return c_cert_file; }
-	string client_cert_type() { return c_cert_type; }
-
-	int client_key(const char *file, const char *passwd);
-	string client_key_file() { return c_key_file; }
-	int client_key_passwd(char **passwd, size_t *len);
 
 	void ca_bundle(const char *file) { c_ca_file= file; }
 	string ca_bundle() { return c_ca_file; }

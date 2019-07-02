@@ -87,4 +87,3 @@ const char *hexstring (const void *vsrc, size_t len)
 	
 	return (const char *) _hex_buffer;
 }
-

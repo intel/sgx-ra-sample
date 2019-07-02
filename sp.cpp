@@ -1,6 +1,6 @@
 /*
 
-Copyright 2018 Intel Corporation
+Copyright 2019 Intel Corporation
 
 This software and the related documents are Intel copyrighted materials,
 and your use of them is governed by the express license under which they
@@ -51,6 +51,7 @@ in the License.
 #include "iasrequest.h"
 #include "logfile.h"
 #include "settings.h"
+#include "enclave_verify.h"
 
 using namespace json;
 using namespace std;
@@ -83,21 +84,23 @@ typedef struct ra_session_struct {
 
 typedef struct config_struct {
 	sgx_spid_t spid;
+	unsigned char pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE+1];
+	unsigned char sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE+1];
 	uint16_t quote_type;
 	EVP_PKEY *service_private_key;
 	char *proxy_server;
 	char *ca_bundle;
 	char *user_agent;
-	char *cert_file;
-	char *cert_key_file;
-	char *cert_passwd_file;
 	unsigned int proxy_port;
 	unsigned char kdk[16];
-	char *cert_type[4];
 	X509_STORE *store;
 	X509 *signing_ca;
 	unsigned int apiver;
 	int strict_trust;
+	sgx_measurement_t req_mrsigner;
+	sgx_prod_id_t req_isv_product_id;
+	sgx_isv_svn_t min_isvsvn;
+	int allow_debug_enclave;
 } config_t;
 
 void usage();
@@ -133,12 +136,15 @@ int main(int argc, char *argv[])
 {
 	char flag_spid = 0;
 	char flag_pubkey = 0;
-	char flag_cert = 0;
+	char flag_api_key = 0;
 	char flag_ca = 0;
 	char flag_usage = 0;
 	char flag_noproxy= 0;
 	char flag_prod= 0;
 	char flag_stdio= 0;
+	char flag_isv_product_id= 0;
+	char flag_min_isvsvn= 0;
+	char flag_mrsigner= 0;
 	char *sigrl = NULL;
 	config_t config;
 	int oops;
@@ -152,33 +158,32 @@ int main(int argc, char *argv[])
 
 	static struct option long_opt[] =
 	{
-		{"ias-signing-cafile",
-							required_argument,	0, 'A'},
-		{"ca-bundle",		required_argument,	0, 'B'},
-		{"ias-cert",		required_argument,	0, 'C'},
-		{"ias-cert-passwd",
-							required_argument,	0, 'E'},
-		{"list-agents",		no_argument,		0, 'G'},
-		{"service-key-file",
-							required_argument,	0, 'K'},
-		{"production",		no_argument,		0, 'P'},
-		{"spid-file",		required_argument,	0, 'S'},
-		{"strict-trust-mode",
-							no_argument,		0, 'X'},
-		{"ias-cert-key",
-							required_argument,	0, 'Y'},
-		{"debug",			no_argument,		0, 'd'},
-		{"user-agent",		required_argument,	0, 'g'},
-		{"help",			no_argument, 		0, 'h'},
-		{"key",				required_argument,	0, 'k'},
-		{"linkable",		no_argument,		0, 'l'},
-		{"proxy",			required_argument,	0, 'p'},
-		{"api-version",		required_argument,	0, 'r'},
-		{"spid",			required_argument,	0, 's'},
-		{"ias-cert-type",	required_argument,	0, 't'},
-		{"verbose",			no_argument,		0, 'v'},
-		{"no-proxy",		no_argument,		0, 'x'},
-		{"stdio",			no_argument,		0, 'z'},
+		{"ias-signing-cafile",		required_argument,	0, 'A'},
+		{"ca-bundle",				required_argument,	0, 'B'},
+		{"no-debug-enclave",		no_argument,		0, 'D'},
+		{"list-agents",				no_argument,		0, 'G'},
+		{"ias-pri-api-key-file",	required_argument,	0, 'I'},
+		{"ias-sec-api-key-file",	required_argument,	0, 'J'},
+		{"service-key-file",		required_argument,	0, 'K'},
+		{"mrsigner",				required_argument,  0, 'N'},
+		{"production",				no_argument,		0, 'P'},
+		{"isv-product-id",			required_argument,	0, 'R'},
+		{"spid-file",				required_argument,	0, 'S'},
+		{"min-isv-svn",				required_argument,  0, 'V'},
+		{"strict-trust-mode",		no_argument,		0, 'X'},
+		{"debug",					no_argument,		0, 'd'},
+		{"user-agent",				required_argument,	0, 'g'},
+		{"help",					no_argument, 		0, 'h'},
+		{"ias-pri-api-key",			required_argument,	0, 'i'},
+		{"ias-sec-api-key",			required_argument,	0, 'j'},
+		{"key",						required_argument,	0, 'k'},
+		{"linkable",				no_argument,		0, 'l'},
+		{"proxy",					required_argument,	0, 'p'},
+		{"api-version",				required_argument,	0, 'r'},
+		{"spid",					required_argument,	0, 's'},
+		{"verbose",					no_argument,		0, 'v'},
+		{"no-proxy",				no_argument,		0, 'x'},
+		{"stdio",					no_argument,		0, 'z'},
 		{ 0, 0, 0, 0 }
 	};
 
@@ -190,25 +195,35 @@ int main(int argc, char *argv[])
 	/* Config defaults */
 
 	memset(&config, 0, sizeof(config));
-#ifdef _WIN32
-	strncpy_s((char *)config.cert_type, 4, "PEM", 3);
-#else
-	strncpy((char *)config.cert_type, "PEM", 3);
-#endif
+
 	config.apiver= IAS_API_DEF_VERSION;
+
+	/*
+	 * For demo purposes only. A production/release enclave should
+	 * never allow debug-mode enclaves to attest.
+	 */
+	config.allow_debug_enclave= 1;
 
 	/* Parse our options */
 
 	while (1) {
 		int c;
 		int opt_index = 0;
+		off_t offset = IAS_SUBSCRIPTION_KEY_SIZE;
+		int ret = 0;
+		char *eptr= NULL;
+		unsigned long val;
 
-		c = getopt_long(argc, argv, "A:B:C:E:GK:PS:XY:dg:hk:lp:r:s:t:vxz", long_opt, &opt_index);
+		c = getopt_long(argc, argv,
+			"A:B:DGI:J:K:N:PR:S:V:X:dg:hk:lp:r:s:i:j:vxz",
+			long_opt, &opt_index);
 		if (c == -1) break;
 
 		switch (c) {
+
 		case 0:
 			break;
+
 		case 'A':
 			if (!cert_load_file(&config.signing_ca, optarg)) {
 				crypto_perror("cert_load_file");
@@ -224,6 +239,7 @@ int main(int argc, char *argv[])
 			++flag_ca;
 
 			break;
+
 		case 'B':
 			config.ca_bundle = strdup(optarg);
 			if (config.ca_bundle == NULL) {
@@ -232,29 +248,89 @@ int main(int argc, char *argv[])
 			}
 
 			break;
-		case 'C':
-			config.cert_file = strdup(optarg);
-			if (config.cert_file == NULL) {
-				perror("strdup");
-				return 1;
-			}
-			++flag_cert;
 
-			break;
-		case 'E':
-			config.cert_passwd_file = strdup(optarg);
-			if (config.cert_passwd_file == NULL) {
-				perror("strdup");
-				return 1;
-			}
+		case 'D':
+			config.allow_debug_enclave= 0;
 			break;
 		case 'G':
 			ias_list_agents(stdout);
 			return 1;
 
-                case 'P':
-                        flag_prod = 1;
-                        break;
+		case 'I':
+			// Get Size of File, should be IAS_SUBSCRIPTION_KEY_SIZE + EOF
+			ret = from_file(NULL, optarg, &offset); 
+
+			if ((offset != IAS_SUBSCRIPTION_KEY_SIZE+1) || (ret == 0)) {
+				eprintf("IAS Primary Subscription Key must be %d-byte hex string.\n",
+					IAS_SUBSCRIPTION_KEY_SIZE);
+				return 1;
+			}
+
+			// Remove the EOF
+			offset--;
+
+			// Read the contents of the file
+			if (!from_file((unsigned char *)&config.pri_subscription_key, optarg, &offset)) {
+				eprintf("IAS Primary Subscription Key must be %d-byte hex string.\n",
+					IAS_SUBSCRIPTION_KEY_SIZE);
+					return 1;
+			}
+			break;
+
+		case 'J':
+			// Get Size of File, should be IAS_SUBSCRIPTION_KEY_SIZE + EOF
+			ret = from_file(NULL, optarg, &offset);
+
+			if ((offset != IAS_SUBSCRIPTION_KEY_SIZE+1) || (ret == 0)) {
+				eprintf("IAS Secondary Subscription Key must be %d-byte hex string.\n",
+					IAS_SUBSCRIPTION_KEY_SIZE);
+				return 1;
+			}
+
+			// Remove the EOF
+			offset--;
+
+			// Read the contents of the file
+			if (!from_file((unsigned char *)&config.sec_subscription_key, optarg, &offset)) {
+				eprintf("IAS Secondary Subscription Key must be %d-byte hex string.\n",
+					IAS_SUBSCRIPTION_KEY_SIZE);
+					return 1;
+			}
+
+			break;
+
+		case 'K':
+			if (!key_load_file(&config.service_private_key, optarg, KEY_PRIVATE)) {
+				crypto_perror("key_load_file");
+				eprintf("%s: could not load EC private key\n", optarg);
+				return 1;
+			}
+			break;
+
+		case 'N':
+			if (!from_hexstring((unsigned char *)&config.req_mrsigner,
+				optarg, 32)) {
+
+				eprintf("MRSIGNER must be 64-byte hex string\n");
+				return 1;
+			}
+			++flag_mrsigner;
+			break;
+
+        case 'P':
+			flag_prod = 1;
+			break;
+
+		case 'R':
+			eptr= NULL;
+			val= strtoul(optarg, &eptr, 10);
+			if ( *eptr != '\0' || val > 0xFFFF ) {
+				eprintf("Product Id must be a positive integer <= 65535\n");
+				return 1;
+			}
+			config.req_isv_product_id= val;
+			++flag_isv_product_id;
+			break;
 
 		case 'S':
 			if (!from_hexstring_file((unsigned char *)&config.spid, optarg, 16)) {
@@ -264,26 +340,26 @@ int main(int argc, char *argv[])
 			++flag_spid;
 
 			break;
-		case 'K':
-			if (!key_load_file(&config.service_private_key, optarg, KEY_PRIVATE)) {
-				crypto_perror("key_load_file");
-				eprintf("%s: could not load EC private key\n", optarg);
+
+		case 'V':
+			eptr= NULL;
+			val= strtoul(optarg, &eptr, 10);
+			if ( *eptr != '\0' || val > (unsigned long) 0xFFFF ) {
+				eprintf("Minimum ISV SVN must be a positive integer <= 65535\n");
 				return 1;
 			}
+			config.min_isvsvn= val;
+			++flag_min_isvsvn;
 			break;
+
 		case 'X':
 			config.strict_trust= 1;
 			break;
-		case 'Y':
-			config.cert_key_file = strdup(optarg);
-			if (config.cert_key_file == NULL) {
-				perror("strdup");
-				return 1;
-			}
-			break;
+
 		case 'd':
 			debug = 1;
 			break;
+
 		case 'g':
 			config.user_agent= strdup(optarg);
 			if ( config.user_agent == NULL ) {
@@ -291,6 +367,28 @@ int main(int argc, char *argv[])
 				return 1;
 			}
 			break;
+
+		case 'i':
+			if (strlen(optarg) != IAS_SUBSCRIPTION_KEY_SIZE) {
+				eprintf("IAS Subscription Key must be %d-byte hex string\n",IAS_SUBSCRIPTION_KEY_SIZE);
+				return 1;
+			}
+
+			strncpy((char *) config.pri_subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
+
+			break;
+
+		case 'j':
+			if (strlen(optarg) != IAS_SUBSCRIPTION_KEY_SIZE) {
+				eprintf("IAS Secondary Subscription Key must be %d-byte hex string\n",
+				IAS_SUBSCRIPTION_KEY_SIZE);
+				return 1;
+			}
+
+			strncpy((char *) config.sec_subscription_key, optarg, IAS_SUBSCRIPTION_KEY_SIZE);
+
+			break;
+
 		case 'k':
 			if (!key_load(&config.service_private_key, optarg, KEY_PRIVATE)) {
 				crypto_perror("key_load");
@@ -298,9 +396,11 @@ int main(int argc, char *argv[])
 				return 1;
 			}
 			break;
+
 		case 'l':
 			config.quote_type = SGX_LINKABLE_SIGNATURE;
 			break;
+
 		case 'p':
 			if ( flag_noproxy ) usage();
 			if (!get_proxy(&config.proxy_server, &config.proxy_port, optarg)) {
@@ -309,6 +409,7 @@ int main(int argc, char *argv[])
 			}
 			// Break the URL into host and port. This is a simplistic algorithm.
 			break;
+
 		case 'r':
 			config.apiver= atoi(optarg);
 			if ( config.apiver < IAS_MIN_VERSION || config.apiver >
@@ -319,6 +420,7 @@ int main(int argc, char *argv[])
 				return 1;
 			}
 			break;
+
 		case 's':
 			if (strlen(optarg) < 32) {
 				eprintf("SPID must be 32-byte hex string\n");
@@ -330,21 +432,20 @@ int main(int argc, char *argv[])
 			}
 			++flag_spid;
 			break;
-		case 't':
-			strncpy((char *) config.cert_type, optarg, 4);
-			if ( debug ) eprintf("+++ cert type set to %s\n",
-				config.cert_type);
-			break;
+
 		case 'v':
 			verbose = 1;
 			break;
+
 		case 'x':
 			if ( config.proxy_server != NULL ) usage();
 			flag_noproxy=1;
 			break;
+
 		case 'z':
 			flag_stdio= 1;
 			break;
+
 		case 'h':
 		case '?':
 		default:
@@ -370,6 +471,31 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 	}
+
+	if ( debug ) {
+		eprintf("+++ IAS Primary Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
+			config.pri_subscription_key[0],
+        	config.pri_subscription_key[1],
+        	config.pri_subscription_key[2],
+        	config.pri_subscription_key[3],
+        	config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
+        	config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
+        	config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
+        	config.pri_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ]
+		);
+
+		eprintf("+++ IAS Secondary Subscription Key set to '%c%c%c%c........................%c%c%c%c'\n",
+        	config.sec_subscription_key[0],
+        	config.sec_subscription_key[1],
+        	config.sec_subscription_key[2],
+        	config.sec_subscription_key[3],
+        	config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -4 ],
+        	config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -3 ],
+        	config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -2 ],
+        	config.sec_subscription_key[IAS_SUBSCRIPTION_KEY_SIZE -1 ] 
+		);
+	}
+
 
 	/* Use the default CA bundle unless one is provided */
 
@@ -414,19 +540,27 @@ int main(int argc, char *argv[])
 		flag_usage = 1;
 	}
 
-	if (!flag_cert) {
-		eprintf("--ias-cert-file is required\n");
-		flag_usage = 1;
-	}
-
 	if (!flag_ca) {
 		eprintf("--ias-signing-cafile is required\n");
 		flag_usage = 1;
 	}
 
-	if (flag_usage) usage();
+	if ( ! flag_isv_product_id ) {
+		eprintf("--isv-product-id is required\n");
+		flag_usage = 1;
+	}
+	
+	if ( ! flag_min_isvsvn ) {
+		eprintf("--min-isvsvn is required\n");
+		flag_usage = 1;
+	}
+	
+	if ( ! flag_mrsigner ) {
+		eprintf("--mrsigner is required\n");
+		flag_usage = 1;
+	}
 
-	if (verbose) eprintf("Using cert file %s\n", config.cert_file);
+	if (flag_usage) usage();
 
 	/* Initialize out support libraries */
 
@@ -437,72 +571,15 @@ int main(int argc, char *argv[])
 	try {
 		ias = new IAS_Connection(
 			(flag_prod) ? IAS_SERVER_PRODUCTION : IAS_SERVER_DEVELOPMENT,
-			0
+			0,
+			(char *)(config.pri_subscription_key),
+			(char *)(config.sec_subscription_key)
 		);
 	}
 	catch (...) {
 		oops = 1;
 		eprintf("exception while creating IAS request object\n");
 		return 1;
-	}
-
-	ias->client_cert(config.cert_file, (char *)config.cert_type);
-	if ( config.cert_passwd_file != NULL ) {
-		char *passwd;
-		char *keyfile;
-		off_t sz;
-
-		if ( ! from_file(NULL, config.cert_passwd_file, &sz) ) {
-			eprintf("can't load password from %s\n", 
-				config.cert_passwd_file);
-			return 1;
-		}
-
-		if ( sz > 0 ) {
-			char *cp;
-
-			try {
-				passwd= new char[sz+1];
-			}
-			catch (...) {
-				eprintf("out of memory\n");
-				return 1;
-			}
-
-			if ( ! from_file((unsigned char *) passwd, config.cert_passwd_file,
-			 	&sz) ) {
-
-				eprintf("can't load password from %s\n", 
-					config.cert_passwd_file);
-				return 1;
-			}
-			passwd[sz]= 0;
-
-			// Remove trailing newline or linefeed.
-
-			cp= strchr(passwd, '\n');
-			if ( cp != NULL ) *cp= 0;
-			cp= strchr(passwd, '\r');
-			if ( cp != NULL ) *cp= 0;
-
-			// If a key file isn't specified, assume it's bundled with
-			// the certificate.
-
-			keyfile= (config.cert_key_file == NULL) ? config.cert_file :
-				config.cert_key_file;
-			if ( debug ) eprintf("+++ using cert key file %s\n", keyfile);
-			ias->client_key(keyfile, passwd);
-
-#ifdef _WIN32
-			SecureZeroMemory(passwd, sz);
-#else
-			// -fno-builtin-memset prevents optimizing this away 
-			memset(passwd, 0, sz);
-#endif
-		}
-	} else if ( config.cert_key_file != NULL ) {
-		// We have a key file but no password.
-		ias->client_key(config.cert_key_file, NULL);
 	}
 
 	if ( flag_noproxy ) ias->proxy_mode(IAS_PROXY_NONE);
@@ -688,6 +765,7 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 	}
 	if ( CRYPTO_memcmp(&msg3->g_a, &msg1->g_a, sizeof(sgx_ec256_public_t)) ) {
 		eprintf("msg1.g_a and mgs3.g_a keys don't match\n");
+		free(msg3);
 		return 0;
 	}
 
@@ -703,12 +781,18 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 	}
 	if ( CRYPTO_memcmp(msg3->mac, vrfymac, sizeof(sgx_mac_t)) ) {
 		eprintf("Failed to verify msg3 MAC\n");
+		free(msg3);
 		return 0;
 	}
 
 	/* Encode the report body as base64 */
 
 	b64quote= base64_encode((char *) &msg3->quote, quote_sz);
+	if ( b64quote == NULL ) {
+		eprintf("Could not base64 encode the quote\n");
+		free(msg3);
+		return 0;
+	}
 	q= (sgx_quote_t *) msg3->quote;
 
 	if ( verbose ) {
@@ -763,6 +847,8 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 
 	if ( memcmp(msg1->gid, &q->epid_group_id, sizeof(sgx_epid_group_id_t)) ) {
 		eprintf("EPID GID mismatch. Attestation failed.\n");
+		free(b64quote);
+		free(msg3);
 		return 0;
 	}
 
@@ -817,11 +903,13 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 			64) ) {
 
 			eprintf("Report verification failed.\n");
+			free(b64quote);
+			free(msg3);
 			return 0;
 		}
 
 		/*
-		 * A real service provider would validate that the enclave
+		 * The service provider must validate that the enclave
 		 * report is from an enclave that they recognize. Namely,
 		 * that the MRSIGNER matches our signing key, and the MRENCLAVE
 		 * hash matches an enclave that we compiled.
@@ -829,7 +917,23 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 		 * Other policy decisions might include examining ISV_SVN to 
 		 * prevent outdated/deprecated software from successfully
 		 * attesting, and ensuring the TCB is not out of date.
+		 *
+		 * A real-world service provider might allow multiple ISV_SVN
+		 * values, but for this sample we only allow the enclave that
+		 * is compiled.
 		 */
+
+#ifndef _WIN32
+/* Windows implementation is not available yet */
+
+		if ( ! verify_enclave_identity(config->req_mrsigner, 
+			config->req_isv_product_id, config->min_isvsvn, 
+			config->allow_debug_enclave, r) ) {
+
+			eprintf("Invalid enclave.\n");
+			msg4->status= NotTrusted;
+		}
+#endif
 
 		if ( verbose ) {
 			edivider();
@@ -899,10 +1003,13 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 
 	} else {
 		eprintf("Attestation failed\n");
+		free(msg3);
+		free(b64quote);
 		return 0;
 	}
 
 	free(b64quote);
+	free(msg3);
 
 	return 1;
 }
@@ -1066,6 +1173,7 @@ int process_msg01 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 		&msg2->sig_rl_size) ) {
 
 		eprintf("could not retrieve the sigrl\n");
+		free(msg01);
 		return 0;
 	}
 
@@ -1183,17 +1291,51 @@ int get_sigrl (IAS_Connection *ias, int version, sgx_epid_group_id_t gid,
 
 	if (oops) {
 		eprintf("Exception while creating IAS request object\n");
+		delete req;
 		return 0;
+	}
+ 
+        ias_error_t ret = IAS_OK;
+
+	while (1) {
+
+		ret =  req->sigrl(*(uint32_t *) gid, sigrlstr);
+		if ( debug ) {
+			eprintf("+++ RET = %zu\n, ret");
+			eprintf("+++ SubscriptionKeyID = %d\n",(int)ias->getSubscriptionKeyID());
+                }
+	
+		if ( ret == IAS_UNAUTHORIZED && (ias->getSubscriptionKeyID() == IAS_Connection::SubscriptionKeyID::Primary))
+		{
+
+		        if ( debug ) {
+				eprintf("+++ IAS Primary Subscription Key failed with IAS_UNAUTHORIZED\n");
+				eprintf("+++ Retrying with IAS Secondary Subscription Key\n");
+			}	
+
+			// Retry with Secondary Subscription Key
+			ias->SetSubscriptionKeyID(IAS_Connection::SubscriptionKeyID::Secondary);
+			continue;
+		}	
+		else if (ret != IAS_OK ) {
+
+			delete req;
+			return 0;
+		}
+
+		break;
 	}
 
-	if ( req->sigrl(*(uint32_t *) gid, sigrlstr) != IAS_OK ) {
-		return 0;
-	}
 
 	*sig_rl= strdup(sigrlstr.c_str());
-	if ( *sig_rl == NULL ) return 0;
+	if ( *sig_rl == NULL ) {
+		delete req;
+		return 0;
+	}
 
 	*sig_rl_size= (uint32_t ) sigrlstr.length();
+
+	delete req;
 
 	return 1;
 }
@@ -1213,6 +1355,7 @@ int get_attestation_report(IAS_Connection *ias, int version,
 	}
 	catch (...) {
 		eprintf("Exception while creating IAS request object\n");
+		if ( req != NULL ) delete req;
 		return 0;
 	}
 
@@ -1283,10 +1426,12 @@ int get_attestation_report(IAS_Connection *ias, int version,
 		if ( version != rversion ) {
 			eprintf("Report version %u does not match API version %u\n",
 				rversion , version);
+			delete req;
 			return 0;
 		}
 	} else if ( version >= 3 ) {
 		eprintf("attestation report version required for API version >= 3\n");
+		delete req;
 		return 0;
 	}
 
@@ -1361,7 +1506,8 @@ int get_attestation_report(IAS_Connection *ias, int version,
 	} else {
 		if ( verbose ) eprintf("A Platform Info Blob (PIB) was NOT provided by the IAS\n");
 	}
-                 
+
+		delete req;
 		return 1;
 	}
 
@@ -1399,6 +1545,8 @@ int get_attestation_report(IAS_Connection *ias, int version,
 				eprintf("An unknown error occurred.\n");
 			}
 	}
+
+	delete req;
 
 	return 0;
 }
@@ -1489,48 +1637,69 @@ void usage ()
 	cerr << "usage: sp [ options ] [ port ]" NL
 "Required:" NL
 "  -A, --ias-signing-cafile=FILE" NL
-"                           Specify the IAS Report Signing CA file." NL
-"  -C, --ias-cert-file=FILE Specify the IAS client certificate to use when" NL
-"                             communicating with IAS." NNL
-"One of (required):" NL
-"  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte." NL
-"                             ASCII hex string." NL
+"                           Specify the IAS Report Signing CA file." NNL
+"  -N, --mrsigner=HEXSTRING" NL
+"                           Specify the MRSIGNER value of encalves that" NL
+"                           are allowed to attest. Enclaves signed by" NL
+"                           other signing keys are rejected." NNL
+"  -R, --isv-product-id=INT" NL
+"                           Specify the ISV Product Id for the service." NL
+"                           Only Enclaves built with this Product Id" NL
+"                           will be accepted." NNL
+"  -V, --min-isv-svn=INT" NL
+"                           The minimum ISV SVN that the service provider" NL
+"                           will accept. Enclaves with a lower ISV SVN" NL
+"                           are rejected." NNL
+"Required (one of):" NL
+"  -S, --spid-file=FILE     Set the SPID from a file containg a 32-byte" NL
+"                           ASCII hex string." NNL
 "  -s, --spid=HEXSTRING     Set the SPID from a 32-byte ASCII hex string." NNL
+"Required (one of):" NL
+"  -I, --ias-pri-api-key-file=FILE" NL
+"                           Set the IAS Primary Subscription Key from a" NL
+"                           file containing a 32-byte ASCII hex string." NNL
+"  -i, --ias-pri-api-key=HEXSTRING" NL
+"                           Set the IAS Primary Subscription Key from a" NL
+"                           32-byte ASCII hex string." NNL
+"Required (one of):" NL
+"  -J, --ias-sec-api-key-file=FILE" NL
+"                           Set the IAS Secondary Subscription Key from a" NL
+"                           file containing a 32-byte ASCII hex string." NNL
+"  -j, --ias-sec-api-key=HEXSTRING" NL
+"                           Set the IAS Secondary Subscription Key from a" NL
+"                           32-byte ASCII hex string." NNL
 "Optional:" NL
 "  -B, --ca-bundle-file=FILE" NL
 "                           Use the CA certificate bundle at FILE (default:" NL
-"                             " << DEFAULT_CA_BUNDLE << ")" NL
-"  -E, --ias-cert-passwd=FILE" NL
-"                           Use password in FILE for the IAS client" NL
-"                             certificate." NL
-"  -G, --list-agents        List available user agent names for --user-agent" NL
+"                           " << DEFAULT_CA_BUNDLE << ")" NNL
+"  -D, --no-debug-enclave   Reject Debug-mode enclaves (default: accept)" NNL
+"  -G, --list-agents        List available user agent names for --user-agent" NNL
 "  -K, --service-key-file=FILE" NL
 "                           The private key file for the service in PEM" NL
-"                             format (default: use hardcoded key). The " NL
-"                             client must be given the corresponding public" NL
-"                             key. Can't combine with --key." NL
-"  -P, --production         Query the production IAS server instead of dev." NL
+"                           format (default: use hardcoded key). The " NL
+"                           client must be given the corresponding public" NL
+"                           key. Can't combine with --key." NNL
+"  -P, --production         Query the production IAS server instead of dev." NNL
 "  -X, --strict-trust-mode  Don't trust enclaves that receive a " NL
-"                             CONFIGURATION_NEEDED response from IAS " NL
-"                             (default: trust)" NL
-"  -Y, --ias-cert-key=FILE  The private key file for the IAS client certificate." NL
-"  -d, --debug              Print debug information to stderr." NL
-"  -g, --user-agent=NAME    Use NAME as the user agent for contacting IAS." NL
+"                           CONFIGURATION_NEEDED response from IAS " NL
+"                           (default: trust)" NNL
+"  -d, --debug              Print debug information to stderr." NNL
+"  -g, --user-agent=NAME    Use NAME as the user agent for contacting IAS." NNL
 "  -k, --key=HEXSTRING      The private key as a hex string. See --key-file" NL
-"                             for notes. Can't combine with --key-file." NL
-"  -l, --linkable           Request a linkable quote (default: unlinkable)." NL
+"                           for notes. Can't combine with --key-file." NNL
+"  -l, --linkable           Request a linkable quote (default: unlinkable)." NNL
 "  -p, --proxy=PROXYURL     Use the proxy server at PROXYURL when contacting" NL
-"                             IAS. Can't combine with --no-proxy\n" NL
-"  -r, --api-version=N      Use version N of the IAS API (default: " << to_string(IAS_API_DEF_VERSION) << ")" NL
-"  -t, --ias-cert-type=TYPE The client certificate type. Can be PEM (default)" NL
-"                             or P12." NL
-"  -v, --verbose            Be verbose. Print message structure details and the" NL
-"                             results of intermediate operations to stderr." NL
+"                           IAS. Can't combine with --no-proxy" NNL
+"  -r, --api-version=N      Use version N of the IAS API (default: " << to_string(IAS_API_DEF_VERSION) << ")" NNL
+"  -v, --verbose            Be verbose. Print message structure details and" NL
+"                           the results of intermediate operations to stderr." NNL
 "  -x, --no-proxy           Do not use a proxy (force a direct connection), " NL
-"                             overriding environment." NL
+"                           overriding environment." NNL
 "  -z  --stdio              Read from stdin and write to stdout instead of" NL
-"                             running as a network server." <<endl;
+"                           running as a network server." <<endl;
 
 	::exit(1);
 }
+
+/* vim: ts=4: */
 

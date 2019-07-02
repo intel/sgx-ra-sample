@@ -96,11 +96,11 @@ int is_psw_installed()
 	// load the DLLs from an untrusted path.
 
 	if (SetDllDirectory(systemdir) == 0) {
-		delete systemdir;
+		delete[] systemdir;
 		return 0;
 	}
 
-	delete systemdir; // No longer need this
+	delete[] systemdir; // No longer need this
 
 	// Need to be able to load both of these DLLs from the System directory.
 
