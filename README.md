@@ -123,11 +123,9 @@ Both `make clean` and `make distclean` are supported.
 
 The service provider sample supports two user agents on Linux for communicating with the Intel Attestation Server (IAS): libcurl and wget.
 
-The **wget** agent runs `wget` via execvp(2) to GET and POST data to IAS. This does not provide seamless support for password-protected client certificate private keys, as `wget` can only obtain these passwords by prompting for them on stdin.
+The **wget** agent runs `wget` via execvp(2) to GET and POST data to IAS. 
 
-The **libcurl** agent is fully featured and does not depend on external commands. However, pre-packaged distributions of libcurl are typically built against OpenSSL, GnuTLS, or NSS. At this time, the Intel Attestation Service development server (which most ISV's use during their application and service testing phase) is not compatible with NSS due to the amount of data sent by IAS during the TLS handshake. For this reason, it is recommended that your libcurl distribution be built against OpenSSL or GnuTLS.
-
-If your distribution's libcurl package is built against NSS and can't be changed, you should use the _wget_ agent when running the RA sample against the IAS development server.
+The **libcurl** agent does not depend on external commands. Pre-packaged distributions of libcurl are typically built against OpenSSL, GnuTLS, or NSS.
 
 libcurl may be built against your local distribution's OpenSSL package (which is 1.0.x for the supported OS's). If so, you will receive a warning message at link time _which can be ignored_. Only libcrypto is required from the OpenSSL 1.1.0 build and it will not conflict with libcurl's OpenSSL dependencies.
 
