@@ -33,7 +33,7 @@ See the [full release history](CHANGES.md).
 
 ### v3.0
 
-Release on 7/x/2019.
+Release on 7/2/2019.
 
  * Switch from user certificate authentication to API subscription keys, per
    version 3 of the Attestation API.
