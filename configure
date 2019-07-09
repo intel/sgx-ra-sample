@@ -5326,7 +5326,7 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-ac_config_files="$ac_config_files run-server:run.in run-client:run.in Makefile Enclave/Makefile"
+ac_config_files="$ac_config_files mrsigner.sh run-server:run.in run-client:run.in Makefile Enclave/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -6076,6 +6076,7 @@ do
   case $ac_config_target in
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "config.h") CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;
+    "mrsigner.sh") CONFIG_FILES="$CONFIG_FILES mrsigner.sh" ;;
     "run-server") CONFIG_FILES="$CONFIG_FILES run-server:run.in" ;;
     "run-client") CONFIG_FILES="$CONFIG_FILES run-client:run.in" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
@@ -6768,10 +6769,11 @@ $as_echo X"$file" |
   done
 }
  ;;
-    "run-server":F) chmod -f 755 run-client run-server ;;
-    "run-client":F) chmod -f 755 run-client run-server ;;
-    "Makefile":F) chmod -f 755 run-client run-server ;;
-    "Enclave/Makefile":F) chmod -f 755 run-client run-server ;;
+    "mrsigner.sh":F) chmod -f 755 run-client run-server mrsigner.sh ;;
+    "run-server":F) chmod -f 755 run-client run-server mrsigner.sh ;;
+    "run-client":F) chmod -f 755 run-client run-server mrsigner.sh ;;
+    "Makefile":F) chmod -f 755 run-client run-server mrsigner.sh ;;
+    "Enclave/Makefile":F) chmod -f 755 run-client run-server mrsigner.sh ;;
 
   esac
 done # for ac_tag

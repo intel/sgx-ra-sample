@@ -100,7 +100,7 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = run-server run-client
+CONFIG_CLEAN_FILES = mrsigner.sh run-server run-client
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
@@ -219,8 +219,9 @@ CTAGS = ctags
 CSCOPE = cscope
 DIST_SUBDIRS = $(SUBDIRS)
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/config.h.in \
-	$(srcdir)/run.in $(top_srcdir)/build-aux/sgx_app.am compile \
-	depcomp install-sh missing
+	$(srcdir)/mrsigner.sh.in $(srcdir)/run.in \
+	$(top_srcdir)/build-aux/sgx_app.am compile depcomp install-sh \
+	missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -477,6 +478,8 @@ $(srcdir)/config.h.in:  $(am__configure_deps)
 
 distclean-hdr:
 	-rm -f config.h stamp-h1
+mrsigner.sh: $(top_builddir)/config.status $(srcdir)/mrsigner.sh.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
 run-server: $(top_builddir)/config.status $(srcdir)/run.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 run-client: $(top_builddir)/config.status $(srcdir)/run.in
@@ -1038,7 +1041,7 @@ server: sp
 
 policy: mrsigner policy.in Enclave.signed.so
 	$(SGX_SIGN) dump -cssfile enclave_sigstruct_raw -dumpfile /dev/null -enclave Enclave.signed.so
-	sed -e "s^@MRSIGNER@^`./mrsigner enclave_sigstruct_raw`^" policy.in > policy
+	sed -e "s^@MRSIGNER@^`./mrsigner.sh enclave_sigstruct_raw`^" policy.in > policy
 	rm -f enclave_sigstruct_raw
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
