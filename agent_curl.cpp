@@ -199,6 +199,10 @@ int AgentCurl::request(string const &url, string const &postdata,
 
 		bp= postdata.c_str();
 
+		// Set POST-specific headers
+		if ( (slist= curl_slist_append(slist, "Content-Type: application/json")) == NULL )
+			return 0;
+
 		if ( (slist= curl_slist_append(slist, "Expect:")) == NULL )
 			return 0;
 

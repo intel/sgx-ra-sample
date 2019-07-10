@@ -165,6 +165,8 @@ retry_write:
 		// Add instance-specific options
 
 		if ( postdata ) {
+			string contentTypeHeader= "--header=Content-Type: application/json";
+			wget_args.push_back(contentTypeHeader.c_str());
 			arg= "--post-file=";
 			arg+= tmpfile;
 			wget_args.push_back(arg);

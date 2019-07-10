@@ -78,5 +78,8 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
+/* Define if sgx_uae_service.h uses the bool type */
+#undef UAE_SERVICE_HAS_BOOL
+
 /* Version number of package */
 #undef VERSION

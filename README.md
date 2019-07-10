@@ -30,6 +30,16 @@ For more information on developing applications with Intel SGX, visit the [Intel
 
 ## <a name="new"></a>What's New
 
+### v2.2.4
+
+Released on 7/10/2019.
+
+ * Update for Intel SGX SDK v2.5.
+
+ * Bug fix: Add `Content-Type: application/json` header when requesting
+   a Verify Attestation Evidence query to IAS. This resolves the
+   `400 Bad Request` response issue.
+
 ### v2.2.2
 
 Released on 9/28/2018.
@@ -101,7 +111,7 @@ The service provider's remote attestation server _does not require Intel SGX har
 
 * Ensure that you have built and installed the Intel SGX packages:
 
-  * [Intel SGX Software Development Kit and Platform Software package for Linux](https://github.com/intel/linux-sgx)
+  * [Intel SGX Software Development Kit and Platform Software package for Linux](https://github.com/intel/linux-sgx) 2.5 or later
   * [Intel SGX Driver for Linux](https://github.com/intel/linux-sgx)
 
 

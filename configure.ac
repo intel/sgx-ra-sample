@@ -25,6 +25,16 @@ AC_ARG_ENABLE([agent-libcurl],
 	[AC_HELP_STRING([--disable-agent-libcurl], [Disable the libcurl user agent])],
 	[], [enable_agent_libcurl=yes])
 
+dnl Are we building against SGX SDK 2.5 which required the bool type?
+dnl ----------------------------------------------------------------------
+AC_EGREP_HEADER([bool refresh_att_key], 
+	[$SGXSDK/include/sgx_uae_service.h],
+	[
+		AC_DEFINE([UAE_SERVICE_HAS_BOOL], [1],
+			[Define if sgx_uae_service.h uses the bool type])
+	], []
+)
+
 dnl Check for OpenSSL 1.1.0 or later
 dnl ----------------------------------------------------------------------
 AS_IF([test "$openssl" != ""], [
