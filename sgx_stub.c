@@ -89,7 +89,6 @@ static func p_sgx_get_whitelist_size= NULL;
 static func p_sgx_create_enclave_ex= NULL;
 static func p_sgx_create_enclave= NULL;
 static func p_sgx_get_quote_ex= NULL;
-static func p_sgx_select_att_key_id= NULL;
 static func p_sgx_oc_cpuidex= NULL;
 static func p_sgx_destroy_enclave= NULL;
 static func p_create_session_ocall= NULL;
@@ -122,7 +121,6 @@ static int l_sgx_get_whitelist_size= 0;
 static int l_sgx_create_enclave_ex= 0;
 static int l_sgx_create_enclave= 0;
 static int l_sgx_get_quote_ex= 0;
-static int l_sgx_select_att_key_id= 0;
 static int l_sgx_oc_cpuidex= 0;
 static int l_sgx_destroy_enclave= 0;
 static int l_create_session_ocall= 0;
@@ -347,18 +345,6 @@ sgx_status_t sgx_get_quote_ex(const sgx_report_t *p_app_report, const sgx_att_ke
 	return (sgx_status_t) p_sgx_get_quote_ex(p_app_report, p_att_key_id, p_qe_report_info, p_quote, quote_size);
 }
 
-sgx_status_t sgx_select_att_key_id(const uint8_t *p_att_key_id_list, uint32_t att_key_id_list_size, sgx_att_key_id_t **pp_selected_key_id)
-{
-	if ( l_sgx_select_att_key_id == 0 ) {
-		if ( h_libsgx_uae_service == 0 ) _load_libsgx_uae_service();
-		*(void **)(&p_sgx_select_att_key_id)= _load_symbol(h_libsgx_uae_service, "sgx_select_att_key_id", &l_sgx_select_att_key_id);
-	}
-
-	if ( l_sgx_select_att_key_id == -1 ) _undefined_symbol("sgx_select_att_key_id");
-
-	return (sgx_status_t) p_sgx_select_att_key_id(p_att_key_id_list, att_key_id_list_size, pp_selected_key_id);
-}
-
 void sgx_oc_cpuidex(int *cpuinfo, int leaf, int subleaf)
 {
 	if ( l_sgx_oc_cpuidex == 0 ) {
@@ -527,7 +513,11 @@ sgx_status_t sgx_ecall_switchless(const sgx_enclave_id_t eid, const int index, c
 	return (sgx_status_t) p_sgx_ecall_switchless(eid, index, ocall_table, ms);
 }
 
+#ifdef UAE_SERVICE_HAS_BOOL
 sgx_status_t sgx_init_quote_ex(const sgx_att_key_id_t *p_att_key_id, sgx_target_info_t *p_qe_target_info, uint8_t refresh_att_key, size_t *p_pub_key_id_size, uint8_t *p_pub_key_id)
+#else
+sgx_status_t sgx_init_quote_ex(const sgx_att_key_id_t *p_att_key_id, sgx_target_info_t *p_qe_target_info, size_t *p_pub_key_id_size, uint8_t *p_pub_key_id)
+#endif
 {
 	if ( l_sgx_init_quote_ex == 0 ) {
 		if ( h_libsgx_uae_service == 0 ) _load_libsgx_uae_service();
@@ -536,7 +526,11 @@ sgx_status_t sgx_init_quote_ex(const sgx_att_key_id_t *p_att_key_id, sgx_target_
 
 	if ( l_sgx_init_quote_ex == -1 ) _undefined_symbol("sgx_init_quote_ex");
 
+#ifdef UAE_SERVICE_HAS_BOOL
 	return (sgx_status_t) p_sgx_init_quote_ex(p_att_key_id, p_qe_target_info, refresh_att_key, p_pub_key_id_size, p_pub_key_id);
+#else
+	return (sgx_status_t) p_sgx_init_quote_ex(p_att_key_id, p_qe_target_info, p_pub_key_id_size, p_pub_key_id);
+#endif
 }
 
 sgx_status_t sgx_create_encrypted_enclave(const char *file_name, const int debug, sgx_launch_token_t *launch_token, int *launch_token_updated, sgx_enclave_id_t *enclave_id, sgx_misc_attribute_t *misc_attr, uint8_t *sealed_key)
