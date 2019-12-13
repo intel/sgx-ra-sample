@@ -755,11 +755,11 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 	if ( debug ) {
 		eprintf("+++ Verifying msg3.g_a matches msg1.g_a\n");
 		eprintf("msg1.g_a.gx = %s\n",
-			hexstring(msg3->g_a.gx, sizeof(msg1->g_a.gx)));
+			hexstring(&msg1->g_a.gx, sizeof(msg1->g_a.gx)));
 		eprintf("msg1.g_a.gy = %s\n",
-			hexstring(&msg3->g_a.gy, sizeof(msg1->g_a.gy)));
+			hexstring(&msg1->g_a.gy, sizeof(msg1->g_a.gy)));
 		eprintf("msg3.g_a.gx = %s\n",
-			hexstring(msg3->g_a.gx, sizeof(msg3->g_a.gx)));
+			hexstring(&msg3->g_a.gx, sizeof(msg3->g_a.gx)));
 		eprintf("msg3.g_a.gy = %s\n",
 			hexstring(&msg3->g_a.gy, sizeof(msg3->g_a.gy)));
 	}
