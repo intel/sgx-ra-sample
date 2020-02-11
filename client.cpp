@@ -178,8 +178,10 @@ int main (int argc, char *argv[])
 		{"help",		no_argument,		0, 'h'},		
 		{"debug",		no_argument,		0, 'd'},
 		{"epid-gid",	no_argument,		0, 'e'},
+#ifdef _WIN32
 		{"pse-manifest",
 						no_argument,    	0, 'm'},
+#endif
 		{"nonce",		required_argument,	0, 'n'},
 		{"nonce-file",	required_argument,	0, 'N'},
 		{"rand-nonce",	no_argument,		0, 'r'},
@@ -1075,7 +1077,9 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 #endif
 
 	free(b64quote);
+#ifdef _WIN32
 	if ( b64manifest != NULL ) free(b64manifest);
+#endif
 
 	return 0;
 
@@ -1188,7 +1192,9 @@ void usage ()
 	fprintf(stderr, "  -e, --epid-gid           Get the EPID Group ID instead of performing\n");
 	fprintf(stderr, "                             an attestation.\n");
 	fprintf(stderr, "  -l, --linkable           Specify a linkable quote (default: unlinkable)\n");
+#ifdef _WIN32
 	fprintf(stderr, "  -m, --pse-manifest       Include the PSE manifest in the quote\n");
+#endif
 	fprintf(stderr, "  -n, --nonce=HEXSTRING    Set a nonce from a 32-byte ASCII hex string\n");
 	fprintf(stderr, "  -p, --pubkey=HEXSTRING   Specify the public key of the service provider\n");
 	fprintf(stderr, "                             as an ASCII hex string instead of using the\n");
