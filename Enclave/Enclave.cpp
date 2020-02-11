@@ -21,7 +21,9 @@ in the License.
 #include "Enclave_t.h"
 #include <string.h>
 #include <sgx_utils.h>
+#ifdef _WIN32
 #include <sgx_tae_service.h>
+#endif
 #include <sgx_tkey_exchange.h>
 #include <sgx_tcrypto.h>
 
@@ -86,6 +88,7 @@ sgx_status_t get_report(sgx_report_t *report, sgx_target_info_t *target_info)
 #endif
 }
 
+#ifdef _WIN32
 size_t get_pse_manifest_size ()
 {
 	return sizeof(sgx_ps_sec_prop_desc_t);
@@ -112,6 +115,7 @@ sgx_status_t get_pse_manifest(char *buf, size_t sz)
 
 	return status;
 }
+#endif
 
 sgx_status_t enclave_ra_init(sgx_ec256_public_t key, int b_pse,
 	sgx_ra_context_t *ctx, sgx_status_t *pse_status)
@@ -123,6 +127,7 @@ sgx_status_t enclave_ra_init(sgx_ec256_public_t key, int b_pse,
 	 * before calling sgx_ra_init()
 	 */
 
+#ifdef _WIN32
 	if ( b_pse ) {
 		int retries= PSE_RETRIES;
 		do {
@@ -142,6 +147,9 @@ sgx_status_t enclave_ra_init(sgx_ec256_public_t key, int b_pse,
 		} while (*pse_status == SGX_ERROR_BUSY && retries--);
 		if ( *pse_status != SGX_SUCCESS ) return SGX_ERROR_UNEXPECTED;
 	}
+#else
+	ra_status= sgx_ra_init(&key, 0, ctx);
+#endif
 
 	return ra_status;
 }

@@ -101,7 +101,6 @@ static func p_sgx_ocall= NULL;
 static func p_sgx_init_quote= NULL;
 static func p_sgx_calc_quote_size= NULL;
 static func p_sgx_thread_wait_untrusted_event_ocall= NULL;
-static func p_sgx_get_ps_cap= NULL;
 static func p_sgx_ecall_switchless= NULL;
 static func p_sgx_init_quote_ex= NULL;
 static func p_sgx_create_encrypted_enclave= NULL;
@@ -133,7 +132,6 @@ static int l_sgx_ocall= 0;
 static int l_sgx_init_quote= 0;
 static int l_sgx_calc_quote_size= 0;
 static int l_sgx_thread_wait_untrusted_event_ocall= 0;
-static int l_sgx_get_ps_cap= 0;
 static int l_sgx_ecall_switchless= 0;
 static int l_sgx_init_quote_ex= 0;
 static int l_sgx_create_encrypted_enclave= 0;
@@ -487,18 +485,6 @@ int sgx_thread_wait_untrusted_event_ocall(const void *self)
 	if ( l_sgx_thread_wait_untrusted_event_ocall == -1 ) _undefined_symbol("sgx_thread_wait_untrusted_event_ocall");
 
 	return (int) p_sgx_thread_wait_untrusted_event_ocall(self);
-}
-
-sgx_status_t sgx_get_ps_cap(sgx_ps_cap_t *p_sgx_ps_cap)
-{
-	if ( l_sgx_get_ps_cap == 0 ) {
-		if ( h_libsgx_uae_service == 0 ) _load_libsgx_uae_service();
-		*(void **)(&p_sgx_get_ps_cap)= _load_symbol(h_libsgx_uae_service, "sgx_get_ps_cap", &l_sgx_get_ps_cap);
-	}
-
-	if ( l_sgx_get_ps_cap == -1 ) _undefined_symbol("sgx_get_ps_cap");
-
-	return (sgx_status_t) p_sgx_get_ps_cap(p_sgx_ps_cap);
 }
 
 sgx_status_t sgx_ecall_switchless(const sgx_enclave_id_t eid, const int index, const void *ocall_table, void *ms)

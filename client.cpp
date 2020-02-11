@@ -483,6 +483,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		return 1;
 	}
 
+#ifdef _WIN32
 	/* If we asked for a PSE session, did that succeed? */
 	if (b_pse) {
 		if ( pse_status != SGX_SUCCESS ) {
@@ -491,6 +492,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 			return 1;
 		}
 	}
+#endif
 
 	/* Did sgx_ra_init() succeed? */
 	if ( sgxrv != SGX_SUCCESS ) {
@@ -693,6 +695,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		fprintf(fplog, "\nmsg3.g_a.gy      = ");
 		print_hexstring(stderr, msg3->g_a.gy, sizeof(msg3->g_a.gy));
 		print_hexstring(fplog, msg3->g_a.gy, sizeof(msg3->g_a.gy));
+#ifdef _WIN32
 		fprintf(stderr, "\nmsg3.ps_sec_prop.sgx_ps_sec_prop_desc = ");
 		fprintf(fplog, "\nmsg3.ps_sec_prop.sgx_ps_sec_prop_desc = ");
 		print_hexstring(stderr, msg3->ps_sec_prop.sgx_ps_sec_prop_desc,
@@ -700,6 +703,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 		print_hexstring(fplog, msg3->ps_sec_prop.sgx_ps_sec_prop_desc,
 			sizeof(msg3->ps_sec_prop.sgx_ps_sec_prop_desc));
 		fprintf(fplog, "\n");
+#endif
 		fprintf(stderr, "\nmsg3.quote       = ");
 		fprintf(fplog, "\nmsg3.quote       = ");
 		print_hexstring(stderr, msg3->quote, msg3_sz-sizeof(sgx_ra_msg3_t));
@@ -901,10 +905,10 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 	uint32_t sz= 0;
 	uint32_t flags= config->flags;
 	sgx_quote_sign_type_t linkable= SGX_UNLINKABLE_SIGNATURE;
+#ifdef _WIN32
 	sgx_ps_cap_t ps_cap;
 	char *pse_manifest = NULL;
 	size_t pse_manifest_sz;
-#ifdef _WIN32
 	LPTSTR b64quote = NULL;
 	DWORD sz_b64quote = 0;
 	LPTSTR b64manifest = NULL;
@@ -916,7 +920,8 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 
  	if (OPT_ISSET(flags, OPT_LINK)) linkable= SGX_LINKABLE_SIGNATURE;
 
-	/* Platform services info */
+	/* Platform services info. Win32 only. */
+#ifdef _WIN32
 	if (OPT_ISSET(flags, OPT_PSE)) {
 		status = sgx_get_ps_cap(&ps_cap);
 		if (status != SGX_SUCCESS) {
@@ -945,6 +950,7 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 			return 1;
 		}
 	}
+#endif
 
 	/* Get our quote */
 
@@ -1047,15 +1053,6 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 		eprintf("Could not base64 encode quote\n");
 		return 1;
 	}
-
-	if (OPT_ISSET(flags, OPT_PSE)) {
-		b64manifest= base64_encode((char *) pse_manifest, pse_manifest_sz);
-		if ( b64manifest == NULL ) {
-			free(b64quote);
-			eprintf("Could not base64 encode manifest\n");
-			return 1;
-		}
-	}
 #endif
 
 	printf("{\n");
@@ -1066,10 +1063,12 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 		printf("\"");
 	}
 
+#ifdef _WIN32
 	if (OPT_ISSET(flags, OPT_PSE)) {
 		printf(",\n\"pseManifest\":\"%s\"", b64manifest);	
 	}
 	printf("\n}\n");
+#endif
 
 #ifdef SGX_HW_SIM
 	fprintf(stderr, "WARNING! Built in h/w simulation mode. This quote will not be verifiable.\n");
