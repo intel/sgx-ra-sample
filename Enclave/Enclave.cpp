@@ -142,7 +142,7 @@ sgx_status_t enclave_ra_init(sgx_ec256_public_t key, int b_pse,
 	if ( b_pse ) {
 		int retries= PSE_RETRIES;
 		do {
-			*pse_status= sgx_create_pse_session();
+			*pse_status= sgx_close_pse_session();
 			if ( *pse_status != SGX_SUCCESS ) return SGX_ERROR_UNEXPECTED;
 		} while (*pse_status == SGX_ERROR_BUSY && retries--);
 		if ( *pse_status != SGX_SUCCESS ) return SGX_ERROR_UNEXPECTED;

@@ -925,12 +925,6 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 	/* Platform services info. Win32 only. */
 #ifdef _WIN32
 	if (OPT_ISSET(flags, OPT_PSE)) {
-		status = sgx_get_ps_cap(&ps_cap);
-		if (status != SGX_SUCCESS) {
-			fprintf(stderr, "sgx_get_ps_cap: %08x\n", status);
-			return 1;
-		}
-
 		status = get_pse_manifest_size(eid, &pse_manifest_sz);
 		if (status != SGX_SUCCESS) {
 			fprintf(stderr, "get_pse_manifest_size: %08x\n",
