@@ -1063,8 +1063,8 @@ int do_quote(sgx_enclave_id_t eid, config_t *config)
 	if (OPT_ISSET(flags, OPT_PSE)) {
 		printf(",\n\"pseManifest\":\"%s\"", b64manifest);	
 	}
-	printf("\n}\n");
 #endif
+	printf("\n}\n");
 
 #ifdef SGX_HW_SIM
 	fprintf(stderr, "WARNING! Built in h/w simulation mode. This quote will not be verifiable.\n");
