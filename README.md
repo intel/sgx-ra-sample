@@ -226,13 +226,13 @@ To execute:
 * Run the server:
 
   ```
-  ./run-server [ options ] [ post ]
+  ./run-server [ options ] [ port ]
   ```
 
 * Run the client:
 
   ```
-  ./run-client [ options ] [ host[:post] ]
+  ./run-client [ options ] [ host[:port] ]
   ```
 
 The `policy` file is automatically generated for you from the Enclave metadata

@@ -489,7 +489,7 @@ int do_attestation (sgx_enclave_id_t eid, config_t *config)
 	/* If we asked for a PSE session, did that succeed? */
 	if (b_pse) {
 		if ( pse_status != SGX_SUCCESS ) {
-			fprintf(stderr, "pse_session: %08x\n", sgxrv);
+			fprintf(stderr, "pse_session: %08x\n", pse_status);
 			delete msgio;
 			return 1;
 		}
