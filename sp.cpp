@@ -1409,6 +1409,12 @@ int get_attestation_report(IAS_Connection *ias, int version,
 				reportObj["nonce"].ToString().c_str());
 			eprintf("epidPseudonym     = %s\n",
 				reportObj["epidPseudonym"].ToString().c_str());
+			if ( version >= 4 ) {
+				eprintf("advisoryURL       = %s\n",
+					reportObj["advisoryURL"].ToString().c_str());
+				eprintf("advisoryIDs       = %s\n",
+					reportObj["advisoryIDs"].ToString().c_str());
+			}
 			edivider();
 		}
 
@@ -1440,16 +1446,21 @@ int get_attestation_report(IAS_Connection *ias, int version,
 	 * 
 	 *   1) if "OK" then return "Trusted"
 	 *
- 	 *   2) if "CONFIGURATION_NEEDED" then return
-	 *       "NotTrusted_ItsComplicated" when in --strict-trust-mode
-	 *        and "Trusted_ItsComplicated" otherwise
+ 	 *   2) if "CONFIGURATION_NEEDED", "SW_HARDENING_NEEDED", or
+	 *      "CONFIGURATION_AND_SW_HARDENING_NEEDED", then return
+	        "NotTrusted_ItsComplicated" when in --strict-trust-mode
+	         and "Trusted_ItsComplicated" otherwise
 	 *
 	 *   3) return "NotTrusted" for all other responses
 	 *
-	 * 
-	 * ItsComplicated means the client is not trusted, but can 
-	 * conceivable take action that will allow it to be trusted
-	 * (such as a BIOS update).
+	 * In case #2, this is ultimatly a policy decision. Do you want to
+	 * trust a client that is running with a configuration that weakens
+	 * its security posture? Even if you ultimately choose to trust the
+	 * client, the "Trusted_ItsComplicated" response is intended to 
+	 * tell the client "I'll trust you (for now), but inform the user
+	 * that I may not trust them in the future unless they take some 
+	 * action". A real service would provide some guidance to the
+	 * end user based on the advisory URLs and advisory IDs.
  	 */
 
 	/*
@@ -1701,5 +1712,7 @@ void usage ()
 	::exit(1);
 }
 
-/* vim: ts=4: */
+/*
+# vim:ts=4:
+*/
 

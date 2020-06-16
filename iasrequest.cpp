@@ -574,15 +574,18 @@ ias_error_t IAS_Request::report(map<string,string> &payload, string &content,
 		}
 	}
 
-	/*
-	 * Check for advisory headers
-	 */
+	if ( r_api_version == 3 ) {
+		/*
+	 	 * Check for advisory headers in a v3 response. In v4 these
+		 * are part of the report.
+	 	 */
+	
+		header= response.headers_as_string("Advisory-URL");
+		if ( header.length() ) messages.push_back(header);
 
-	header= response.headers_as_string("Advisory-URL");
-	if ( header.length() ) messages.push_back(header);
-
-	header= response.headers_as_string("Advisory-IDs");
-	if ( header.length() ) messages.push_back(header);
+		header= response.headers_as_string("Advisory-IDs");
+		if ( header.length() ) messages.push_back(header);
+	}
 
 cleanup:
 	if ( pkey != NULL ) EVP_PKEY_free(pkey);
