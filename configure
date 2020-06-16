@@ -662,7 +662,6 @@ SGX_DEBUG_FLAGS
 ENCLAVE_SIGN_TARGET
 LIBS_HW_SIMU
 SGX_URTS_LIB
-SGX_UAE_SERVICE_LIB
 SGX_TSERVICE_LIB
 SGX_TRTS_LIB
 SGX_ENABLED_FALSE
@@ -4549,8 +4548,7 @@ fi
 
 			SGX_TSERVICE_LIB=sgx_tservice_sim
 
-			SGX_UAE_SERVICE_LIB=sgx_uae_service_sim
-
+#			AC_SUBST(SGX_UAE_SERVICE_LIB, [sgx_uae_service_sim])
 			SGX_URTS_LIB=sgx_urts_sim
 
 			LIBS_HW_SIMU="-lsgx_urts_sim -lsgx_uae_service_sim"
@@ -4565,8 +4563,7 @@ else
 
 			SGX_TSERVICE_LIB=sgx_tservice
 
-			SGX_UAE_SERVICE_LIB=sgx_uae_service
-
+#			AC_SUBST(SGX_UAE_SERVICE_LIB, [sgx_uae_service])
 			SGX_URTS_LIB=sgx_urts
 
 

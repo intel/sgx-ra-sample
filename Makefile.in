@@ -338,7 +338,6 @@ SGX_TLIB_CPPFLAGS = @SGX_TLIB_CPPFLAGS@
 SGX_TLIB_CXXFLAGS = @SGX_TLIB_CXXFLAGS@
 SGX_TRTS_LIB = @SGX_TRTS_LIB@
 SGX_TSERVICE_LIB = @SGX_TSERVICE_LIB@
-SGX_UAE_SERVICE_LIB = @SGX_UAE_SERVICE_LIB@
 SGX_URTS_LIB = @SGX_URTS_LIB@
 SHELL = @SHELL@
 STRIP = @STRIP@
@@ -419,8 +418,8 @@ EXTRA_sp_DEPENDENCIES = Enclave.signed.so
 mrsigner_SOURCES = mrsigner.cpp crypto.c hexutil.c
 sp_LDFLAGS = $(AM_LDFLAGS) @OPENSSL_LDFLAGS@ @CURL_LDFLAGS@
 mrsigner_LDFLAGS = $(AM_LDFLAGS) @OPENSSL_LDFLAGS@
-client_LDADD = -l$(SGX_URTS_LIB) -lsgx_ukey_exchange -l$(SGX_UAE_SERVICE_LIB) \
-	-lcrypto -l:libsgx_capable.a -lpthread -ldl
+client_LDADD = -l$(SGX_URTS_LIB) -lsgx_ukey_exchange -lcrypto \
+	-l:libsgx_capable.a -lpthread -ldl
 
 mrsigner_LDADD = -lcrypto
 sp_LDADD = -lcrypto @CURL_LIBS@
@@ -1024,6 +1023,7 @@ uninstall-am: uninstall-binPROGRAMS
 
 .PRECIOUS: Makefile
 
+#SGX_UAE_SERVICE_LIB=@SGX_UAE_SERVICE_LIB@
 
 @SGX_ENABLED_TRUE@%_u.h %_u.c: %.edl
 @SGX_ENABLED_TRUE@	$(SGX_EDGER8R) --search-path $(SGXSDK_INCDIR) $(SGX_EDGER8R_FLAGS) --untrusted $<
