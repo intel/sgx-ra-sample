@@ -23,7 +23,7 @@
     <ProjectGuid>{A8C52756-895F-4E8D-AE0A-B942FAA46D60}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>mrsigner</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -43,12 +43,12 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -101,11 +101,11 @@
       <AdditionalDependencies>libcrypto64MDd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>"$(SGXSDKInstallPath)bin\$(PlatformTarget)\Release\sgx_sign" dump -cssfile $(OutDir)\enclave_sigstruct_raw -dumpfile $(OutDir)\enclave_dump.txt -enclave $(OutDir)\Enclave.signed.dll</Command>
+      <Command>"$(SGXSDKInstallPath)bin\$(PlatformTarget)\Release\sgx_sign" dump -cssfile ..\$(IntDir)enclave_sigstruct_raw -dumpfile ..\$(IntDir)enclave_dump.txt -enclave ..\$(IntDir)Enclave.signed.dll</Command>
       <Message>Dump Enclave sigstruct</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>"$(TargetPath)" $(OutDir)\enclave_sigstruct_raw &gt; $(OutDir)\enclave_mrsigner.txt</Command>
+      <Command>"$(TargetPath)" $(IntDir)enclave_sigstruct_raw &gt; $(IntDir)enclave_mrsigner.txt</Command>
       <Message>Calculate MRSIGNER</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -122,6 +122,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>"$(TargetPath)" $(IntDir)enclave_sigstruct_raw &gt; $(IntDir)enclave_mrsigner.txt</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -162,11 +165,11 @@
       <AdditionalDependencies>libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>"$(SGXSDKInstallPath)bin\$(PlatformTarget)\Release\sgx_sign" dump -cssfile $(OutDir)\enclave_sigstruct_raw -dumpfile $(OutDir)\enclave_dump.txt -enclave $(OutDir)\Enclave.signed.dll</Command>
+      <Command>"$(SGXSDKInstallPath)bin\$(PlatformTarget)\Release\sgx_sign" dump -cssfile $(IntDir)enclave_sigstruct_raw -dumpfile $(IntDir)enclave_dump.txt -enclave $(IntDir)Enclave.signed.dll</Command>
       <Message>Dump Enclave sigstruct</Message>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>"$(TargetPath)" $(OutDir)\enclave_sigstruct_raw &gt; $(OutDir)\enclave_mrsigner.txt</Command>
+      <Command>"$(TargetPath)" "$(OutDir)\enclave_sigstruct_raw" &gt; "$(OutDir)\enclave_mrsigner.txt"</Command>
       <Message>Calculate MRSIGNER</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
