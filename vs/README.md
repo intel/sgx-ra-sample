@@ -26,17 +26,13 @@ For more information on developing applications with Intel SGX, visit the [Intel
 
 See the [full release history](../CHANGES.md).
 
-### v3.0
+### v3.1
 
-Release on 7/2/2019.
+Release on 6/25/2020.
 
- * Switch from user certificate authentication to API subscription keys, per
-   version 3 of the Attestation API.
+ * Default to version 4 of the Attestation API.
 
- * (Windows) Provide native client agent via WinHTTP, replacing libcurl.
-
- * Add Enclave verification policy checks for: MRSIGNER, ProdId, and ISVSVN.
-   Also add option to reject enclaves that are built in Debug mode.
+ * Remove references to the PSE in Linux builds.
 
 ## <a name="license"></a>License
 
@@ -58,8 +54,8 @@ The service provider's remote attestation server _does not require Intel SGX har
 * Ensure you have the following:
 
   * Windows 10 64-bit
-  * Microsoft* Visual Studio 2015 (Professional edition or better)
-  * [Intel SGX SDK and Platform Software for Windows](https://software.intel.com/en-us/sgx-sdk/download) v2.3 or later
+  * Microsoft* Visual Studio 2017 (Professional edition or better)
+  * [Intel SGX SDK and Platform Software for Windows](https://software.intel.com/en-us/sgx-sdk/download) v2.7 or later
 
 * Install OpenSSL 1.1.0 for Windows. The [Win64 OpenSSL v1.1.0 package from Shining Light Productions](https://slproweb.com/products/Win32OpenSSL.html) is recommended. **Select the option to copy the DLL's to your Windows system directory.**
 

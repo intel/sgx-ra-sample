@@ -45,16 +45,12 @@
 <p>For more information on developing applications with Intel SGX, visit the <a href="https://software.intel.com/sgx/">Intel SGX landing zone</a>.</p>
 <h2 id="-a-name-new-a-what-s-new"><a name="new"></a>What&apos;s New</h2>
 <p>See the <a href="../CHANGES.md">full release history</a>.</p>
-<h3 id="v3-0">v3.0</h3>
-<p>Release on 7/2/2019.</p>
+<h3 id="v3-1">v3.1</h3>
+<p>Release on 6/25/2020.</p>
 <ul>
-<li><p>Switch from user certificate authentication to API subscription keys, per
-version 3 of the Attestation API.</p>
+<li><p>Default to version 4 of the Attestation API.</p>
 </li>
-<li><p>(Windows) Provide native client agent via WinHTTP, replacing libcurl.</p>
-</li>
-<li><p>Add Enclave verification policy checks for: MRSIGNER, ProdId, and ISVSVN.
-Also add option to reject enclaves that are built in Debug mode.</p>
+<li><p>Remove references to the PSE in Linux builds.</p>
 </li>
 </ul>
 <h2 id="-a-name-license-a-license"><a name="license"></a>License</h2>
@@ -71,8 +67,8 @@ Intel Sample Source Code license. See the LICENSE file for terms.</p>
 <li><p>Ensure you have the following:</p>
 <ul>
 <li>Windows 10 64-bit</li>
-<li>Microsoft* Visual Studio 2015 (Professional edition or better)</li>
-<li><a href="https://software.intel.com/en-us/sgx-sdk/download">Intel SGX SDK and Platform Software for Windows</a> v2.3 or later</li>
+<li>Microsoft* Visual Studio 2017 (Professional edition or better)</li>
+<li><a href="https://software.intel.com/en-us/sgx-sdk/download">Intel SGX SDK and Platform Software for Windows</a> v2.8 or later</li>
 </ul>
 </li>
 <li><p>Install OpenSSL 1.1.0 for Windows. The <a href="https://slproweb.com/products/Win32OpenSSL.html">Win64 OpenSSL v1.1.0 package from Shining Light Productions</a> is recommended. <strong>Select the option to copy the DLL&apos;s to your Windows system directory.</strong></p>

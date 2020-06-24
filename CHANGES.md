@@ -1,8 +1,16 @@
 ## Release History
 
+### v3.1
+
+Release on 6/25/2020.
+
+ * Default to version 4 of the Attestation API.
+
+ * (Linux) Remove references to the PSE.
+
 ### v3.0
 
-Release on 7/x/2019.
+Release on 7/2/2019.
 
  * Switch from user certificate authentication to API subscription keys per
    the Attestation Service for Intel SGX API Documentation, version 5.

@@ -53,6 +53,7 @@ using namespace std;
 #endif
 #include <sgx_uae_service.h>
 #include <sgx_ukey_exchange.h>
+#include <sgx_uae_quote_ex.h>
 #include <string>
 #include "common.h"
 #include "protocol.h"

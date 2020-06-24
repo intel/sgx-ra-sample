@@ -31,17 +31,13 @@ For more information on developing applications with Intel SGX, visit the [Intel
 
 See the [full release history](CHANGES.md).
 
-### v3.0
+### v3.1
 
-Release on 7/2/2019.
+Release on 6/25/2020.
 
- * Switch from user certificate authentication to API subscription keys, per
-   version 3 of the Attestation API.
+ * Default to version 4 of the Attestation API.
 
- * (Windows) Provide native client agent via WinHTTP, replacing libcurl.
-
- * Add Enclave verification policy checks for: MRSIGNER, ProdId, and ISVSVN.
-   Also add option to reject enclaves that are built in Debug mode.
+ * Remove references to the PSE in Linux builds.
 
 ## <a name="license"></a>License
 
@@ -63,7 +59,6 @@ The service provider's remote attestation server _does not require Intel SGX har
 * Ensure that you have one of the following operating systems:
 
   * CentOS 7.4 (64-bit)
-  * Ubuntu 16.04 LTS (64-bit)
   * Ubuntu 18.04 LTS (64-bit)
 
 * Ensure that you have built and installed the Intel SGX packages:
@@ -125,7 +120,7 @@ Both `make clean` and `make distclean` are supported.
 
 The service provider sample supports two user agents on Linux for communicating with the Intel Attestation Server (IAS): libcurl and wget.
 
-The **wget** agent runs `wget` via execvp(2) to GET and POST data to IAS. 
+The **wget** agent runs `wget` via execvp(2) to GET and POST data to IAS.
 
 The **libcurl** agent does not depend on external commands. Pre-packaged distributions of libcurl are typically built against OpenSSL, GnuTLS, or NSS.
 
@@ -146,8 +141,8 @@ You can build the client for simulation mode using `--enable-sgx-simulation`. No
 * Ensure you have the following:
 
   * Windows 10 64-bit
-  * Microsoft* Visual Studio 2015 (Professional edition or better)
-  * [Intel SGX SDK and Platform Software for Windows](https://software.intel.com/en-us/sgx-sdk/download) v2.3 or later
+  * Microsoft* Visual Studio 2017 (Professional edition or better)
+  * [Intel SGX SDK and Platform Software for Windows](https://software.intel.com/en-us/sgx-sdk/download) v2.7 or later
 
 * Install OpenSSL 1.1.0 for Windows. The [Win64 OpenSSL v1.1.0 package from Shining Light Productions](https://slproweb.com/products/Win32OpenSSL.html) is recommended. **Select the option to copy the DLL's to your Windows system directory.**
 
@@ -411,7 +406,7 @@ Optional:
   -p, --proxy=PROXYURL     Use the proxy server at PROXYURL when contacting
                            IAS. Can't combine with --no-proxy
 
-  -r, --api-version=N      Use version N of the IAS API (default: 3)
+  -r, --api-version=N      Use version N of the IAS API (default: 4)
 
   -v, --verbose            Be verbose. Print message structure details and
                            the results of intermediate operations to stderr.
@@ -425,7 +420,7 @@ Optional:
 
 You set the user agent with `-g` (a list of supported agents can be obtained from `-G`). On Linux, this is one of either **wget** or **libcurl** (unless the latter is disabled in the build configuration). On Windows, **winhttp** is the only agent.
 
-By default, the server uses protocol version 3 when communicating with IAS. This can be changed with `-r`. Versions 1 and 2 have been deprecated.
+By default, the server uses protocol version 4 when communicating with IAS. This can be changed with `-r`. Versions 1 and 2 have been deprecated.
 
 You can override the service provider private key with `-k` or `-K`. As with the client, this key would normally be hardcoded into the server to prevent it from handling unauthorized clients.
 
