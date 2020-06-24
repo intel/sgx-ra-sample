@@ -1,4 +1,4 @@
-# Intel&reg; Software Guard Extensions (SGX) Remote Attestation End-to-End Sample
+# Intel&reg; Software Guard Extensions (SGX) Remote Attestation End-to-End Sample for EPID Attestations
 
 * [Introduction](#intro)
 * [What's New](#new)
@@ -13,10 +13,9 @@
 
 ## <a name="intro"></a>Introduction
 
-This code sample demonstrates the procedures that must be followed when performing Remote Attestation for an Intel SGX enclave. The code sample includes both a sample ISV (independent software vendor) client (and its enclave) and ISV remote attestation server. This code sample has been tested on the following platforms:
+This code sample demonstrates the procedures that must be followed when performing Remote Attestation for an Intel SGX enclave when using EPID attestations. The code sample includes both a sample ISV (independent software vendor) client (and its enclave) and ISV remote attestation server. It has been tested on the following platforms:
 
 **Linux**
- * Ubuntu* 16.04
  * Ubuntu 18.04
  * Centos* 7.4
 
@@ -63,7 +62,7 @@ The service provider's remote attestation server _does not require Intel SGX har
 
 * Ensure that you have built and installed the Intel SGX packages:
 
-  * [Intel SGX Software Development Kit and Platform Software package for Linux](https://github.com/intel/linux-sgx) 2.5 or later
+  * [Intel SGX Software Development Kit and Platform Software package for Linux](https://github.com/intel/linux-sgx) 2.8 or later
   * [Intel SGX Driver for Linux](https://github.com/intel/linux-sgx)
 
 
@@ -74,12 +73,6 @@ The service provider's remote attestation server _does not require Intel SGX har
   ```
   $ yum install libcurl-devel
   ```
-
-  * On Ubuntu 16.04
-
- ```
- $ apt-get install libcurl4-openssl-dev
- ```
 
 * Run the following command to get your system's OpenSSL version. It must be
 at least 1.1.0:
