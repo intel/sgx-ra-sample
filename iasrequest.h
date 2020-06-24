@@ -37,9 +37,9 @@ using namespace std;
 
 /* IAS API v1 has been EOL'd */
 /* IAS API v2 has been deprecated as of Aug-17-2018 */
-#define IAS_MIN_VERSION	2
-/* IAS API v3 is the latest supported API */ 
-#define IAS_MAX_VERSION	3
+#define IAS_MIN_VERSION	3
+/* IAS API v4 is the latest supported API */ 
+#define IAS_MAX_VERSION	4
 
 #define IAS_PROXY_NONE	0
 #define IAS_PROXY_AUTO	1

@@ -28,7 +28,7 @@ endif
 ## so they need to be listed as Makefile variables.
 
 SGX_URTS_LIB=@SGX_URTS_LIB@
-SGX_UAE_SERVICE_LIB=@SGX_UAE_SERVICE_LIB@
+#SGX_UAE_SERVICE_LIB=@SGX_UAE_SERVICE_LIB@
 
 ## Rule to generate untrusted proxy functions from an EDL file.
 

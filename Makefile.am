@@ -23,7 +23,6 @@ include $(top_srcdir)/build-aux/sgx_app.am
 ##   SGXSSL_INCDIR
 ##   SGXSSL_LIBDIR
 ##   SGX_URTS_LIB
-##   SGX_UAE_SERVICE_LIB
 ##   SGX_EDGER8R
 
 SUBDIRS = Enclave 
@@ -108,16 +107,11 @@ mrsigner_LDFLAGS= $(AM_LDFLAGS) @OPENSSL_LDFLAGS@
 ##
 ##   -l$(SGX_URTS_LIB)
 ##
-## Applications that use platform services or perform attestation
-## will also need:
-##
-##  -l$(SGX_UAE_SERVICE_LIB)
-##
 ## Use the variables, not the actual library names to ensure these
 ## targets work on simulation builds.
 
-client_LDADD=-l$(SGX_URTS_LIB) -lsgx_ukey_exchange -l$(SGX_UAE_SERVICE_LIB) \
-	-lcrypto -l:libsgx_capable.a -lpthread -ldl
+client_LDADD=-l$(SGX_URTS_LIB) -lsgx_ukey_exchange -lcrypto \
+	-l:libsgx_capable.a -lpthread -ldl
 
 mrsigner_LDADD=-lcrypto
 
