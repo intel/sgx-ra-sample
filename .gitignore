@@ -7,5 +7,15 @@ missing
 ref_sp
 public
 settings.*
+mrsigner.sh
+run-*
 win32/agent_win32.cpp
 win32/agent_win32.h
+Makefile.in
+Makefile
+
+# Auto configuration files
+configure
+config.h
+config.log
+config.status
