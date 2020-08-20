@@ -1414,7 +1414,7 @@ int get_attestation_report(IAS_Connection *ias, int version,
 
 				eprintf("advisoryURL       = %s\n",
 					reportObj["advisoryURL"].ToString().c_str());
-				eprintf("advisoryIDs       = %s");
+				eprintf("advisoryIDs       = ");
 				/* This is a JSON array */
 				for(i= 0; i< reportObj["advisoryIDs"].length(); ++i) {
 					eprintf("%s%s", (i)?",":"", reportObj["advisoryIDs"][i].ToString().c_str());
