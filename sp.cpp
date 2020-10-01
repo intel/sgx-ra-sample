@@ -675,8 +675,8 @@ int main(int argc, char *argv[])
 		msgio->send_partial((void *) &msg2, sizeof(sgx_ra_msg2_t));
 		fsend_msg_partial(fplog, (void *) &msg2, sizeof(sgx_ra_msg2_t));
 
-		msgio->send(&msg2.sig_rl, msg2.sig_rl_size);
-		fsend_msg(fplog, &msg2.sig_rl, msg2.sig_rl_size);
+		msgio->send(sigrl, msg2.sig_rl_size);
+		fsend_msg(fplog, sigrl, msg2.sig_rl_size); 
 
 		edivider();
 
