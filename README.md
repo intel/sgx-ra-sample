@@ -189,7 +189,7 @@ policy file, you can create requirements that the enclave report doesn't meet an
 trigger attestation failures.
 
 This demonstrates one of the key functions of remote attestation: the client enclave can be
-rejected if it originates from an unrecognized signer, containes an unrecognized product identifier,
+rejected if it originates from an unrecognized signer, contains an unrecognized product identifier,
 or if it's simply too old. The first prevents unauthorized and unknown enclaves from using the
 service. The latter two allows software venders to force end users to update their software.
 
