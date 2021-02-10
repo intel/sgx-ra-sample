@@ -1656,7 +1656,7 @@ void usage ()
 "  -A, --ias-signing-cafile=FILE" NL
 "                           Specify the IAS Report Signing CA file." NNL
 "  -N, --mrsigner=HEXSTRING" NL
-"                           Specify the MRSIGNER value of encalves that" NL
+"                           Specify the MRSIGNER value of enclaves that" NL
 "                           are allowed to attest. Enclaves signed by" NL
 "                           other signing keys are rejected." NNL
 "  -R, --isv-product-id=INT" NL

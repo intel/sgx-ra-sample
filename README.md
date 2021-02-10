@@ -327,7 +327,7 @@ Required:
                            Specify the IAS Report Signing CA file.
 
   -N, --mrsigner=HEXSTRING
-                           Specify the MRSIGNER value of encalves that
+                           Specify the MRSIGNER value of enclaves that
                            are allowed to attest. Enclaves signed by
                            other signing keys are rejected.
 
