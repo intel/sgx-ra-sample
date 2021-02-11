@@ -41,17 +41,17 @@ static int _init= 0;
 
 extern int verbose;
 
-int verify_enclave_identity(sgx_measurement_t req_mr_signer, 
-	sgx_prod_id_t req_isv_product_id, sgx_isv_svn_t min_isvsvn,
-	int allow_debug, sgx_report_body_t *report)
+int verify_enclave_identity(sgx_measurement_t req_mr_enclave,
+    sgx_measurement_t req_mr_signer, sgx_prod_id_t req_isv_product_id,
+    sgx_isv_svn_t min_isvsvn, int allow_debug, sgx_report_body_t *report)
 {
 	if ( verbose ) {
 		edividerWithText("Client enclave Identity");
-		eprintf("Enclave MRSIGNER      = %s\n", 
+		eprintf("Enclave MRSIGNER      = %s\n",
 			hexstring((const char *) &report->mr_signer,
 			sizeof(sgx_measurement_t))
 		);
-		eprintf("Enclave MRENCLAVE     = %s\n", 
+		eprintf("Enclave MRENCLAVE     = %s\n",
 			hexstring((const char *) &report->mr_enclave,
 			sizeof(sgx_measurement_t))
 		);
@@ -88,10 +88,20 @@ int verify_enclave_identity(sgx_measurement_t req_mr_signer,
 
 	// Does the MRSIGNER match?
 
-	if ( memcmp((const void *) &report->mr_signer, 
+	if ( memcmp((const void *) &report->mr_signer,
 		(const void *) &req_mr_signer, sizeof(sgx_measurement_t) ) ) {
 
 		eprintf("MRSIGNER mismatch\n");
+
+		return 0;
+	}
+
+    // Does the MRENCLAVE match?
+
+	if ( memcmp((const void *) &report->mr_enclave,
+		(const void *) &req_mr_enclave, sizeof(sgx_measurement_t) ) ) {
+
+		eprintf("MRENCLAVE mismatch\n");
 
 		return 0;
 	}

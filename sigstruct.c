@@ -17,7 +17,7 @@ in the License.
 
 /*
  * Read in a SIGSTRUCT dump file (from: sgx_sign dump -cssfile ...) and
- * produce the MRSIGNER hash.
+ * produce the MRENCLAVE hash.
  */
 
 #include <stdlib.h>
@@ -44,23 +44,30 @@ in the License.
 
 #define MODULUS_OFFSET	128
 #define MODULUS_SIZE	384
+#define ENCLAVEHASH_OFFSET	960
+#define ENCLAVEHASH_SIZE	32
 
 void usage ();
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
 	char *cssfile= NULL;
 	char *sigstruct_raw= NULL;
 	unsigned char modulus[MODULUS_SIZE];
 	unsigned char mrsigner[32]; /* Size of SHA-256 hash */
+	unsigned char mrenclave[ENCLAVEHASH_SIZE]; /* Size of SHA-256 hash */
 	FILE *fp;
 	size_t bread;
+	static int flag_mrsigner = 0;
+	static int flag_mrenclave = 0;
 
 	/* Command line options */
 
 	static struct option long_opt[] =
 	{
-		{"help",					no_argument, 		0, 'h'},
+		{"mrenclave",				no_argument,        &flag_mrenclave, 1},
+		{"mrsigner",				no_argument,        &flag_mrsigner, 1},
+		{"help",					no_argument,		0, 'h'},
 		{ 0, 0, 0, 0 }
 	};
 
@@ -70,13 +77,15 @@ int main(int argc, char *argv[])
 		int c;
 		int opt_index = 0;
 
-		c = getopt_long(argc, argv, "h", long_opt, &opt_index);
+		c = getopt_long_only(argc, argv, "h", long_opt, &opt_index);
 		if (c == -1) break;
 
 		switch (c) {
-
+        case 0:
+            break;
 		case 'h':
 		case '?':
+            break;
 		default:
 			usage();
 		}
@@ -89,7 +98,8 @@ int main(int argc, char *argv[])
 
 	/* The remaining argument is the sigstruct file to read */
 
-	cssfile= argv[1];
+	//cssfile= argv[1];
+	cssfile= argv[optind];
 
 #ifdef _WIN32
 	if (fopen_s(&fp, cssfile, "rb") != 0) {
@@ -103,38 +113,64 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	/* Seek to the location of the public key modulus */
+    if ( flag_mrenclave ) {
+	    /* Seek to the location of the enclave hash (mrenclave) */
 
-	if ( fseek(fp, MODULUS_OFFSET, SEEK_SET) == -1 ) {
-		fprintf(stderr, "%s: ", cssfile);
-		perror("fseek");
-		exit(1);
-	}
+	    if ( fseek(fp, ENCLAVEHASH_OFFSET, SEEK_SET) == -1 ) {
+	        fprintf(stderr, "%s: ", cssfile);
+	        perror("fseek");
+	        exit(1);
+	    }
 
-	/* Read the modulus */
+	    /* Read the enclave hash (mrenclave) */
 
-	bread = fread(modulus, 1, (size_t) MODULUS_SIZE, fp);
-	if ( bread != MODULUS_SIZE ) {
-		fprintf(stderr, "%s: not a valid sigstruct (file too small)\n",
-			cssfile);
-		exit(1);
-	}
+	    bread = fread(mrenclave, 1, (size_t) ENCLAVEHASH_SIZE, fp);
+	    if ( bread != ENCLAVEHASH_SIZE ) {
+	        fprintf(stderr, "%s: not a valid sigstruct (file too small)\n",
+	            cssfile);
+	        exit(1);
+	    }
 
-	fclose(fp);
+	    fclose(fp);
 
-	/* Calculate MRSIGNER, which is the SHA-256 hash of the modulus */
+        print_hexstring_nl(stdout, mrenclave, 32);
+    }
+    if ( flag_mrsigner ) {
+	    /* Seek to the location of the public key modulus */
 
-	if ( sha256_digest(modulus, MODULUS_SIZE, mrsigner) ) {
-		print_hexstring_nl(stdout, mrsigner, 32);
-		exit(0);
-	}
+	    if ( fseek(fp, MODULUS_OFFSET, SEEK_SET) == -1 ) {
+		    fprintf(stderr, "%s: ", cssfile);
+		    perror("fseek");
+		    exit(1);
+	    }
 
-	fprintf(stderr, "error calculating MRSIGNER\n");
-	exit(1);
+	    /* Read the modulus */
+
+	    bread = fread(modulus, 1, (size_t) MODULUS_SIZE, fp);
+	    if ( bread != MODULUS_SIZE ) {
+	        fprintf(stderr, "%s: not a valid sigstruct (file too small)\n",
+	            cssfile);
+	        exit(1);
+	    }
+
+	    fclose(fp);
+
+	    /* Calculate MRSIGNER, which is the SHA-256 hash of the modulus */
+
+	    if ( sha256_digest(modulus, MODULUS_SIZE, mrsigner) ) {
+	        print_hexstring_nl(stdout, mrsigner, 32);
+	        exit(0);
+	    }
+
+	    fprintf(stderr, "error calculating MRSIGNER\n");
+	    exit(1);
+    }
+
+	exit(0);
 }
 
-void usage () 
+void usage ()
 {
-	fprintf(stderr, "usage: mrsigner cssfile\n");
+	fprintf(stderr, "usage: sigstruct [--mrenclave | --mrsigner] cssfile\n");
 	exit(1);
 }

@@ -13,5 +13,5 @@ then
         fi
 fi
 
-exec ./mrsigner "$@"
+exec ./sigstruct "$@"
 

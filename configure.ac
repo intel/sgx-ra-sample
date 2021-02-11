@@ -119,12 +119,12 @@ AC_DEFINE_UNQUOTED([DEFAULT_CA_BUNDLE_AUTO], ["$ac_cv_default_ca_bundle_auto"],
 dnl Write our configuration
 dnl ----------------------------------------------------------------------
 AC_CONFIG_FILES([
-	mrsigner.sh
+	sigstruct.sh
 	run-server:run.in
 	run-client:run.in
 	Makefile
 	Enclave/Makefile
-],[chmod -f 755 run-client run-server mrsigner.sh])
+],[chmod -f 755 run-client run-server sigstruct.sh])
 
 AC_OUTPUT
 
