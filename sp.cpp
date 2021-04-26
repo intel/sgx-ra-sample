@@ -97,6 +97,7 @@ typedef struct config_struct {
 	X509 *signing_ca;
 	unsigned int apiver;
 	int strict_trust;
+	sgx_measurement_t req_mrenclave;
 	sgx_measurement_t req_mrsigner;
 	sgx_prod_id_t req_isv_product_id;
 	sgx_isv_svn_t min_isvsvn;
@@ -144,6 +145,7 @@ int main(int argc, char *argv[])
 	char flag_stdio= 0;
 	char flag_isv_product_id= 0;
 	char flag_min_isvsvn= 0;
+	char flag_mrenclave = 0;
 	char flag_mrsigner= 0;
 	char *sigrl = NULL;
 	config_t config;
@@ -165,6 +167,7 @@ int main(int argc, char *argv[])
 		{"ias-pri-api-key-file",	required_argument,	0, 'I'},
 		{"ias-sec-api-key-file",	required_argument,	0, 'J'},
 		{"service-key-file",		required_argument,	0, 'K'},
+		{"mrenclave",				required_argument,  0, 'M'},
 		{"mrsigner",				required_argument,  0, 'N'},
 		{"production",				no_argument,		0, 'P'},
 		{"isv-product-id",			required_argument,	0, 'R'},
@@ -215,7 +218,7 @@ int main(int argc, char *argv[])
 		unsigned long val;
 
 		c = getopt_long(argc, argv,
-			"A:B:DGI:J:K:N:PR:S:V:X:dg:hk:lp:r:s:i:j:vxz",
+			"A:B:DGI:J:K:M:N:PR:S:V:X:dg:hk:lp:r:s:i:j:vxz",
 			long_opt, &opt_index);
 		if (c == -1) break;
 
@@ -305,6 +308,19 @@ int main(int argc, char *argv[])
 				eprintf("%s: could not load EC private key\n", optarg);
 				return 1;
 			}
+			break;
+
+        // MRENCLAVE
+        //
+        // TODO double-check if that is correct
+		case 'M':
+			if (!from_hexstring((unsigned char *)&config.req_mrenclave,
+				optarg, 32)) {
+
+				eprintf("MRENCLAVE must be 64-byte hex string\n");
+				return 1;
+			}
+			++flag_mrenclave;
 			break;
 
 		case 'N':
@@ -549,12 +565,17 @@ int main(int argc, char *argv[])
 		eprintf("--isv-product-id is required\n");
 		flag_usage = 1;
 	}
-	
+
 	if ( ! flag_min_isvsvn ) {
 		eprintf("--min-isvsvn is required\n");
 		flag_usage = 1;
 	}
-	
+
+	if ( ! flag_mrenclave ) {
+		eprintf("--mrenclave is required\n");
+		flag_usage = 1;
+	}
+
 	if ( ! flag_mrsigner ) {
 		eprintf("--mrsigner is required\n");
 		flag_usage = 1;
@@ -926,8 +947,8 @@ int process_msg3 (MsgIO *msgio, IAS_Connection *ias, sgx_ra_msg1_t *msg1,
 #ifndef _WIN32
 /* Windows implementation is not available yet */
 
-		if ( ! verify_enclave_identity(config->req_mrsigner, 
-			config->req_isv_product_id, config->min_isvsvn, 
+		if ( ! verify_enclave_identity(config->req_mrenclave, config->req_mrsigner,
+			config->req_isv_product_id, config->min_isvsvn,
 			config->allow_debug_enclave, r) ) {
 
 			eprintf("Invalid enclave.\n");
@@ -1649,12 +1670,16 @@ void cleanup_and_exit(int signo)
 #define NNL <<endl<<endl<<
 #define NL <<endl<<
 
-void usage () 
+void usage ()
 {
 	cerr << "usage: sp [ options ] [ port ]" NL
 "Required:" NL
 "  -A, --ias-signing-cafile=FILE" NL
 "                           Specify the IAS Report Signing CA file." NNL
+"  -M, --mrenclave=HEXSTRING" NL
+"                           Specify the MRENCLAVE value of enclaves that" NL
+"                           are allowed to attest. Enclaves that have a" NL
+"                           different measurment (e.g. source code) are rejected." NNL
 "  -N, --mrsigner=HEXSTRING" NL
 "                           Specify the MRSIGNER value of enclaves that" NL
 "                           are allowed to attest. Enclaves signed by" NL

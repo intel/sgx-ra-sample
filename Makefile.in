@@ -86,7 +86,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = client$(EXEEXT) sp$(EXEEXT) mrsigner$(EXEEXT)
+bin_PROGRAMS = client$(EXEEXT) sp$(EXEEXT) sigstruct$(EXEEXT)
 @AGENT_CURL_TRUE@am__append_1 = agent_curl.cpp
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -100,7 +100,7 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = mrsigner.sh run-server run-client
+CONFIG_CLEAN_FILES = sigstruct.sh run-server run-client
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
@@ -114,12 +114,12 @@ client_OBJECTS = $(am_client_OBJECTS) $(nodist_client_OBJECTS)
 client_DEPENDENCIES =
 client_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(client_LDFLAGS) \
 	$(LDFLAGS) -o $@
-am_mrsigner_OBJECTS = mrsigner.$(OBJEXT) crypto.$(OBJEXT) \
+am_sigstruct_OBJECTS = sigstruct.$(OBJEXT) crypto.$(OBJEXT) \
 	hexutil.$(OBJEXT)
-mrsigner_OBJECTS = $(am_mrsigner_OBJECTS)
-mrsigner_DEPENDENCIES =
-mrsigner_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) \
-	$(mrsigner_LDFLAGS) $(LDFLAGS) -o $@
+sigstruct_OBJECTS = $(am_sigstruct_OBJECTS)
+sigstruct_DEPENDENCIES =
+sigstruct_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) \
+	$(sigstruct_LDFLAGS) $(LDFLAGS) -o $@
 am__sp_SOURCES_DIST = sp.cpp agent_wget.cpp iasrequest.cpp \
 	enclave_verify.c byteorder.c common.cpp crypto.c hexutil.c \
 	fileio.c base64.c msgio.cpp logfile.c agent_curl.cpp
@@ -172,8 +172,8 @@ am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
 SOURCES = $(client_SOURCES) $(nodist_client_SOURCES) \
-	$(mrsigner_SOURCES) $(sp_SOURCES)
-DIST_SOURCES = $(client_SOURCES) $(mrsigner_SOURCES) \
+	$(sigstruct_SOURCES) $(sp_SOURCES)
+DIST_SOURCES = $(client_SOURCES) $(sigstruct_SOURCES) \
 	$(am__sp_SOURCES_DIST)
 RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
 	ctags-recursive dvi-recursive html-recursive info-recursive \
@@ -219,7 +219,7 @@ CTAGS = ctags
 CSCOPE = cscope
 DIST_SUBDIRS = $(SUBDIRS)
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/config.h.in \
-	$(srcdir)/mrsigner.sh.in $(srcdir)/run.in \
+	$(srcdir)/sigstruct.sh.in $(srcdir)/run.in \
 	$(top_srcdir)/build-aux/sgx_app.am compile depcomp install-sh \
 	missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -415,13 +415,13 @@ client_LDFLAGS = $(AM_LDFLAGS) @OPENSSL_LDFLAGS@
 sp_SOURCES = sp.cpp agent_wget.cpp iasrequest.cpp enclave_verify.c \
 	$(common) $(am__append_1)
 EXTRA_sp_DEPENDENCIES = Enclave.signed.so
-mrsigner_SOURCES = mrsigner.cpp crypto.c hexutil.c
+sigstruct_SOURCES = sigstruct.cpp crypto.c hexutil.c
 sp_LDFLAGS = $(AM_LDFLAGS) @OPENSSL_LDFLAGS@ @CURL_LDFLAGS@
-mrsigner_LDFLAGS = $(AM_LDFLAGS) @OPENSSL_LDFLAGS@
+sigstruct_LDFLAGS = $(AM_LDFLAGS) @OPENSSL_LDFLAGS@
 client_LDADD = -l$(SGX_URTS_LIB) -lsgx_ukey_exchange -lcrypto \
 	-l:libsgx_capable.a -lpthread -ldl
 
-mrsigner_LDADD = -lcrypto
+sigstruct_LDADD = -lcrypto
 sp_LDADD = -lcrypto @CURL_LIBS@
 all: $(BUILT_SOURCES) config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
@@ -477,7 +477,7 @@ $(srcdir)/config.h.in:  $(am__configure_deps)
 
 distclean-hdr:
 	-rm -f config.h stamp-h1
-mrsigner.sh: $(top_builddir)/config.status $(srcdir)/mrsigner.sh.in
+sigstruct.sh: $(top_builddir)/config.status $(srcdir)/sigstruct.sh.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 run-server: $(top_builddir)/config.status $(srcdir)/run.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
@@ -526,13 +526,13 @@ uninstall-binPROGRAMS:
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 
-client$(EXEEXT): $(client_OBJECTS) $(client_DEPENDENCIES) $(EXTRA_client_DEPENDENCIES) 
+client$(EXEEXT): $(client_OBJECTS) $(client_DEPENDENCIES) $(EXTRA_client_DEPENDENCIES)
 	@rm -f client$(EXEEXT)
 	$(AM_V_CXXLD)$(client_LINK) $(client_OBJECTS) $(client_LDADD) $(LIBS)
 
-mrsigner$(EXEEXT): $(mrsigner_OBJECTS) $(mrsigner_DEPENDENCIES) $(EXTRA_mrsigner_DEPENDENCIES) 
-	@rm -f mrsigner$(EXEEXT)
-	$(AM_V_CXXLD)$(mrsigner_LINK) $(mrsigner_OBJECTS) $(mrsigner_LDADD) $(LIBS)
+sigstruct$(EXEEXT): $(sigstruct_OBJECTS) $(sigstruct_DEPENDENCIES) $(EXTRA_sigstruct_DEPENDENCIES) 
+	@rm -f sigstruct$(EXEEXT)
+	$(AM_V_CXXLD)$(sigstruct_LINK) $(sigstruct_OBJECTS) $(sigstruct_LDADD) $(LIBS)
 
 sp$(EXEEXT): $(sp_OBJECTS) $(sp_DEPENDENCIES) $(EXTRA_sp_DEPENDENCIES) 
 	@rm -f sp$(EXEEXT)
@@ -557,7 +557,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hexutil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/iasrequest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/logfile.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mrsigner.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sigstruct.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/msgio.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/quote_size.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sgx_detect_linux.Po@am__quote@
@@ -1039,9 +1039,11 @@ Enclave/Enclave.signed.so:
 
 server: sp
 
-policy: mrsigner policy.in Enclave.signed.so
+policy: sigstruct policy.in Enclave.signed.so
 	$(SGX_SIGN) dump -cssfile enclave_sigstruct_raw -dumpfile /dev/null -enclave Enclave.signed.so
-	sed -e "s^@MRSIGNER@^`./mrsigner.sh enclave_sigstruct_raw`^" policy.in > policy
+	sed -e "s^@MRSIGNER@^`./sigstruct.sh --mrsigner enclave_sigstruct_raw`^" \
+		-e "s^@MRENCLAVE@^`./sigstruct.sh --mrenclave enclave_sigstruct_raw`^" \
+		policy.in > policy
 	rm -f enclave_sigstruct_raw
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

@@ -8,9 +8,14 @@
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # This hex string should match the signer of the enclave. This is used to
-# prevents unauthorized enclaves (those from unrecognized ISVs/developers)
+# prevent unauthorized enclaves (those from unrecognized ISVs/developers)
 # from using the remote service.
 MRSIGNER=@MRSIGNER@
+
+# This hex string should match the measurement of the enclave code, also
+# know as the enclave hash. This is used to prevent unauthorized enclaves
+# (those with a different hash) from using the remote service.
+MRENCLAVE=@MRENCLAVE@
 
 # The product ID for the enclave. This must match the ProdId in the
 # enclave confgiruation file. 
