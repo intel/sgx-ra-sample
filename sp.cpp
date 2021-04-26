@@ -1325,16 +1325,16 @@ int get_sigrl (IAS_Connection *ias, int version, sgx_epid_group_id_t gid,
 
 		break;
 	}
+	size_t size;
 
-
-	*sig_rl= strdup(sigrlstr.c_str());
+	*sig_rl = (char *)base64_decode(sigrlstr.c_str(), &size);
 	if ( *sig_rl == NULL ) {
+		eprintf("Could not decode SigRL\n");
 		delete req;
 		return 0;
 	}
 
-	*sig_rl_size= (uint32_t ) sigrlstr.length();
-
+	*sig_rl_size = (uint32_t)size;
 	delete req;
 
 	return 1;
