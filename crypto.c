@@ -207,7 +207,7 @@ int key_load (EVP_PKEY **pkey, const char *hexstring, int keytype)
 cleanup:
 	if ( gy != NULL ) BN_free(gy);
 	if ( gx != NULL ) BN_free(gx);
-	/* if ( eckey != NULL ) EC_KEY_free(eckey); */
+	if ( eckey != NULL ) EC_KEY_free(eckey);
 
 	return (error_type == e_none);
 }
@@ -300,6 +300,7 @@ cleanup:
 	if ( gy != NULL ) BN_free(gy);
 	if ( gx != NULL ) BN_free(gx);
 	if ( ecgroup != NULL ) EC_GROUP_free(ecgroup);
+    if ( eckey != NULL ) EC_KEY_free(eckey);
 	return (error_type == e_none);
 }
 
@@ -400,6 +401,7 @@ EVP_PKEY *key_from_sgx_ec256 (sgx_ec256_public_t *k)
 cleanup:
 	if ( gy != NULL ) BN_free(gy);
 	if ( gx != NULL ) BN_free(gx);
+    if ( key != NULL) EC_KEY_free(key);
 
 	return pkey;
 }
@@ -792,6 +794,7 @@ int cert_verify (X509_STORE *store, STACK_OF(X509) *chain)
 
 cleanup:
 	if ( ctx != NULL ) X509_STORE_CTX_free(ctx);
+    if ( cert != NULL ) X509_free(cert);
 
 	return (error_type == e_none);
 }

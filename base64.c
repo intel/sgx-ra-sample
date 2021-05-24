@@ -85,6 +85,7 @@ char *base64_decode(const char *msg, size_t *sz)
 	}
 
 	BIO_free_all(bmem);
+    BIO_free_all(b64);
 
 	return buf;
 }
