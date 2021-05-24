@@ -691,6 +691,9 @@ disconnect:
 		msgio->disconnect();
 	}
 
+    if ( config.store != NULL ) X509_STORE_free(config.store);
+    if ( config.signing_ca != NULL ) X509_free(config.signing_ca);
+    if ( config.service_private_key != NULL ) EVP_PKEY_free(config.service_private_key); 
 	crypto_destroy();
 
 	return 0;
