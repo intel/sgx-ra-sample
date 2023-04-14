@@ -170,6 +170,8 @@ static void *_load_libsgx_uae_service()
 	if ( l_libsgx_uae_service == 0 ) {
 #ifdef _WIN32
 		h_libsgx_uae_service= LoadLibrary("libsgx_uae_service.dll");
+#elif SGX_HW_SIM
+		h_libsgx_uae_service= dlopen("libsgx_uae_service_sim.so", RTLD_GLOBAL|RTLD_NOW);
 #else
 		h_libsgx_uae_service= dlopen("libsgx_uae_service.so", RTLD_GLOBAL|RTLD_NOW);
 #endif
@@ -184,6 +186,8 @@ static void *_load_libsgx_urts()
 	if ( l_libsgx_urts == 0 ) {
 #ifdef _WIN32
 		h_libsgx_urts= LoadLibrary("libsgx_urts.dll");
+#elif SGX_HW_SIM
+		h_libsgx_urts= dlopen("libsgx_urts_sim.so", RTLD_GLOBAL|RTLD_NOW);
 #else
 		h_libsgx_urts= dlopen("libsgx_urts.so", RTLD_GLOBAL|RTLD_NOW);
 #endif
